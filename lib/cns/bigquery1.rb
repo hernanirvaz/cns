@@ -32,12 +32,12 @@ module Cns
 
     # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
     def mostra_tudo
-      # apius.mostra_resumo
-      # apide.mostra_resumo
+      apius.mostra_resumo
+      apide.mostra_resumo
       apifr.mostra_resumo
-      # apimt.mostra_resumo
-      # apies.mostra_resumo
-      # apigm.mostra_resumo
+      apimt.mostra_resumo
+      apies.mostra_resumo
+      apigm.mostra_resumo
     end
 
     # insere (caso existam) transacoes novas kraken/bitcoinde/paymium/therock/etherscan/greymass no bigquery
