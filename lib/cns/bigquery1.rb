@@ -7,7 +7,7 @@ require('bigdecimal/util')
 module Cns
   BD = 'hernanirvaz.coins'
 
-  # classe para processar bigquery
+  # (see Bigquery)
   class Bigquery
     # @return [Google::Cloud::Bigquery] API bigquery
     attr_reader :api
@@ -22,7 +22,7 @@ module Cns
     # @option pop [Hash] :h ({}) configuracao ajuste reposicionamento temporal
     # @option pop [Boolean] :v (false) mostra transacoes trades & ledger?
     # @option pop [Boolean] :t (false) mostra transacoes todas ou somente novas?
-    # @return [Bigquery] API bigquery & kraken/bitcoinde/paymium/therock
+    # @return [Bigquery] API bigquery
     def initialize(pop)
       # usa env GOOGLE_APPLICATION_CREDENTIALS para obter credentials
       # @see https://cloud.google.com/bigquery/docs/authentication/getting-started
@@ -30,57 +30,59 @@ module Cns
       @ops = pop
     end
 
-    # situacao completa entre kraken/bitcoinde/paymium/therock & bigquery
+    # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
     def mostra_tudo
-      apius.mostra_resumo
-      apide.mostra_resumo
+      # apius.mostra_resumo
+      # apide.mostra_resumo
       apifr.mostra_resumo
-      apimt.mostra_resumo
-      apies.mostra_resumo
-      apigm.mostra_resumo
+      # apimt.mostra_resumo
+      # apies.mostra_resumo
+      # apigm.mostra_resumo
     end
 
-    # insere (caso existam) transacoes novas do kraken/bitcoinde/paymium/therock no bigquery
+    # insere (caso existam) transacoes novas kraken/bitcoinde/paymium/therock/etherscan/greymass no bigquery
     def processa_tudo
       processa_us
       processa_de
       processa_fr
       processa_mt
-      processa_eos
       processa_eth
+      processa_eos
     end
 
-    # insere transacoes kraken novas nas tabelas ust (trades), usl (ledger)
+    private
+
+    # insere transacoes exchange kraken novas nas tabelas ust (trades), usl (ledger)
     def processa_us
       puts(format("%<n>2i TRADES KRAKEN INSERIDAS #{BD}.ust", n: apius.trades.empty? ? 0 : dml(ust_ins)))
       puts(format("%<n>2i LEDGER KRAKEN INSERIDAS #{BD}.usl", n: apius.ledger.empty? ? 0 : dml(usl_ins)))
     end
 
-    # insere transacoes bitcoinde novas nas tabelas det (trades), del (ledger)
+    # insere transacoes exchange bitcoinde novas nas tabelas det (trades), del (ledger)
     def processa_de
       puts(format("%<n>2i TRADES BITCOINDE INSERIDAS #{BD}.det", n: apide.trades.empty? ? 0 : dml(det_ins)))
       puts(format("%<n>2i LEDGER BITCOINDE INSERIDAS #{BD}.del", n: apide.ledger.empty? ? 0 : dml(del_ins)))
     end
 
-    # insere transacoes paymium novas na tabela fr (ledger)
+    # insere transacoes exchange paymium novas na tabela fr (ledger)
     def processa_fr
       puts(format("%<n>2i LEDGER PAYMIUM INSERIDAS #{BD}.fr", n: apifr.ledger.empty? ? 0 : dml(frl_ins)))
     end
 
-    # insere transacoes paymium novas na tabela mt (ledger)
+    # insere transacoes exchange therock novas na tabela mt (ledger)
     def processa_mt
       puts(format("%<n>2i LEDGER THEROCK INSERIDAS #{BD}.mt", n: apimt.ledger.empty? ? 0 : dml(mtl_ins)))
     end
 
-    # insere transacoes novas na tabela eos
-    def processa_eos
-      puts(format("%<n>2i LINHAS INSERIDAS #{BD}.eos ", n: apigm.novax.count.positive? ? dml(eost_ins) : 0))
+    # insere transacoes blockchain novas nas tabelas etht (norml), ethk (token)
+    def processa_eth
+      puts(format("%<n>2i TRANSACOES ETH INSERIDAS #{BD}.etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
+      puts(format("%<n>2i TOKEN EVENTS ETH INSERIDAS #{BD}.ethk", n: apies.novkx.empty? ? 0 : dml(ethk_ins)))
     end
 
-    # insere transacoes novas nas tabelas etht (trx normais), ethk (trx token)
-    def processa_eth
-      puts(format("%<n>2i LINHAS INSERIDAS #{BD}.etht", n: apies.novtx.count.positive? ? dml(etht_ins) : 0))
-      puts(format("%<n>2i LINHAS INSERIDAS #{BD}.ethk", n: apies.novkx.count.positive? ? dml(ethk_ins) : 0))
+    # insere transacoes blockchain novas na tabela eos
+    def processa_eos
+      puts(format("%<n>2i TRANSACOES EOS INSERIDAS #{BD}.eos ", n: apigm.novax.empty? ? 0 : dml(eost_ins)))
     end
 
     # cria job bigquery & verifica execucao

@@ -4,12 +4,12 @@ require('bigdecimal/util')
 
 # @author Hernani Rodrigues Vaz
 module Cns
-  # classe para processar saldos & transacoes trades e ledger
+  # classe para processar transacoes trades/ledger do kraken
   class Kraken
     # @return [Apius] API kraken
     attr_reader :api
     # @return [Array<Hash>] todos os dados bigquery
-    attr_reader :dbq
+    attr_reader :bqd
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :ops
 
@@ -20,59 +20,71 @@ module Cns
     # @option pop [Boolean] :t (false) mostra transacoes todas ou somente novas?
     # @return [Kraken] API kraken - obter saldos & transacoes trades e ledger
     def initialize(dad, pop)
-      # API kraken base
-      @api = Apius.new
-      @dbq = dad
+      @api = Apice.new
+      @bqd = dad
       @ops = pop
+    end
+
+    # @return [Hash] trades kraken novos
+    def trades
+      @trades ||= exd[:kt].select { |k, _| kyt.include?(k) }
+    end
+
+    # @return [Hash] ledger kraken novos
+    def ledger
+      @ledger ||= exd[:kl].select { |k, _| kyl.include?(k) }
+    end
+
+    # @return [String] texto saldos & transacoes & ajuste dias
+    def mostra_resumo
+      puts("\nKRAKEN\ntipo                 kraken              bigquery")
+      exd[:sl].each { |k, v| puts(formata_saldos(k, v)) }
+      mostra_totais
+
+      mostra_trades
+      mostra_ledger
+      return if trades.empty?
+
+      puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |e| "#{e}:0" }.join(' ')}")
     end
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
     def exd
       @exd ||= {
-        sl: api.account,
-        kt: api.trades,
-        kl: api.ledger
+        sl: api.account_us,
+        kt: api.trades_us,
+        kl: api.ledger_us
       }
     end
 
-    # @return [Array<String>] lista txid de transacoes trades
+    # @return [Array<String>] lista txid dos trades novos
     def kyt
-      @kyt ||= exd[:kt].keys - (ops[:t] ? [] : dbq[:nt].map { |e| e[:txid].to_sym })
+      @kyt ||= exd[:kt].keys - (ops[:t] ? [] : bqd[:nt].map { |e| e[:txid].to_sym })
     end
 
-    # @return [Array<String>] lista txid de transacoes ledger
+    # @return [Array<String>] lista txid dos ledger novos
     def kyl
-      @kyl ||= exd[:kl].keys - (ops[:t] ? [] : dbq[:nl].map { |e| e[:txid].to_sym })
+      @kyl ||= exd[:kl].keys - (ops[:t] ? [] : bqd[:nl].map { |e| e[:txid].to_sym })
     end
 
-    # @return [Hash] transacoes trades
-    def trades
-      @trades ||= exd[:kt].select { |k, _| kyt.include?(k) }
-    end
-
-    # @return [Hash] transacoes ledger
-    def ledger
-      @ledger ||= exd[:kl].select { |k, _| kyl.include?(k) }
-    end
-
-    # @example (see Apius#account)
+    # @example (see Apice#account_us)
     # @param [String] moe codigo kraken da moeda
     # @param [BigDecimal] sal saldo kraken da moeda
-    # @return [String] texto formatado saldos (kraken/bigquery) & iguais/ok/nok?
+    # @return [String] texto formatado saldos
     def formata_saldos(moe, sal)
-      t = dbq[:sl][moe.downcase.to_sym].to_d
+      t = bqd[:sl][moe.downcase.to_sym].to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
         mo: moe.upcase,
-        kr: sal,
+        kr: sal.to_d,
         bq: t,
-        ok: t == sal ? 'OK' : 'NOK'
+        ok: t == sal.to_d ? 'OK' : 'NOK'
       )
     end
 
-    # @example (see Apius#trades)
+    # @example (see Apice#trades_us)
     # @param (see Bigquery#ust_val1)
-    # @return [String] texto formatado transacao trade
+    # @return [String] texto formatado trade
     def formata_trades(idx, htx)
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-8.8s %<pr>8.2f %<vl>15.7f %<co>8.2f',
@@ -86,9 +98,9 @@ module Cns
       )
     end
 
-    # @example (see Apius#ledger)
+    # @example (see Apice#ledger_us)
     # @param (see Bigquery#usl_val)
-    # @return [String] texto formatado transacao ledger
+    # @return [String] texto formatado ledger
     def formata_ledger(idx, hlx)
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-4.4s %<pr>18.7f %<vl>18.7f',
@@ -101,16 +113,15 @@ module Cns
       )
     end
 
-    # @return [String] texto saldos & transacoes & ajuste dias
-    def mostra_resumo
-      puts("\nKRAKEN\nmoeda          saldo kraken        saldo bigquery")
-      exd[:sl].each { |k, v| puts(formata_saldos(k, v.to_d)) }
+    # @return [String] texto totais numero de transacoes
+    def mostra_totais
+      a = exd[:kt].count
+      b = bqd[:nt].count
+      c = exd[:kl].count
+      d = bqd[:nl].count
 
-      mostra_trades
-      mostra_ledger
-      return unless trades.count.positive?
-
-      puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |e| "#{e}:0" }.join(' ')}")
+      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: a, b: b, o: a == b ? 'OK' : 'NOK')}")
+      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: c, d: d, o: c == d ? 'OK' : 'NOK')}")
     end
 
     # @return [String] texto transacoes trades

@@ -4,12 +4,12 @@ require('bigdecimal/util')
 
 # @author Hernani Rodrigues Vaz
 module Cns
-  # classe para processar saldos & transacoes ledger
+  # classe para processar transacoes ledger do therock
   class TheRock
     # @return [Apius] API therock
     attr_reader :api
     # @return [Array<Hash>] todos os dados bigquery
-    attr_reader :dbq
+    attr_reader :bqd
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :ops
 
@@ -20,35 +20,46 @@ module Cns
     # @option pop [Boolean] :t (false) mostra transacoes todas ou somente novas?
     # @return [TheRock] API therock - obter saldos & transacoes ledger
     def initialize(dad, pop)
-      # API therock base
-      @api = Apimt.new
-      @dbq = dad
+      @api = Apice.new
+      @bqd = dad
       @ops = pop
+    end
+
+    # @return [Array<Hash>] lista ledger therock novos
+    def ledger
+      @ledger ||= exd[:kl].select { |o| kyl.include?(o[:id]) }
+    end
+
+    # @return [String] texto saldos & transacoes & ajuste dias
+    def mostra_resumo
+      puts("\nTHEROCK\ntipo                therock              bigquery")
+      exd[:sl].each { |h| puts(formata_saldos(h)) }
+      mostra_totais
+
+      mostra_ledger
+      return unless ledger.count.positive?
+
+      puts("\nstring ajuste dias da ledger\n-h=#{kyl.map { |e| "#{e}:0" }.join(' ')}")
     end
 
     # @return [Hash] dados exchange therock - saldos & transacoes ledger
     def exd
       @exd ||= {
-        sl: api.account,
-        kl: api.ledger
+        sl: api.account_mt,
+        kl: api.ledger_mt
       }
     end
 
-    # @return [Array<String>] lista txid de transacoes ledger
+    # @return [Array<String>] lista txid dos ledger novos
     def kyl
-      @kyl ||= exd[:kl].map { |h| h[:id] } - (ops[:t] ? [] : dbq[:nl].map { |e| e[:txid] })
+      @kyl ||= exd[:kl].map { |h| h[:id] } - (ops[:t] ? [] : bqd[:nl].map { |e| e[:txid] })
     end
 
-    # @return [Hash] transacoes ledger
-    def ledger
-      @ledger ||= exd[:kl].select { |o| kyl.include?(o[:id]) }
-    end
-
-    # @example (see Apimt#account)
+    # @example (see Apice#account_mt)
     # @param [Hash] hsl saldo therock da moeda
-    # @return [String] texto formatado saldos (therock/bigquery) & iguais/ok/nok?
+    # @return [String] texto formatado saldos
     def formata_saldos(hsl)
-      b = dbq[:sl][hsl[:currency].downcase.to_sym].to_d
+      b = bqd[:sl][hsl[:currency].downcase.to_sym].to_d
       k = hsl[:balance].to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
@@ -59,9 +70,9 @@ module Cns
       )
     end
 
-    # @example (see Apimt#ledger)
+    # @example (see Apice#ledger_mt)
     # @param (see Bigquery#mtl_val1)
-    # @return [String] texto formatado transacao ledger
+    # @return [String] texto formatado ledger
     def formata_ledger(hlx)
       format(
         '%<ky>6i %<dt>19.19s %<ty>-27.27s %<mo>-4.4s %<vl>20.7f',
@@ -73,15 +84,12 @@ module Cns
       )
     end
 
-    # @return [String] texto saldos & transacoes & ajuste dias
-    def mostra_resumo
-      puts("\nTHEROCK\nmoeda         saldo therock        saldo bigquery")
-      exd[:sl].each { |h| puts(formata_saldos(h)) }
+    # @return [String] texto totais numero de transacoes
+    def mostra_totais
+      c = exd[:kl].count
+      d = bqd[:nl].count
 
-      mostra_ledger
-      return unless ledger.count.positive?
-
-      puts("\nstring ajuste dias da ledger\n-h=#{kyl.map { |e| "#{e}:0" }.join(' ')}")
+      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: c, d: d, o: c == d ? 'OK' : 'NOK')}")
     end
 
     # @return [String] texto transacoes ledger

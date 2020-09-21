@@ -4,7 +4,9 @@
 module Cns
   # (see Bigquery)
   class Bigquery
-    # @return [Etherscan] API etherscan
+    private
+
+    # @return [Etherscan] API blockchain ETH
     def apies
       @apies ||= Etherscan.new(
         {
@@ -16,7 +18,7 @@ module Cns
       )
     end
 
-    # @return [Greymass] API greymass
+    # @return [Greymass] API blockchain EOS
     def apigm
       @apigm ||= Greymass.new(
         {
@@ -27,7 +29,7 @@ module Cns
       )
     end
 
-    # @return [Kraken] API kraken - obter saldos & transacoes trades e ledger
+    # @return [Kraken] API exchange kraken
     def apius
       @apius ||= Kraken.new(
         {
@@ -39,7 +41,7 @@ module Cns
       )
     end
 
-    # @return [Bitcoinde] API Bitcoinde - obter saldos & transacoes trades e ledger
+    # @return [Bitcoinde] API exchange bitcoinde
     def apide
       @apide ||= Bitcoinde.new(
         {
@@ -51,7 +53,7 @@ module Cns
       )
     end
 
-    # @return [Paymium] API Paymium - obter saldos & transacoes ledger
+    # @return [Paymium] API exchange paymium
     def apifr
       @apifr ||= Paymium.new(
         {
@@ -62,7 +64,7 @@ module Cns
       )
     end
 
-    # @return [TheRock] API TheRock - obter saldos & transacoes ledger
+    # @return [TheRock] API exchange therock
     def apimt
       @apimt ||= TheRock.new(
         {

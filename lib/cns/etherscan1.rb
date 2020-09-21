@@ -9,10 +9,10 @@ module Cns
 
   # (see Etherscan)
   class Etherscan
-    # @return [Apies] API etherscan
+    # @return [Apibc] API blockchains
     attr_reader :api
     # @return [Array<Hash>] todos os dados bigquery
-    attr_reader :dbq
+    attr_reader :bqd
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :ops
 
@@ -22,77 +22,78 @@ module Cns
     # @option pop [Boolean] :v (false) mostra dados transacoes normais & tokens?
     # @return [Etherscan] API etherscan - processar transacoes normais e tokens
     def initialize(dad, pop)
-      @api = Apies.new
-      @dbq = dad
+      @api = Apibc.new
+      @bqd = dad
       @ops = pop
-    end
-
-    # @return [Array<String>] lista dos meus enderecos
-    def lax
-      @lax ||= dbq[:wb].map { |h| h[:ax] }
-    end
-
-    # @return [Array<Hash>] todos os dados etherscan - saldos & transacoes
-    def dbc
-      @dbc ||= api.account(lax).map { |e| base_bc(e) }
-    end
-
-    # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
-    def dados
-      @dados ||= dbq[:wb].map { |b| bq_bc(b, dbc.select { |s| b[:ax] == s[:ax] }.first) }
-    end
-
-    # @return [Array<Integer>] lista indices transacoes normais novas
-    def bnt
-      @bnt ||= (dbc.map { |e| e[:tx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : dbq[:nt].map { |t| t[:itx] }))
-    end
-
-    # @return [Array<Integer>] lista indices transacoes token novas
-    def bnk
-      @bnk ||= (dbc.map { |e| e[:kx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : dbq[:nk].map { |t| t[:itx] }))
     end
 
     # @return [Array<Hash>] lista transacoes normais novas
     def novtx
-      @novtx ||= dbc.map { |e| e[:tx].select { |n| bnt.include?(n[:itx]) } }.flatten
+      @novtx ||= bcd.map { |e| e[:tx].select { |n| idt.include?(n[:itx]) } }.flatten
     end
 
     # @return [Array<Hash>] lista transacoes token novas
     def novkx
-      @novkx ||= dbc.map { |e| e[:kx].select { |n| bnk.include?(n[:itx]) } }.flatten
+      @novkx ||= bcd.map { |e| e[:kx].select { |n| idk.include?(n[:itx]) } }.flatten
     end
 
-    # @param [Hash] hbc dados etherscan
+    # @return [Array<String>] lista dos meus enderecos
+    def lax
+      @lax ||= bqd[:wb].map { |h| h[:ax] }
+    end
+
+    # @return [Array<Hash>] todos os dados etherscan - saldos & transacoes
+    def bcd
+      @bcd ||= api.account_es(lax).map { |e| base_bc(e) }
+    end
+
+    # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
+    def dados
+      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.select { |s| b[:ax] == s[:ax] }.first) }
+    end
+
+    # @return [Array<Integer>] lista indices transacoes normais novas
+    def idt
+      @idt ||= (bcd.map { |e| e[:tx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |t| t[:itx] }))
+    end
+
+    # @return [Array<Integer>] lista indices transacoes token novas
+    def idk
+      @idk ||= (bcd.map { |e| e[:kx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nk].map { |t| t[:itx] }))
+    end
+
+    # @example (see Apibc#account_es)
+    # @param [Hash] abc account etherscan
     # @return [Hash] dados etherscan - address, saldo & transacoes
-    def base_bc(hbc)
-      a = hbc[:account]
+    def base_bc(abc)
+      a = abc[:account]
       {
         ax: a,
-        sl: (hbc[:balance].to_d / 10**18).round(10),
-        tx: filtrar_tx(a, api.norml_tx(a)),
-        kx: filtrar_tx(a, api.token_tx(a))
+        sl: (abc[:balance].to_d / 10**18).round(10),
+        tx: filtrar_tx(a, api.norml_es(a)),
+        kx: filtrar_tx(a, api.token_es(a))
       }
     end
 
-    # @param [Hash] hbq dados bigquery
-    # @param hbc (see base_bc)
+    # @param [Hash] wbq wallet bigquery
+    # @param [Hash] hbc dados etherscan - address, saldo & transacoes
     # @return [Hash] dados juntos bigquery & etherscan
-    def bq_bc(hbq, hbc)
+    def bq_bc(wbq, hbc)
       {
-        id: hbq[:id],
-        ax: hbq[:ax],
-        bs: hbq[:sl],
-        bt: dbq[:nt].select { |t| t[:iax] == hbq[:ax] },
-        bk: dbq[:nk].select { |t| t[:iax] == hbq[:ax] },
+        id: wbq[:id],
+        ax: wbq[:ax],
+        bs: wbq[:sl],
+        bt: bqd[:nt].select { |t| t[:iax] == wbq[:ax] },
+        bk: bqd[:nk].select { |t| t[:iax] == wbq[:ax] },
         es: hbc[:sl],
         et: hbc[:tx],
         ek: hbc[:kx]
       }
     end
 
-    # @param [String] add endereco carteira ETH
-    # @param [Array<Hash>] ary lista das transacoes
-    # @return [Array<Hash>] devolve lista de transacoes/token transfer events filtrada
+    # @param add (see Apibc#norml_es)
+    # @param [Array<Hash>] ary lista transacoes/token events
+    # @return [Array<Hash>] lista transacoes/token events filtrada
     def filtrar_tx(add, ary)
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
       # elimina chaves irrelevantes (DL) & adiciona chave indice itx & adiciona identificador da carteira iax

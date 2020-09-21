@@ -6,10 +6,10 @@ require('bigdecimal/util')
 module Cns
   # (see Greymass)
   class Greymass
-    # @return [Apigm] API greymass
+    # @return [Apibc] API blockchains
     attr_reader :api
     # @return [Array<Hash>] todos os dados bigquery
-    attr_reader :dbq
+    attr_reader :bqd
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :ops
 
@@ -20,56 +20,57 @@ module Cns
     # @option pop [Boolean] :t (false) mostra transacoes todas ou somente novas?
     # @return [Greymass] API greymass - processar transacoes
     def initialize(dad, pop)
-      @api = Apigm.new
-      @dbq = dad
+      @api = Apibc.new
+      @bqd = dad
       @ops = pop
-    end
-
-    # @return [Array<String>] lista dos meus enderecos
-    def lax
-      @lax ||= dbq[:wb].map { |h| h[:ax] }
-    end
-
-    # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
-    def dbc
-      @dbc ||= dbq[:wb].map { |e| base_bc(e) }
-    end
-
-    # @return [Array<Hash>] todos os dados juntos bigquery & greymass
-    def dados
-      @dados ||= dbq[:wb].map { |b| bq_bc(b, dbc.select { |s| b[:ax] == s[:ax] }.first) }
-    end
-
-    # @return [Array<Integer>] lista indices transacoes novas
-    def bnt
-      @bnt ||= (dbc.map { |e| e[:tx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : dbq[:nt].map { |t| t[:itx] }))
     end
 
     # @return [Array<Hash>] lista transacoes novas
     def novax
-      @novax ||= dbc.map { |e| e[:tx].select { |s| bnt.include?(s[:itx]) } }.flatten
+      @novax ||= bcd.map { |e| e[:tx].select { |s| idt.include?(s[:itx]) } }.flatten
     end
 
-    # @param [Hash] hbq dados bigquery wallet
+    # @return [Array<String>] lista dos meus enderecos
+    def lax
+      @lax ||= bqd[:wb].map { |h| h[:ax] }
+    end
+
+    # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
+    def bcd
+      @bcd ||= bqd[:wb].map { |e| base_bc(e) }
+    end
+
+    # @return [Array<Hash>] todos os dados juntos bigquery & greymass
+    def dados
+      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.select { |s| b[:ax] == s[:ax] }.first) }
+    end
+
+    # @return [Array<Integer>] lista indices transacoes novas
+    def idt
+      @idt ||= (bcd.map { |e| e[:tx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |t| t[:itx] }))
+    end
+
+    # @example (see Apibc#account_gm)
+    # @param [Hash] wbq wallet bigquery
     # @return [Hash] dados greymass - address, saldo & transacoes
-    def base_bc(hbq)
-      a = hbq[:ax]
+    def base_bc(wbq)
+      a = wbq[:ax]
       {
         ax: a,
         sl: greymass_sl(a).inject(:+),
-        tx: filtrar_tx(a, api.all_tx(a))
+        tx: filtrar_tx(a, api.ledger_gm(a))
       }
     end
 
-    # @param hbq (see base_bc)
-    # @param [Hash] hbc dados greymass
+    # @param wbq (see base_bc)
+    # @param [Hash] hbc dados greymass - address, saldo & transacoes
     # @return [Hash] dados juntos bigquery & greymass
-    def bq_bc(hbq, hbc)
+    def bq_bc(wbq, hbc)
       {
-        id: hbq[:id],
-        ax: hbq[:ax],
-        bs: hbq[:sl],
-        bt: dbq[:nt].select { |t| t[:iax] == hbq[:ax] },
+        id: wbq[:id],
+        ax: wbq[:ax],
+        bs: wbq[:sl],
+        bt: bqd[:nt].select { |t| t[:iax] == wbq[:ax] },
         es: hbc[:sl],
         et: hbc[:tx]
       }
@@ -78,7 +79,7 @@ module Cns
     # @param (see filtrar_tx)
     # @return [Array<BigDecimal>] lista recursos - liquido, net, spu
     def greymass_sl(add)
-      v = api.account(account_name: add)
+      v = api.account_gm(add)
       [
         v[:core_liquid_balance].to_d,
         v[:total_resources][:net_weight].to_d,
@@ -86,9 +87,9 @@ module Cns
       ]
     end
 
-    # @param [String] add endereco carteira EOS
-    # @param [Array<Hash>] ary lista das transacoes
-    # @return [Array<Hash>] lista transacoes ligadas a uma carteira filtrada
+    # @param add (see Apibc#account_gm)
+    # @param [Array<Hash>] ary lista transacoes
+    # @return [Array<Hash>] lista transacoes filtrada
     def filtrar_tx(add, ary)
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
       # adiciona chave indice itx & adiciona identificador da carteira iax

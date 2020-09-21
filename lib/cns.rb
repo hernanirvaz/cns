@@ -1,35 +1,24 @@
 # frozen_string_literal: true
 
 require('thor')
-require('cns/apide')
-require('cns/apies')
-require('cns/apifr')
-require('cns/apigm')
-require('cns/apimt')
-require('cns/apius')
+require('cns/apibc')
+require('cns/apice1')
+require('cns/apice2')
 require('cns/bigquery1')
 require('cns/bigquery2')
 require('cns/bigquery3')
 require('cns/bigquery4')
-require('cns/bitcoinde')
 require('cns/etherscan1')
 require('cns/etherscan2')
 require('cns/greymass1')
 require('cns/greymass2')
+require('cns/bitcoinde')
 require('cns/kraken')
 require('cns/paymium')
 require('cns/therock')
 require('cns/version')
 
 module Cns
-  # classe para erros desta gem
-  class Erro < StandardError
-    # @return [StandardError] personalizacao dos erros
-    def initialize(msg)
-      super(msg)
-    end
-  end
-
   # classe para carregar/mostrar dados transacoes eth & eos no bigquery
   class CLI < Thor
     desc 'work', 'carrega transacoes novas no bigquery'
@@ -45,6 +34,13 @@ module Cns
     # mostra resumo transacoes
     def show
       Bigquery.new(options).mostra_tudo
+    end
+
+    desc 'nn', 'mostra resumo transacoes'
+    # mostra resumo transacoes
+    def nn
+      c = Apice.new.ledger_fr
+      p(c)
     end
 
     default_task :show

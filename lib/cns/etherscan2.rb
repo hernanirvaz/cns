@@ -2,8 +2,19 @@
 
 # @author Hernani Rodrigues Vaz
 module Cns
-  # classe para processar carteiras & transacoes normais e tokens
+  # classe para processar transacoes do etherscan
   class Etherscan
+    # @return [String] texto carteiras & transacoes & ajuste dias
+    def mostra_resumo
+      return unless dados.count.positive?
+
+      puts("\nid     address                            etherscan nm tk     bigquery nm tk")
+      dados.each { |e| puts(formata_carteira(e)) }
+      mostra_transacao_norml
+      mostra_transacao_token
+      mostra_configuracao_ajuste_dias
+    end
+
     # @param [Hash] hjn dados juntos bigquery & etherscan
     # @return [String] texto formatado duma carteira
     def formata_carteira(hjn)
@@ -19,12 +30,12 @@ module Cns
     def formata_valores(hjn)
       format(
         '%<v1>11.6f %<n1>2i %<n3>2i %<v2>12.6f %<n2>2i %<n4>2i %<ok>-3s',
-        v1: hjn[:bs],
-        n1: hjn[:bt].count,
-        n3: hjn[:bk].count,
-        v2: hjn[:es],
-        n2: hjn[:et].count,
-        n4: hjn[:ek].count,
+        v1: hjn[:es],
+        n1: hjn[:et].count,
+        n3: hjn[:ek].count,
+        v2: hjn[:bs],
+        n2: hjn[:bt].count,
+        n4: hjn[:bk].count,
         ok: ok?(hjn) ? 'OK' : 'NOK'
       )
     end
@@ -42,12 +53,13 @@ module Cns
     # @return [String] endereco formatado
     def formata_endereco(add, max)
       i = Integer((max - 2) / 2)
-      e = (max <= 20 ? dbq[:wb].select { |s| s[:ax] == add }.first : nil) || { id: add }
+      e = (max <= 20 ? bqd[:wb].select { |s| s[:ax] == add }.first : nil) || { id: add }
       max < 7 ? 'erro' : "#{e[:id][0, i - 3]}..#{add[-i - 3..]}"
     end
 
-    # @param [Hash] htx transacao normal
-    # @return [String] texto formatado transacao normal
+    # @example (see Apibc#norml_es)
+    # @param [Hash] htx transacao normal etherscan
+    # @return [String] texto formatado transacao normal etherscan
     def formata_transacao_norml(htx)
       format(
         '%<bn>9i %<fr>-20.20s %<to>-20.20s %<dt>10.10s %<vl>17.6f',
@@ -59,8 +71,9 @@ module Cns
       )
     end
 
-    # @param [Hash] hkx transacao token
-    # @return [String] texto formatado transacao token
+    # @example (see Apibc#token_es)
+    # @param [Hash] hkx transacao token etherscan
+    # @return [String] texto formatado transacao token etherscan
     def formata_transacao_token(hkx)
       format(
         '%<bn>9i %<fr>-20.20s %<to>-20.20s %<dt>10.10s %<vl>11.3f %<sy>-5.5s',
@@ -71,17 +84,6 @@ module Cns
         vl: (hkx[:value].to_d / 10**18).round(10),
         sy: hkx[:tokenSymbol]
       )
-    end
-
-    # @return [String] texto carteiras & transacoes & ajuste dias
-    def mostra_resumo
-      return unless dados.count.positive?
-
-      puts("\nid     address                             bigquery nm tk    etherscan nm tk")
-      dados.each { |e| puts(formata_carteira(e)) }
-      mostra_transacao_norml
-      mostra_transacao_token
-      mostra_configuracao_ajuste_dias
     end
 
     # @return [String] texto transacoes normais
