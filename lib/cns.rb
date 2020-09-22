@@ -36,13 +36,6 @@ module Cns
       Bigquery.new(options).mostra_tudo
     end
 
-    desc 'nn', 'mostra resumo transacoes'
-    # mostra resumo transacoes
-    def nn
-      c = Apice.new.ledger_fr
-      p(c)
-    end
-
     default_task :show
   end
 end

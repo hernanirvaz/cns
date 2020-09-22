@@ -8,7 +8,7 @@ module Cns
   BD = 'hernanirvaz.coins'
 
   # (see Bigquery)
-  class Bigquery
+  class Cns::Bigquery
     # @return [Google::Cloud::Bigquery] API bigquery
     attr_reader :api
     # @return [Google::Cloud::Bigquery::QueryJob] job bigquery
