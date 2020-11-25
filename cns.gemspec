@@ -7,15 +7,14 @@ Gem::Specification.new do |spec|
   spec.version     = Cns::VERSION
   spec.authors     = ['Hernâni Rodrigues Vaz']
   spec.email       = ['hernanirvaz@gmail.com']
-
-  spec.summary     = 'Arquiva transactions etherscan/greymass/bitcoinde/kraken/paymium/therock no bigquery.'
-  spec.description = "#{spec.summary} Pode ajustar dias para reposicionamento temporal."
   spec.homepage    = 'https://github.com/hernanirvaz/cns'
   spec.license     = 'MIT'
-  spec.required_ruby_version = Gem::Requirement.new('>= 2.3.0')
+  spec.summary     = 'Arquiva transactions etherscan/greymass/bitcoinde/kraken/paymium/therock no bigquery.'
+  spec.description = "#{spec.summary} Pode ajustar dias para reposicionamento temporal."
 
+  spec.required_ruby_version    = Gem::Requirement.new('~> 2.7')
   spec.metadata['homepage_uri'] = spec.homepage
-  spec.metadata['yard.run'] = 'yard'
+  spec.metadata['yard.run']     = 'yard'
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
@@ -29,10 +28,13 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency('bundler')
   spec.add_development_dependency('rake')
+  spec.add_development_dependency('reek')
+  spec.add_development_dependency('rubocop')
+  spec.add_development_dependency('solargraph')
+  spec.add_development_dependency('yard')
 
   spec.add_dependency('curb')
   spec.add_dependency('faraday')
   spec.add_dependency('google-cloud-bigquery')
   spec.add_dependency('thor')
-  spec.add_dependency('yard')
 end
