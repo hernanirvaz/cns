@@ -9,7 +9,7 @@ module Cns
       return unless dados.count.positive?
 
       puts("\nid     address                            etherscan nm tk     bigquery nm tk")
-      dados.each { |e| puts(formata_carteira(e)) }
+      dados.each { |obj| puts(formata_carteira(obj)) }
       mostra_transacao_norml
       mostra_transacao_token
       mostra_configuracao_ajuste_dias
@@ -52,9 +52,9 @@ module Cns
     # @param [Integer] max chars a mostrar
     # @return [String] endereco formatado
     def formata_endereco(add, max)
-      i = Integer((max - 2) / 2)
-      e = (max <= 20 ? bqd[:wb].select { |s| s[:ax] == add }.first : nil) || { id: add }
-      max < 7 ? 'erro' : "#{e[:id][0, i - 3]}..#{add[-i - 3..]}"
+      int = Integer((max - 2) / 2)
+      hid = (max <= 20 ? bqd[:wb].select { |obj| obj[:ax] == add }.first : nil) || { id: add }
+      max < 7 ? 'erro' : "#{hid[:id][0, int - 3]}..#{add[-int - 3..]}"
     end
 
     # @example (see Apibc#norml_es)
@@ -91,7 +91,7 @@ module Cns
       return unless ops[:v] && novtx.count.positive?
 
       puts("\ntx normal from                 to                   data                   valor")
-      sortx.each { |e| puts(formata_transacao_norml(e)) }
+      sortx.each { |obj| puts(formata_transacao_norml(obj)) }
     end
 
     # @return [String] texto transacoes token
@@ -99,14 +99,14 @@ module Cns
       return unless ops[:v] && novkx.count.positive?
 
       puts("\ntx token  from                 to                   data             valor")
-      sorkx.each { |e| puts(formata_transacao_token(e)) }
+      sorkx.each { |obj| puts(formata_transacao_token(obj)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes (normais & token)
     def mostra_configuracao_ajuste_dias
       return unless (novtx.count + novkx.count).positive?
 
-      puts("\nstring ajuste dias\n-h=#{sorax.map { |e| "#{e[:blockNumber]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{sorax.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}")
     end
   end
 end

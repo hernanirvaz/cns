@@ -17,14 +17,10 @@ module Cns
     #    ]
     #  }
     # @param [String] ads lista enderecos ETH (max 20)
-    # @param [Hash] par parametros base do pedido HTTP
     # @return [Array<Hash>] lista enderecos e seus saldos
-    def account_es(ads, par = { module: 'account', action: 'balancemulti', tag: 'latest' })
+    def account_es(ads)
       JSON.parse(
-        (conn_es.get('api') do |o|
-           o.headers = { content_type: 'application/json', accept: 'application/json', user_agent: 'etherscan;ruby' }
-           o.params = par.merge(address: ads.join(','), apikey: ENV['ETHERSCAN_API_KEY'])
-         end).body,
+        conn_es.get('api', action: 'balancemulti', tag: 'latest', address: ads.join(',')).body,
         symbolize_names: true
       )[:result]
     rescue StandardError
@@ -82,15 +78,9 @@ module Cns
     #    rex_info: nil
     #  }
     # @param [String] add endereco EOS
-    # @param [String] uri Uniform Resource Identifier do pedido HTTP
     # @return [Hash] endereco e seus saldo/recursos
-    def account_gm(add, uri = '/v1/chain/get_account')
-      JSON.parse(
-        conn_gm.post(
-          uri, { account_name: add }.to_json, content_type: 'application/json'
-        ).body,
-        symbolize_names: true
-      )
+    def account_gm(add)
+      JSON.parse(conn_gm.post('/v1/chain/get_account', { account_name: add }.to_json).body, symbolize_names: true)
     rescue StandardError
       { core_liquid_balance: 0, total_resources: { net_weight: 0, cpu_weight: 0 } }
     end
@@ -125,20 +115,17 @@ module Cns
     #  }
     # @param [String] add endereco ETH
     # @param [Integer] pag pagina transacoes
-    # @param [Array<Hash>] ary acumulador transacoes
-    # @param par (see account_es)
+    # @param [Array<Hash>] aes acumulador transacoes
     # @return [Array<Hash>] lista completa transacoes etherscan
-    def norml_es(add, pag = 0, ary = [], par = { module: 'account', action: 'txlist', offset: 10_000 })
-      r = JSON.parse(
-        (conn_es.get('api') do |o|
-           o.headers = { content_type: 'application/json', accept: 'application/json', user_agent: 'etherscan;ruby' }
-           o.params = par.merge(address: add, page: pag + 1, apikey: ENV['ETHERSCAN_API_KEY'])
-         end).body,
+    def norml_es(add, pag = 0, aes = [])
+      res = JSON.parse(
+        conn_es.get('api', action: 'txlist', offset: 10_000, address: add, page: pag += 1).body,
         symbolize_names: true
       )[:result]
-      r.count < 10_000 ? ary + r : norml_es(add, pag + 1, ary + r)
+      aes += res
+      res.count < 10_000 ? aes : norml_es(add, pag, aes)
     rescue StandardError
-      ary
+      aes
     end
 
     # @example token_es
@@ -172,20 +159,18 @@ module Cns
     #  }
     # @param (see norml_es)
     # @return [Array<Hash>] lista completa token transfer events etherscan
-    def token_es(add, pag = 0, ary = [], par = { module: 'account', action: 'tokentx', offset: 10_000 })
+    def token_es(add, pag = 0, aes = [])
       # registos duplicados aparecem em token events (ver exemplo acima)
       # -quando ha erros na blockchain (acho)
       # -quando ha token events identicos no mesmo block (acho)
-      r = JSON.parse(
-        (conn_es.get('api') do |o|
-           o.headers = { content_type: 'application/json', accept: 'application/json', user_agent: 'etherscan;ruby' }
-           o.params = par.merge(address: add, page: pag + 1, apikey: ENV['ETHERSCAN_API_KEY'])
-         end).body,
+      res = JSON.parse(
+        conn_es.get('api', action: 'tokentx', offset: 10_000, address: add, page: pag += 1).body,
         symbolize_names: true
       )[:result]
-      r.count < 10_000 ? ary + r : token_es(add, pag + 1, ary + r)
+      aes += res
+      res.count < 10_000 ? aes : token_es(add, pag, aes)
     rescue StandardError
-      ary
+      aes
     end
 
     # @example ledger_gm
@@ -236,20 +221,17 @@ module Cns
     #    last_irreversible_block: 141_721_371
     #  }
     # @param add (see account_gm)
-    # @param [Integer] pos posicao transacoes
-    # @param [Array<Hash>] ary acumulador transacoes
-    # @param uri (see account_gm)
+    # @param [Array<Hash>] agm acumulador transacoes
     # @return [Array<Hash>] lista completa transacoes greymass
-    def ledger_gm(add, pos = 0, ary = [], uri = '/v1/history/get_actions')
-      r = JSON.parse(
-        conn_gm.post(
-          uri, { account_name: add, pos: pos, offset: 100 }.to_json, content_type: 'application/json'
-        ).body,
+    def ledger_gm(add, agm = [])
+      res = JSON.parse(
+        conn_gm.post('/v1/history/get_actions', { account_name: add, pos: agm.count, offset: 100 }.to_json).body,
         symbolize_names: true
       )[:actions]
-      r.count < 100 ? ary + r : ledger_gm(add, pos + r.count, ary + r)
+      agm += res
+      res.count < 100 ? agm : ledger_gm(add, agm)
     rescue StandardError
-      ary
+      agm
     end
 
     private
@@ -262,18 +244,22 @@ module Cns
     # @return [<Faraday::Connection>] connection object for etherscan
     def conn_es
       @conn_es ||=
-        Faraday.new(url: 'https://api.etherscan.io/') do |c|
-          c.request(:url_encoded)
-          c.adapter(adapter)
+        Faraday.new(
+          url: 'https://api.etherscan.io/',
+          params: { module: 'account', apikey: ENV['ETHERSCAN_API_KEY'] },
+          headers: { content_type: 'application/json', accept: 'application/json', user_agent: 'etherscan;ruby' }
+        ) do |con|
+          con.request(:url_encoded)
+          con.adapter(adapter)
         end
     end
 
     # @return [<Faraday::Connection>] connection object for greymass
     def conn_gm
       @conn_gm ||=
-        Faraday.new(url: 'https://eos.greymass.com') do |c|
-          c.request(:url_encoded)
-          c.adapter(adapter)
+        Faraday.new(url: 'https://eos.greymass.com', headers: { content_type: 'application/json' }) do |con|
+          con.request(:url_encoded)
+          con.adapter(adapter)
         end
     end
   end

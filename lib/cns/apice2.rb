@@ -50,13 +50,11 @@ module Cns
     # @param [String] uri Uniform Resource Identifier do pedido HTTP
     # @return [Array<Hash>] lista completa trades bitcoinde
     def trades_de(pag = 0, ary = [], uri = 'https://api.bitcoin.de/v4/trades')
-      p = "#{uri}?#{URI.encode_www_form(state: 1, page: pag + 1)}"
-      r = JSON.parse(
-        Curl.get(p) { |h| h.headers = hde(p) }.body,
-        symbolize_names: true
-      )
-      ary += r[:trades]
-      r[:page][:current] < r[:page][:last] ? trades_de(pag + 1, ary) : ary
+      par = "#{uri}?#{URI.encode_www_form(state: 1, page: pag += 1)}"
+      res = JSON.parse(Curl.get(par) { |obj| obj.headers = hde(par) }.body, symbolize_names: true)
+      ary += res[:trades]
+      rep = res[:page]
+      rep[:current] < rep[:last] ? trades_de(pag, ary) : ary
     rescue StandardError
       ary
     end
@@ -82,15 +80,36 @@ module Cns
     # @param (see trades_de)
     # @return [Array<Hash>] lista completa uniformizada depositos bitcoinde
     def deposits_de(pag = 0, ary = [], uri = 'https://api.bitcoin.de/v4/btc/deposits')
-      p = "#{uri}?#{URI.encode_www_form(state: 2, page: pag + 1)}"
-      r = JSON.parse(
-        Curl.get(p) { |h| h.headers = hde(p) }.body,
-        symbolize_names: true
-      )
-      ary += deposits_unif_de(r)
-      r[:page][:current] < r[:page][:last] ? deposits_de(pag + 1, ary) : ary
+      par = "#{uri}?#{URI.encode_www_form(state: 2, page: pag += 1)}"
+      res = JSON.parse(Curl.get(par) { |obj| obj.headers = hde(par) }.body, symbolize_names: true)
+      ary += res[:deposits].map { |has| deposit_unif(has) }
+      rep = res[:page]
+      rep[:current] < rep[:last] ? deposits_de(pag, ary) : ary
     rescue StandardError
       ary
+    end
+
+    # @example deposit_unif
+    #  [
+    #    {
+    #      txid: 177_245,
+    #      time: '2014-01-31T22:01:30+01:00',
+    #      tp: 'deposit',
+    #      add: '1KK6HhG3quojFS4CY1mPcbyrjQ8BMDQxmT',
+    #      qt: '0.13283',
+    #      moe: 'btc',
+    #      fee: '0'
+    #    },
+    #    {}
+    #  ]
+    # @return [Hash] deposit uniformizado bitcoinde
+    def deposit_unif(has)
+      {
+        add: has[:address],
+        time: Time.parse(has[:created_at]),
+        qt: has[:amount],
+        txid: Integer(has[:deposit_id])
+      }.merge(tp: 'deposit', moe: 'btc', fee: '0')
     end
 
     # @example withdrawals_de
@@ -116,15 +135,37 @@ module Cns
     # @param (see deposits_de)
     # @return [Array<Hash>] lista completa uniformizada withdrawals bitcoinde
     def withdrawals_de(pag = 0, ary = [], uri = 'https://api.bitcoin.de/v4/btc/withdrawals')
-      p = "#{uri}?#{URI.encode_www_form(state: 1, page: pag + 1)}"
-      r = JSON.parse(
-        Curl.get(p) { |h| h.headers = hde(p) }.body,
-        symbolize_names: true
-      )
-      ary += withdrawals_unif_de(r)
-      r[:page][:current] < r[:page][:last] ? withdrawals_de(pag + 1, ary) : ary
+      par = "#{uri}?#{URI.encode_www_form(state: 1, page: pag += 1)}"
+      res = JSON.parse(Curl.get(par) { |obj| obj.headers = hde(par) }.body, symbolize_names: true)
+      ary += res[:withdrawals].map { |has| withdrawal_unif(has) }
+      rep = res[:page]
+      rep[:current] < rep[:last] ? withdrawals_de(pag, ary) : ary
     rescue StandardError
       ary
+    end
+
+    # @example withdrawal_unif
+    #  [
+    #    {
+    #      txid: 136_605,
+    #      time: '2014-02-05T13:05:17+01:00',
+    #      tp: 'withdrawal',
+    #      add: '1K9YMDDrmMV25EoYNqi7KUEK57Kn3TCNUJ',
+    #      qt: '0.120087',
+    #      fee: '0',
+    #      moe: 'btc'
+    #    },
+    #    {}
+    #  ]
+    # @return [Hash] withdrawal uniformizada bitcoinde
+    def withdrawal_unif(has)
+      {
+        add: has[:address],
+        time: Time.parse(has[:transferred_at]),
+        qt: has[:amount],
+        fee: has[:network_fee],
+        txid: Integer(has[:withdrawal_id])
+      }.merge(tp: 'withdrawal', moe: 'btc')
     end
 
     # @example ledger_fr
@@ -156,11 +197,11 @@ module Cns
     # @param (see trades_de)
     # @return [Array<Hash>] lista ledger paymium
     def ledger_fr(pag = 0, ary = [], uri = 'https://paymium.com/api/v1/user/orders')
-      r = JSON.parse(
-        Curl.get(uri, offset: pag) { |h| h.headers = hfr("#{uri}?#{URI.encode_www_form(offset: pag)}") }.body,
+      res = JSON.parse(
+        Curl.get(uri, offset: pag) { |obj| obj.headers = hfr("#{uri}?#{URI.encode_www_form(offset: pag)}") }.body,
         symbolize_names: true
       )
-      r.empty? ? ary : ledger_fr(pag + r.size, ary + r)
+      res.empty? ? ary : ledger_fr(pag + res.size, ary + res)
     rescue StandardError
       ary
     end
@@ -194,11 +235,11 @@ module Cns
     # @param (see trades_de)
     # @return [Array<Hash>] lista ledger therock
     def ledger_mt(pag = 1, ary = [], uri = 'https://api.therocktrading.com/v1/transactions')
-      r = JSON.parse(
-        Curl.get(uri, page: pag) { |h| h.headers = hmt("#{uri}?#{URI.encode_www_form(page: pag)}") }.body,
+      res = JSON.parse(
+        Curl.get(uri, page: pag) { |obj| obj.headers = hmt("#{uri}?#{URI.encode_www_form(page: pag)}") }.body,
         symbolize_names: true
       )[:transactions]
-      r.empty? ? ary : ledger_mt(pag + r.size, ary + r)
+      res.empty? ? ary : ledger_mt(pag + res.size, ary + res)
     rescue StandardError
       ary
     end
@@ -230,14 +271,15 @@ module Cns
     # @param [Hash] has acumulador dos dados
     # @param (see account_us)
     # @return [Hash] dados trades kraken
-    def trades_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private', uri = 'TradesHistory', non = nnc)
-      r = JSON.parse(
-        Curl.post("#{urb}/#{uri}", nonce: non, ofs: ofs) { |h| h.headers = hus(uri, nonce: non, ofs: ofs) }.body,
+    def trades_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private')
+      uri = 'TradesHistory'
+      non = nnc
+      res = JSON.parse(
+        Curl.post("#{urb}/#{uri}", nonce: non, ofs: ofs) { |obj| obj.headers = hus(uri, nonce: non, ofs: ofs) }.body,
         symbolize_names: true
       )[:result]
-      has.merge!(r[:trades])
-      ofs += 50
-      ofs < r[:count] ? trades_us(ofs, has) : has
+      has.merge!(res[:trades])
+      (ofs += 50) < res[:count] ? trades_us(ofs, has) : has
     rescue StandardError
       has
     end
@@ -265,14 +307,15 @@ module Cns
     #  }
     # @param (see trades_us)
     # @return [Hash] dados ledger kraken
-    def ledger_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private', uri = 'Ledgers', non = nnc)
-      r = JSON.parse(
-        Curl.post("#{urb}/#{uri}", nonce: non, ofs: ofs) { |h| h.headers = hus(uri, nonce: non, ofs: ofs) }.body,
+    def ledger_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private')
+      uri = 'Ledgers'
+      non = nnc
+      res = JSON.parse(
+        Curl.post("#{urb}/#{uri}", nonce: non, ofs: ofs) { |obj| obj.headers = hus(uri, nonce: non, ofs: ofs) }.body,
         symbolize_names: true
       )[:result]
-      has.merge!(r[:ledger])
-      ofs += 50
-      ofs < r[:count] ? ledger_us(ofs, has) : has
+      has.merge!(res[:ledger])
+      (ofs += 50) < res[:count] ? ledger_us(ofs, has) : has
     rescue StandardError
       has
     end

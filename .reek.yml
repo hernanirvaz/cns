@@ -1,0 +1,64 @@
+---
+detectors:
+  TooManyStatements:
+    exclude:
+    - initialize
+    max_statements: 10
+  RepeatedConditional:
+    exclude:
+    - "Cns::Apice"
+  FeatureEnvy:
+    exclude:
+    - "Cns::Apice#deposit_unif"
+    - "Cns::Apice#withdrawal_unif"
+    - "Cns::Bigquery#etht_1val"
+    - "Cns::Bigquery#etht_2val"
+    - "Cns::Bigquery#etht_3val"
+    - "Cns::Bigquery#ethk_1val"
+    - "Cns::Bigquery#ethk_2val"
+    - "Cns::Bigquery#ethk_3val"
+    - "Cns::Bigquery#eost_1val"
+    - "Cns::Bigquery#eost_2val"
+    - "Cns::Bigquery#det_1val"
+    - "Cns::Bigquery#det_2val"
+    - "Cns::Bigquery#mtl_1val"
+    - "Cns::Bigquery#ust_1val"
+    - "Cns::Bigquery#frl_val"
+    - "Cns::Bigquery#usl_val"
+    - "Cns::Bitcoinde#formata_ledger"
+    - "Cns::Bitcoinde#formata_trades"
+    - "Cns::Etherscan#bq_bc"
+    - "Cns::Etherscan#formata_valores"
+    - "Cns::Etherscan#formata_endereco"
+    - "Cns::Etherscan#formata_transacao_norml"
+    - "Cns::Etherscan#formata_transacao_token"
+    - "Cns::Greymass#bq_bc"
+    - "Cns::Greymass#greymass_sl"
+    - "Cns::Greymass#formata_carteira"
+    - "Cns::Greymass#formata_ledger"
+    - "Cns::Greymass#filtrar_tx"
+    - "Cns::Kraken#formata_ledger"
+    - "Cns::Kraken#formata_trades"
+    - "Cns::Paymium#formata_ledger"
+    - "Cns::Paymium#formata_uuid"
+    - "Cns::TheRock#formata_ledger"
+    - "Cns::TheRock#formata_saldos"
+  UtilityFunction:
+    exclude:
+    - "Cns::Apice#hus"
+    - "Cns::Bigquery#del_val"
+    - "Cns::Etherscan#ok?"
+    - "Cns::Greymass#ok?"
+  NestedIterators:
+    exclude:
+    - "Cns::Etherscan#idk"
+    - "Cns::Etherscan#idt"
+    - "Cns::Etherscan#novtx"
+    - "Cns::Etherscan#novkx"
+    - "Cns::Etherscan#dados"
+    - "Cns::Etherscan#filtrar_tx"
+    - "Cns::Greymass#novax"
+    - "Cns::Greymass#idt"
+    - "Cns::Greymass#dados"
+    - "Cns::Paymium#kyl"
+    - "Cns::Paymium#ledger"

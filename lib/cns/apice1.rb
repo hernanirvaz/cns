@@ -31,7 +31,7 @@ module Cns
     # @return [Hash] saldos no bitcoinde
     def account_de(uri = 'https://api.bitcoin.de/v4/account')
       JSON.parse(
-        Curl.get(uri) { |r| r.headers = hde(uri) }.body,
+        Curl.get(uri) { |obj| obj.headers = hde(uri) }.body,
         symbolize_names: true
       )[:data][:balances]
     rescue StandardError
@@ -56,7 +56,7 @@ module Cns
     # @return [Hash] saldos no paymium
     def account_fr(uri = 'https://paymium.com/api/v1/user')
       JSON.parse(
-        Curl.get(uri) { |h| h.headers = hfr(uri) }.body,
+        Curl.get(uri) { |obj| obj.headers = hfr(uri) }.body,
         symbolize_names: true
       )
     rescue StandardError
@@ -76,11 +76,11 @@ module Cns
     # @return [Array<Hash>] lista saldos no therock
     def account_mt(uri = 'https://api.therocktrading.com/v1/balances')
       JSON.parse(
-        Curl.get(uri) { |h| h.headers = hmt(uri) }.body,
+        Curl.get(uri) { |obj| obj.headers = hmt(uri) }.body,
         symbolize_names: true
       )[:balances]
-          .delete_if { |e| DC.include?(e[:currency]) }
-          .sort { |a, b| a[:currency] <=> b[:currency] }
+          .delete_if { |del| DC.include?(del[:currency]) }
+          .sort { |oba, obb| oba[:currency] <=> obb[:currency] }
     rescue StandardError
       []
     end
@@ -103,7 +103,7 @@ module Cns
     # @return [Hash] saldos no kraken
     def account_us(urb = 'https://api.kraken.com/0/private', uri = 'Balance', non = nnc)
       JSON.parse(
-        Curl.post("#{urb}/#{uri}", nonce: non) { |h| h.headers = hus(uri, nonce: non) }.body,
+        Curl.post("#{urb}/#{uri}", nonce: non) { |obj| obj.headers = hus(uri, nonce: non) }.body,
         symbolize_names: true
       )[:result]
     rescue StandardError
@@ -112,113 +112,63 @@ module Cns
 
     private
 
-    # @example deposits_unif_de
-    #  [
-    #    {
-    #      txid: 177_245,
-    #      time: '2014-01-31T22:01:30+01:00',
-    #      tp: 'deposit',
-    #      add: '1KK6HhG3quojFS4CY1mPcbyrjQ8BMDQxmT',
-    #      qt: '0.13283',
-    #      moe: 'btc',
-    #      fee: '0'
-    #    },
-    #    {}
-    #  ]
-    # @param [Hash] hde pagina depositos bitcoinde
-    # @return [Array<Hash>] lista uniformizada pagina depositos bitcoinde
-    def deposits_unif_de(hde)
-      hde[:deposits].map do |h|
-        {
-          add: h[:address],
-          time: Time.parse(h[:created_at]),
-          qt: h[:amount],
-          txid: Integer(h[:deposit_id])
-        }.merge(tp: 'deposit', moe: 'btc', fee: '0')
-      end
-    end
-
-    # @example withdrawals_unif_de
-    #  [
-    #    {
-    #      txid: 136_605,
-    #      time: '2014-02-05T13:05:17+01:00',
-    #      tp: 'withdrawal',
-    #      add: '1K9YMDDrmMV25EoYNqi7KUEK57Kn3TCNUJ',
-    #      qt: '0.120087',
-    #      fee: '0',
-    #      moe: 'btc'
-    #    },
-    #    {}
-    #  ]
-    # @param [Hash] hwi pagina withdrawals bitcoinde
-    # @return [Array<Hash>] lista uniformizada pagina withdrawals bitcoinde
-    def withdrawals_unif_de(hwi)
-      hwi[:withdrawals].map do |h|
-        {
-          add: h[:address],
-          time: Time.parse(h[:transferred_at]),
-          qt: h[:amount],
-          fee: h[:network_fee],
-          txid: Integer(h[:withdrawal_id])
-        }.merge(tp: 'withdrawal', moe: 'btc')
-      end
-    end
-
     # @return [Integer] continually-increasing unsigned integer nonce from the current Unix Time
     def nnc
       Integer(Float(Time.now) * 1e6)
     end
 
-    # @param [String] qry query a incluir no pedido HTTP
+    # @param [String] qde query a incluir no pedido HTTP
     # @param [Integer] non continually-increasing unsigned integer
     # @return [Hash] headers necessarios para pedido HTTP da exchange bitcoinde
-    def hde(qry, non = nnc)
+    def hde(qde, non = nnc)
+      key = ENV['BITCOINDE_API_KEY']
       {
-        'X-API-KEY': ENV['BITCOINDE_API_KEY'],
+        'X-API-KEY': key,
         'X-API-NONCE': non,
         'X-API-SIGNATURE': OpenSSL::HMAC.hexdigest(
           'sha256',
           ENV['BITCOINDE_API_SECRET'],
-          ['GET', qry, ENV['BITCOINDE_API_KEY'], non, Digest::MD5.hexdigest('')].join('#')
+          ['GET', qde, key, non, Digest::MD5.hexdigest('')].join('#')
         )
       }
     end
 
-    # @param (see hde)
+    # @param [String] qfr query a incluir no pedido HTTP
+    # @param non (see hde)
     # @return [Hash] headers necessarios para pedido HTTP da exchange paymium
-    def hfr(qry, non = nnc)
+    def hfr(qfr, non = nnc)
       {
         content_type: 'application/json',
         'Api-Key': ENV['PAYMIUM_API_KEY'],
         'Api-Nonce': non,
-        'Api-Signature': OpenSSL::HMAC.hexdigest('sha256', ENV['PAYMIUM_API_SECRET'], [non, qry].join)
+        'Api-Signature': OpenSSL::HMAC.hexdigest('sha256', ENV['PAYMIUM_API_SECRET'], [non, qfr].join)
       }
     end
 
-    # @param (see hde)
+    # @param [String] qmt query a incluir no pedido HTTP
+    # @param non (see hde)
     # @return [Hash] headers necessarios para pedido HTTP da exchange therock
-    def hmt(qry, non = nnc)
+    def hmt(qmt, non = nnc)
       {
         content_type: 'application/json',
         'X-TRT-KEY': ENV['THEROCK_API_KEY'],
         'X-TRT-NONCE': non,
-        'X-TRT-SIGN': OpenSSL::HMAC.hexdigest('sha512', ENV['THEROCK_API_SECRET'], [non, qry].join)
+        'X-TRT-SIGN': OpenSSL::HMAC.hexdigest('sha512', ENV['THEROCK_API_SECRET'], [non, qmt].join)
       }
     end
 
-    # @param qry (see hde)
+    # @param [String] qus query a incluir no pedido HTTP
     # @param [Hash] ops opcoes trabalho
     # @option ops [Hash] :nonce continually-increasing unsigned integer
     # @return [Hash] headers necessarios para pedido HTTP da exchange kraken
-    def hus(qry, ops)
+    def hus(qus, ops)
       {
         'api-key': ENV['KRAKEN_API_KEY'],
         'api-sign': Base64.strict_encode64(
           OpenSSL::HMAC.digest(
             'sha512',
             Base64.decode64(ENV['KRAKEN_API_SECRET']),
-            ['/0/private/', qry, Digest::SHA256.digest("#{ops[:nonce]}#{URI.encode_www_form(ops)}")].join
+            ['/0/private/', qus, Digest::SHA256.digest("#{ops[:nonce]}#{URI.encode_www_form(ops)}")].join
           )
         )
       }

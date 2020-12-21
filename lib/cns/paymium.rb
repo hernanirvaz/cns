@@ -27,7 +27,7 @@ module Cns
 
     # @return [Array<Hash>] lista ledger paymium novos
     def ledger
-      @ledger ||= exd[:kl].map { |h| h[:account_operations].select { |o| kyl.include?(o[:uuid]) } }.flatten
+      @ledger ||= exd[:kl].map { |map| map[:account_operations].select { |obj| kyl.include?(obj[:uuid]) } }.flatten
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
@@ -40,7 +40,7 @@ module Cns
       mostra_ledger
       return unless ledger.count.positive?
 
-      puts("\nstring ajuste dias da ledger\n-h=#{kyl.map { |e| "#{e}:0" }.join(' ')}")
+      puts("\nstring ajuste dias da ledger\n-h=#{kyl.map { |obj| "#{obj}:0" }.join(' ')}")
     end
 
     # @return [Hash] dados exchange paymium - saldos & transacoes ledger
@@ -53,22 +53,22 @@ module Cns
 
     # @return [Array<String>] lista txid dos ledger novos
     def kyl
-      @kyl ||= exd[:kl].map { |h| h[:account_operations].map { |o| o[:uuid] } }.flatten -
-               (ops[:t] ? [] : bqd[:nl].map { |e| e[:txid] })
+      @kyl ||= exd[:kl].map { |oex| oex[:account_operations].map { |obj| obj[:uuid] } }.flatten -
+               (ops[:t] ? [] : bqd[:nl].map { |obq| obq[:txid] })
     end
 
     # @example (see Apice#account_fr)
     # @param [Symbol] bqm symbol paymium da moeda
     # @return [String] texto formatado saldos
     def formata_saldos(bqm)
-      b = bqd[:sl][bqm].to_d
-      t = exd[:sl]["balance_#{bqm}".to_sym].to_d
+      vbq = bqd[:sl][bqm].to_d
+      vkr = exd[:sl]["balance_#{bqm}".to_sym].to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
         mo: bqm.upcase,
-        kr: t,
-        bq: b,
-        ok: t == b ? 'OK' : 'NOK'
+        kr: vkr,
+        bq: vbq,
+        ok: vkr == vbq ? 'OK' : 'NOK'
       )
     end
 
@@ -90,16 +90,16 @@ module Cns
     # @param [Integer] max chars a mostrar
     # @return [String] texto formatado identificacor da ledger
     def formata_uuid(uid, max)
-      i = Integer(max / 2)
-      max < 7 ? 'erro' : "#{uid[0, i]}#{uid[-i..]}"
+      int = Integer(max / 2)
+      max < 7 ? 'erro' : "#{uid[0, int]}#{uid[-int..]}"
     end
 
     # @return [String] texto totais numero de transacoes
     def mostra_totais
-      c = exd[:kl].map { |h| h[:account_operations].count }.flatten.inject(:+)
-      d = bqd[:nl].count
+      vkl = exd[:kl].map { |obj| obj[:account_operations].count }.flatten.inject(:+)
+      vnl = bqd[:nl].count
 
-      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: c, d: d, o: c == d ? 'OK' : 'NOK')}")
+      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vkl, d: vnl, o: vkl == vnl ? 'OK' : 'NOK')}")
     end
 
     # @return [String] texto transacoes ledger
@@ -107,7 +107,7 @@ module Cns
       return unless ops[:v] && ledger.count.positive?
 
       puts("\nledger             data       hora     tipo              moeda        quantidade")
-      ledger.sort { |a, b| b[:created_at_int] <=> a[:created_at_int] }.each { |o| puts(formata_ledger(o)) }
+      ledger.sort { |ant, prx| prx[:created_at_int] <=> ant[:created_at_int] }.each { |obj| puts(formata_ledger(obj)) }
     end
   end
 end

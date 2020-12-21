@@ -13,13 +13,36 @@ module Cns
     def etht_ins
       "insert #{BD}.etht(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
       'value,gas,gasprice,gasused,iserror,txreceipt_status,input,contractaddress,dias' \
-      ") VALUES#{apies.novtx.map { |e| etht_val1(e) }.join(',')}"
+      ") VALUES#{apies.novtx.map { |obj| etht_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado ethk (token)
+    def ethk_ins
+      "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
+      'value,tokenname,tokensymbol,tokendecimal,gas,gasprice,gasused,input,contractaddress,dias' \
+      ") VALUES#{apies.novkx.map { |obj| ethk_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado eos
+    def eost_ins
+      "insert #{BD}.eos(gseq,aseq,bnum,time,contract,action,acfrom,acto,iax,amount,moeda,memo,dias" \
+      ") VALUES#{apigm.novax.map { |obj| eost_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado det (trades)
+    def det_ins
+      "insert #{BD}.det(txid,time,tp,user,btc,eur,dtc,dias) VALUES#{apide.trades.map { |obj| det_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado del (ledger)
+    def del_ins
+      "insert #{BD}.del(txid,time,tp,add,moe,qt,fee) VALUES#{apide.ledger.map { |obj| del_val(obj) }.join(',')}"
     end
 
     # @example (see Apibc#norml_es)
     # @param [Hash] htx transacao norml etherscan
     # @return [String] valores formatados etht (norml parte1)
-    def etht_val1(htx)
+    def etht_1val(htx)
       "(#{Integer(htx[:blockNumber])}," \
       "#{Integer(htx[:timeStamp])}," \
       "'#{htx[:hash]}'," \
@@ -29,40 +52,36 @@ module Cns
       "'#{htx[:from]}'," \
       "'#{htx[:to]}'," \
       "'#{htx[:iax]}'," \
-      "#{etht_val2(htx)}"
+      "#{etht_2val(htx)}"
     end
 
-    # @param (see etht_val1)
+    # @param (see etht_1val)
     # @return [String] valores formatados etht (norml parte2)
-    def etht_val2(htx)
+    def etht_2val(htx)
+      txr = htx[:txreceipt_status]
       "cast('#{htx[:value]}' as numeric)," \
       "cast('#{htx[:gas]}' as numeric)," \
       "cast('#{htx[:gasPrice]}' as numeric)," \
       "cast('#{htx[:gasUsed]}' as numeric)," \
       "#{Integer(htx[:isError])}," \
-      "#{htx[:txreceipt_status].length.zero? ? 'null' : htx[:txreceipt_status]}," \
-      "#{etht_val3(htx)}"
+      "#{txr.length.zero? ? 'null' : txr}," \
+      "#{etht_3val(htx)}"
     end
 
-    # @param (see etht_val1)
+    # @param (see etht_1val)
     # @return [String] valores formatados etht (norml parte3)
-    def etht_val3(htx)
-      "#{htx[:input].length.zero? ? 'null' : "'#{htx[:input]}'"}," \
-      "#{htx[:contractAddress].length.zero? ? 'null' : "'#{htx[:contractAddress]}'"}," \
+    def etht_3val(htx)
+      cta = htx[:contractAddress]
+      inp = htx[:input]
+      "#{inp.length.zero? ? 'null' : "'#{inp}'"}," \
+      "#{cta.length.zero? ? 'null' : "'#{cta}'"}," \
       "#{Integer(ops[:h][htx[:blockNumber]] || 0)})"
-    end
-
-    # @return [String] comando insert SQL formatado ethk (token)
-    def ethk_ins
-      "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
-      'value,tokenname,tokensymbol,tokendecimal,gas,gasprice,gasused,input,contractaddress,dias' \
-      ") VALUES#{apies.novkx.map { |e| ethk_val1(e) }.join(',')}"
     end
 
     # @example (see Apibc#token_es)
     # @param [Hash] hkx token event etherscan
     # @return [String] valores formatados ethk (token parte1)
-    def ethk_val1(hkx)
+    def ethk_1val(hkx)
       "(#{Integer(hkx[:blockNumber])}," \
       "#{Integer(hkx[:timeStamp])}," \
       "'#{hkx[:hash]}'," \
@@ -72,12 +91,12 @@ module Cns
       "'#{hkx[:from]}'," \
       "'#{hkx[:to]}'," \
       "'#{hkx[:iax]}'," \
-      "#{ethk_val2(hkx)}"
+      "#{ethk_2val(hkx)}"
     end
 
-    # @param (see ethk_val1)
+    # @param (see ethk_1val)
     # @return [String] valores formatados ethk (token parte2)
-    def ethk_val2(hkx)
+    def ethk_2val(hkx)
       "cast('#{hkx[:value]}' as numeric)," \
       "'#{hkx[:tokenName]}'," \
       "'#{hkx[:tokenSymbol]}'," \
@@ -85,49 +104,45 @@ module Cns
       "cast('#{hkx[:gas]}' as numeric)," \
       "cast('#{hkx[:gasPrice]}' as numeric)," \
       "cast('#{hkx[:gasUsed]}' as numeric)," \
-      "#{ethk_val3(hkx)}"
+      "#{ethk_3val(hkx)}"
     end
 
-    # @param (see ethk_val1)
+    # @param (see ethk_1val)
     # @return [String] valores formatados ethk (token parte3)
-    def ethk_val3(hkx)
-      "#{hkx[:input].length.zero? ? 'null' : "'#{hkx[:input]}'"}," \
-      "#{hkx[:contractAddress].length.zero? ? 'null' : "'#{hkx[:contractAddress]}'"}," \
+    def ethk_3val(hkx)
+      cta = hkx[:contractAddress]
+      inp = hkx[:input]
+      "#{inp.length.zero? ? 'null' : "'#{inp}'"}," \
+      "#{cta.length.zero? ? 'null' : "'#{cta}'"}," \
       "#{Integer(ops[:h][hkx[:blockNumber]] || 0)})"
-    end
-
-    # @return [String] comando insert SQL formatado eos
-    def eost_ins
-      "insert #{BD}.eos(gseq,aseq,bnum,time,contract,action,acfrom,acto,iax,amount,moeda,memo,dias" \
-      ") VALUES#{apigm.novax.map { |e| eost_val1(e) }.join(',')}"
     end
 
     # @example (see Apibc#ledger_gm)
     # @param [Hash] hlx ledger greymass
     # @return [String] valores formatados para insert eos (parte1)
-    def eost_val1(hlx)
-      a = hlx[:action_trace][:act]
+    def eost_1val(hlx)
+      act = hlx[:action_trace][:act]
       "(#{hlx[:global_action_seq]}," \
       "#{hlx[:account_action_seq]}," \
       "#{hlx[:block_num]}," \
       "DATETIME(TIMESTAMP('#{hlx[:block_time]}'))," \
-      "'#{a[:account]}'," \
-      "'#{a[:name]}'," \
-      "#{eost_val2(hlx, a)}"
+      "'#{act[:account]}'," \
+      "'#{act[:name]}'," \
+      "#{eost_2val(hlx, act)}"
     end
 
-    # @param (see eost_val1)
+    # @param (see eost_1val)
     # @param [Hash] act dados da acao
     # @return [String] valores formatados para insert eos (parte2)
-    def eost_val2(hlx, act)
-      d = act[:data]
-      q = d[:quantity].to_s
-      s = d[:memo].inspect
-      "'#{d[:from]}'," \
-      "'#{d[:to]}'," \
+    def eost_2val(hlx, act)
+      dat = act[:data]
+      qtd = dat[:quantity].to_s
+      str = dat[:memo].inspect
+      "'#{dat[:from]}'," \
+      "'#{dat[:to]}'," \
       "'#{hlx[:iax]}'," \
-      "#{q.to_d},'#{q[/[[:upper:]]+/]}'," \
-      "nullif('#{s.gsub(/['"]/, '')}','nil')," \
+      "#{qtd.to_d},'#{qtd[/[[:upper:]]+/]}'," \
+      "nullif('#{str.gsub(/['"]/, '')}','nil')," \
       "#{ops[:h][String(hlx[:itx])] || 0})"
     end
   end

@@ -29,49 +29,51 @@ module Cns
 
     # @return [Array<Hash>] lista transacoes normais novas
     def novtx
-      @novtx ||= bcd.map { |e| e[:tx].select { |n| idt.include?(n[:itx]) } }.flatten
+      @novtx ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
     end
 
     # @return [Array<Hash>] lista transacoes token novas
     def novkx
-      @novkx ||= bcd.map { |e| e[:kx].select { |n| idk.include?(n[:itx]) } }.flatten
+      @novkx ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten
     end
 
     # @return [Array<String>] lista dos meus enderecos
     def lax
-      @lax ||= bqd[:wb].map { |h| h[:ax] }
+      @lax ||= bqd[:wb].map { |obj| obj[:ax] }
     end
 
     # @return [Array<Hash>] todos os dados etherscan - saldos & transacoes
     def bcd
-      @bcd ||= api.account_es(lax).map { |e| base_bc(e) }
+      @bcd ||= api.account_es(lax).map { |obj| base_bc(obj) }
     end
 
     # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
     def dados
-      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.select { |s| b[:ax] == s[:ax] }.first) }
+      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obc| obq[:ax] == obc[:ax] }.first) }
     end
 
     # @return [Array<Integer>] lista indices transacoes normais novas
     def idt
-      @idt ||= (bcd.map { |e| e[:tx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |t| t[:itx] }))
+      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten -
+               (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
     end
 
     # @return [Array<Integer>] lista indices transacoes token novas
     def idk
-      @idk ||= (bcd.map { |e| e[:kx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nk].map { |t| t[:itx] }))
+      @idk ||= bcd.map { |obc| obc[:kx].map { |obj| obj[:itx] } }.flatten -
+               (ops[:t] ? [] : bqd[:nk].map { |obq| obq[:itx] })
     end
 
     # @example (see Apibc#account_es)
     # @param [Hash] abc account etherscan
     # @return [Hash] dados etherscan - address, saldo & transacoes
     def base_bc(abc)
-      a = abc[:account]
+      acc = abc[:account]
       {
-        ax: a,
+        ax: acc,
         sl: (abc[:balance].to_d / 10**18).round(10),
-        tx: filtrar_tx(a, api.norml_es(a)),
-        kx: filtrar_tx(a, api.token_es(a))
+        tx: filtrar_tx(acc, api.norml_es(acc)),
+        kx: filtrar_tx(acc, api.token_es(acc))
       }
     end
 
@@ -81,10 +83,10 @@ module Cns
     def bq_bc(wbq, hbc)
       {
         id: wbq[:id],
-        ax: wbq[:ax],
+        ax: xbq = wbq[:ax],
         bs: wbq[:sl],
-        bt: bqd[:nt].select { |t| t[:iax] == wbq[:ax] },
-        bk: bqd[:nk].select { |t| t[:iax] == wbq[:ax] },
+        bt: bqd[:nt].select { |ont| ont[:iax] == xbq },
+        bk: bqd[:nk].select { |onk| onk[:iax] == xbq },
         es: hbc[:sl],
         et: hbc[:tx],
         ek: hbc[:kx]
@@ -97,23 +99,23 @@ module Cns
     def filtrar_tx(add, ary)
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
       # elimina chaves irrelevantes (DL) & adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.delete_if { |h| h[:to] == add && lax.include?(h[:from]) }
-         .map { |h| h.delete_if { |k, _| DL.include?(k) }.merge(itx: Integer(h[:blockNumber]), iax: add) }
+      ary.delete_if { |odl| odl[:to] == add && lax.include?(odl[:from]) }
+         .map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: Integer(omp[:blockNumber]), iax: add) }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes normais novas
     def sortx
-      novtx.sort { |a, b| a[:itx] <=> b[:itx] }
+      novtx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes token novas
     def sorkx
-      novkx.sort { |a, b| a[:itx] <=> b[:itx] }
+      novkx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes (normais & token) novas
     def sorax
-      (novtx + novkx).sort { |a, b| a[:itx] <=> b[:itx] }
+      (novtx + novkx).sort { |ant, prx| ant[:itx] <=> prx[:itx] }
     end
   end
 end

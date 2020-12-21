@@ -9,7 +9,7 @@ module Cns
       return unless dados.count.positive?
 
       puts("\naddress            greymass  ntx       bigquery  ntx")
-      dados.each { |e| puts(formata_carteira(e)) }
+      dados.each { |obj| puts(formata_carteira(obj)) }
       mostra_transacoes_novas
       mostra_configuracao_ajuste_dias
     end
@@ -40,32 +40,14 @@ module Cns
     def formata_ledger(hlx)
       format(
         '%<bn>12i %<fr>-12.12s %<to>-12.12s %<ac>-10.10s %<dt>10.10s %<vl>12.4f %<sy>-6.6s',
+        ac: (act = hlx[:action_trace][:act])[:name],
+        fr: (adt = act[:data])[:from],
+        vl: (aqt = adt[:quantity].to_s).to_d,
         bn: hlx[:itx],
-        fr: act_data(hlx)[:from],
-        to: act_data(hlx)[:to],
-        ac: act(hlx)[:name],
+        to: adt[:to],
         dt: Date.parse(hlx[:block_time]),
-        vl: act_data_quantity(hlx).to_d,
-        sy: act_data_quantity(hlx)[/[[:upper:]]+/]
+        sy: aqt[/[[:upper:]]+/]
       )
-    end
-
-    # @param (see formata_ledger)
-    # @return [Hash] dados da acao
-    def act(hlx)
-      hlx[:action_trace][:act]
-    end
-
-    # @param (see formata_ledger)
-    # @return [Hash] dados da acao
-    def act_data(hlx)
-      act(hlx)[:data]
-    end
-
-    # @param (see formata_ledger)
-    # @return [String] dados da quantidade
-    def act_data_quantity(hlx)
-      act_data(hlx)[:quantity].to_s
     end
 
     # @return [String] texto transacoes
@@ -73,14 +55,14 @@ module Cns
       return unless ops[:v] && novax.count.positive?
 
       puts("\nsequence num from         to           accao      data              valor moeda")
-      sorax.each { |e| puts(formata_ledger(e)) }
+      sorax.each { |obj| puts(formata_ledger(obj)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes
     def mostra_configuracao_ajuste_dias
       return unless novax.count.positive?
 
-      puts("\nstring ajuste dias\n-h=#{sorax.map { |e| "#{e[:itx]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{sorax.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")
     end
   end
 end

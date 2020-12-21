@@ -1,12 +1,13 @@
+---
 AllCops:
   TargetRubyVersion: 2.7
   EnabledByDefault: true
 
 Style/Copyright:
-    Enabled: false
+  Enabled: false
 
 Lint/ConstantResolution:
-    Enabled: false
+  Enabled: false
 
 Style/ConstantVisibility:
-    Enabled: false
+  Enabled: false

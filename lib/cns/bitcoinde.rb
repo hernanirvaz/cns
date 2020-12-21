@@ -27,25 +27,25 @@ module Cns
 
     # @return [Array<Hash>] lista trades bitcoinde novos
     def trades
-      @trades ||= exd[:tt].select { |h| kyt.include?(h[:trade_id]) }
+      @trades ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
     end
 
     # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
     def ledger
-      @ledger ||= exd[:tl].select { |h| kyl.include?(h[:txid]) }
+      @ledger ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
     def mostra_resumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
-      exd[:sl].each { |k, v| puts(formata_saldos(k, v)) }
+      exd[:sl].each { |key, val| puts(formata_saldos(key, val)) }
       mostra_totais
 
       mostra_trades
       mostra_ledger
       return if trades.empty?
 
-      puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |e| "#{e}:0" }.join(' ')}")
+      puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
     end
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
@@ -59,12 +59,12 @@ module Cns
 
     # @return [Array<String>] lista txid dos trades novos
     def kyt
-      @kyt ||= exd[:tt].map { |h| h[:trade_id] }.flatten - (ops[:t] ? [] : bqd[:nt].map { |e| e[:txid] })
+      @kyt ||= exd[:tt].map { |oex| oex[:trade_id] }.flatten - (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:txid] })
     end
 
     # @return [Array<Integer>] lista txid dos ledger novos
     def kyl
-      @kyl ||= exd[:tl].map { |h| h[:txid] }.flatten - (ops[:t] ? [] : bqd[:nl].map { |e| e[:txid] })
+      @kyl ||= exd[:tl].map { |oex| oex[:txid] }.flatten - (ops[:t] ? [] : bqd[:nl].map { |obq| obq[:txid] })
     end
 
     # @example (see Apice#account_de)
@@ -72,14 +72,14 @@ module Cns
     # @param [Hash] hsx saldo bitcoinde da moeda
     # @return [String] texto formatado saldos
     def formata_saldos(moe, hsx)
-      b = bqd[:sl][moe.downcase.to_sym].to_d
-      e = hsx[:total_amount].to_d
+      vbq = bqd[:sl][moe.downcase.to_sym].to_d
+      vex = hsx[:total_amount].to_d
       format(
         '%<mo>-5.5s %<ex>21.9f %<bq>21.9f %<ok>3.3s',
         mo: moe.upcase,
-        ex: e,
-        bq: b,
-        ok: e == b ? 'OK' : 'NOK'
+        ex: vex,
+        bq: vbq,
+        ok: vex == vbq ? 'OK' : 'NOK'
       )
     end
 
@@ -117,13 +117,13 @@ module Cns
 
     # @return [String] texto numero de transacoes
     def mostra_totais
-      a = exd[:tt].count
-      b = bqd[:nt].count
-      c = exd[:tl].count
-      d = bqd[:nl].count
+      vtt = exd[:tt].count
+      vnt = bqd[:nt].count
+      vtl = exd[:tl].count
+      vnl = bqd[:nl].count
 
-      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: a, b: b, o: a == b ? 'OK' : 'NOK')}")
-      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: c, d: d, o: c == d ? 'OK' : 'NOK')}")
+      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
+      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vtl, d: vnl, o: vtl == vnl ? 'OK' : 'NOK')}")
     end
 
     # @return [String] texto transacoes trades
@@ -131,8 +131,9 @@ module Cns
       return unless ops[:v] && !trades.empty?
 
       puts("\ntrades data       hora     dt criacao tipo  par                     qtd      eur")
-      trades.sort { |a, b| Time.parse(b[:successfully_finished_at]) <=> Time.parse(a[:successfully_finished_at]) }
-            .each { |h| puts(formata_trades(h)) }
+      trades
+        .sort { |ant, prx| Time.parse(prx[:successfully_finished_at]) <=> Time.parse(ant[:successfully_finished_at]) }
+        .each { |obj| puts(formata_trades(obj)) }
     end
 
     # @return [String] texto transacoes ledger
@@ -140,7 +141,7 @@ module Cns
       return unless ops[:v] && !ledger.empty?
 
       puts("\nledger data       hora     tipo       moe          quantidade              custo")
-      ledger.sort { |a, b| b[:time] <=> a[:time] }.each { |h| puts(formata_ledger(h)) }
+      ledger.sort { |ant, prx| prx[:time] <=> ant[:time] }.each { |obj| puts(formata_ledger(obj)) }
     end
   end
 end

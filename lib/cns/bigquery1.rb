@@ -8,7 +8,7 @@ module Cns
   BD = 'hernanirvaz.coins'
 
   # (see Bigquery)
-  class Cns::Bigquery
+  class Bigquery
     # @return [Google::Cloud::Bigquery] API bigquery
     attr_reader :api
     # @return [Google::Cloud::Bigquery::QueryJob] job bigquery
@@ -91,9 +91,10 @@ module Cns
     # @return [Boolean] job ok?
     def job?(cmd)
       @job = api.query_job(cmd)
-      @job.wait_until_done!
-      puts(@job.error['message']) if @job.failed?
-      @job.failed?
+      job.wait_until_done!
+      fld = job.failed?
+      puts(job.error['message']) if fld
+      fld
     end
 
     # cria Structured Query Language (SQL) job bigquery

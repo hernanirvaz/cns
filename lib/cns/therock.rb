@@ -27,19 +27,19 @@ module Cns
 
     # @return [Array<Hash>] lista ledger therock novos
     def ledger
-      @ledger ||= exd[:kl].select { |o| kyl.include?(o[:id]) }
+      @ledger ||= exd[:kl].select { |obj| kyl.include?(obj[:id]) }
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
     def mostra_resumo
       puts("\nTHEROCK\ntipo                therock              bigquery")
-      exd[:sl].each { |h| puts(formata_saldos(h)) }
+      exd[:sl].each { |obj| puts(formata_saldos(obj)) }
       mostra_totais
 
       mostra_ledger
       return unless ledger.count.positive?
 
-      puts("\nstring ajuste dias da ledger\n-h=#{kyl.map { |e| "#{e}:0" }.join(' ')}")
+      puts("\nstring ajuste dias da ledger\n-h=#{kyl.map { |obj| "#{obj}:0" }.join(' ')}")
     end
 
     # @return [Hash] dados exchange therock - saldos & transacoes ledger
@@ -52,21 +52,22 @@ module Cns
 
     # @return [Array<String>] lista txid dos ledger novos
     def kyl
-      @kyl ||= exd[:kl].map { |h| h[:id] } - (ops[:t] ? [] : bqd[:nl].map { |e| e[:txid] })
+      @kyl ||= exd[:kl].map { |oex| oex[:id] } - (ops[:t] ? [] : bqd[:nl].map { |obq| obq[:txid] })
     end
 
     # @example (see Apice#account_mt)
     # @param [Hash] hsl saldo therock da moeda
     # @return [String] texto formatado saldos
     def formata_saldos(hsl)
-      b = bqd[:sl][hsl[:currency].downcase.to_sym].to_d
-      k = hsl[:balance].to_d
+      cur = hsl[:currency]
+      vbq = bqd[:sl][cur.downcase.to_sym].to_d
+      vkr = hsl[:balance].to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
-        mo: hsl[:currency].upcase,
-        kr: k,
-        bq: b,
-        ok: k == b ? 'OK' : 'NOK'
+        mo: cur.upcase,
+        kr: vkr,
+        bq: vbq,
+        ok: vkr == vbq ? 'OK' : 'NOK'
       )
     end
 
@@ -86,18 +87,18 @@ module Cns
 
     # @return [String] texto totais numero de transacoes
     def mostra_totais
-      c = exd[:kl].count
-      d = bqd[:nl].count
+      vkl = exd[:kl].count
+      vnl = bqd[:nl].count
 
-      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: c, d: d, o: c == d ? 'OK' : 'NOK')}")
+      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vkl, d: vnl, o: vkl == vnl ? 'OK' : 'NOK')}")
     end
 
     # @return [String] texto transacoes ledger
     def mostra_ledger
       return unless ops[:v] && ledger.count.positive?
 
-      puts("\nledger data       hora     tipo                        moeda ---------quantidade")
-      ledger.sort { |a, b| b[:id] <=> a[:id] }.each { |o| puts(formata_ledger(o)) }
+      puts("\nledger data       hora     tipo                        moeda          quantidade")
+      ledger.sort { |ant, prx| prx[:id] <=> ant[:id] }.each { |obj| puts(formata_ledger(obj)) }
     end
   end
 end

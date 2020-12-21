@@ -27,38 +27,39 @@ module Cns
 
     # @return [Array<Hash>] lista transacoes novas
     def novax
-      @novax ||= bcd.map { |e| e[:tx].select { |s| idt.include?(s[:itx]) } }.flatten
+      @novax ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
     end
 
     # @return [Array<String>] lista dos meus enderecos
     def lax
-      @lax ||= bqd[:wb].map { |h| h[:ax] }
+      @lax ||= bqd[:wb].map { |obj| obj[:ax] }
     end
 
     # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
     def bcd
-      @bcd ||= bqd[:wb].map { |e| base_bc(e) }
+      @bcd ||= bqd[:wb].map { |obj| base_bc(obj) }
     end
 
     # @return [Array<Hash>] todos os dados juntos bigquery & greymass
     def dados
-      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.select { |s| b[:ax] == s[:ax] }.first) }
+      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obj| obq[:ax] == obj[:ax] }.first) }
     end
 
     # @return [Array<Integer>] lista indices transacoes novas
     def idt
-      @idt ||= (bcd.map { |e| e[:tx].map { |n| n[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |t| t[:itx] }))
+      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten -
+               (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
     end
 
     # @example (see Apibc#account_gm)
     # @param [Hash] wbq wallet bigquery
     # @return [Hash] dados greymass - address, saldo & transacoes
     def base_bc(wbq)
-      a = wbq[:ax]
+      xbq = wbq[:ax]
       {
-        ax: a,
-        sl: greymass_sl(a).inject(:+),
-        tx: filtrar_tx(a, api.ledger_gm(a))
+        ax: xbq,
+        sl: greymass_sl(xbq).inject(:+),
+        tx: filtrar_tx(xbq, api.ledger_gm(xbq))
       }
     end
 
@@ -66,11 +67,12 @@ module Cns
     # @param [Hash] hbc dados greymass - address, saldo & transacoes
     # @return [Hash] dados juntos bigquery & greymass
     def bq_bc(wbq, hbc)
+      xbq = wbq[:ax]
       {
         id: wbq[:id],
-        ax: wbq[:ax],
+        ax: xbq,
         bs: wbq[:sl],
-        bt: bqd[:nt].select { |t| t[:iax] == wbq[:ax] },
+        bt: bqd[:nt].select { |obj| obj[:iax] == xbq },
         es: hbc[:sl],
         et: hbc[:tx]
       }
@@ -79,11 +81,12 @@ module Cns
     # @param (see filtrar_tx)
     # @return [Array<BigDecimal>] lista recursos - liquido, net, spu
     def greymass_sl(add)
-      v = api.account_gm(add)
+      hac = api.account_gm(add)
+      htr = hac[:total_resources]
       [
-        v[:core_liquid_balance].to_d,
-        v[:total_resources][:net_weight].to_d,
-        v[:total_resources][:cpu_weight].to_d
+        hac[:core_liquid_balance].to_d,
+        htr[:net_weight].to_d,
+        htr[:cpu_weight].to_d
       ]
     end
 
@@ -93,13 +96,15 @@ module Cns
     def filtrar_tx(add, ary)
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
       # adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.delete_if { |h| act_data(h)[:to] == add && lax.include?(act_data(h)[:from]) }
-         .map { |h| h.merge(itx: h[:global_action_seq], iax: add) }
+      (ary.delete_if do |odl|
+        adt = odl[:action_trace][:act][:data]
+        adt[:to] == add && lax.include?(adt[:from])
+      end).map { |omp| omp.merge(itx: omp[:global_action_seq], iax: add) }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes novas
     def sorax
-      novax.sort { |a, b| b[:itx] <=> a[:itx] }
+      novax.sort { |ant, prx| prx[:itx] <=> ant[:itx] }
     end
   end
 end
