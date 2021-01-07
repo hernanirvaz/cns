@@ -37,18 +37,25 @@ detectors:
     - "Cns::Greymass#formata_carteira"
     - "Cns::Greymass#formata_ledger"
     - "Cns::Greymass#filtrar_tx"
+    - "Cns::Beaconchain#base_bc"
+    - "Cns::Beaconchain#bq_bc"
     - "Cns::Kraken#formata_ledger"
     - "Cns::Kraken#formata_trades"
     - "Cns::Paymium#formata_ledger"
     - "Cns::Paymium#formata_uuid"
     - "Cns::TheRock#formata_ledger"
     - "Cns::TheRock#formata_saldos"
+    - "Cns::Beaconchain#formata_saldos"
+    - "Cns::Beaconchain#formata_endereco"
+    - "Cns::Beaconchain#formata_valores"
   UtilityFunction:
     exclude:
     - "Cns::Apice#hus"
     - "Cns::Bigquery#del_val"
     - "Cns::Etherscan#ok?"
     - "Cns::Greymass#ok?"
+    - "Cns::Beaconchain#itx"
+    - "Cns::Beaconchain#ok?"
   NestedIterators:
     exclude:
     - "Cns::Etherscan#idk"
@@ -62,3 +69,6 @@ detectors:
     - "Cns::Greymass#dados"
     - "Cns::Paymium#kyl"
     - "Cns::Paymium#ledger"
+    - "Cns::Beaconchain#dados"
+    - "Cns::Beaconchain#idb"
+    - "Cns::Beaconchain#nov"

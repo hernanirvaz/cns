@@ -7,6 +7,17 @@ require('json')
 module Cns
   # classe para acesso dados blockchains
   class Apibc
+    # @param [String] uri ETH2 API
+    # @return [Array<Hash>] lista dados beaconchain
+    def data_bc(uri)
+      res = JSON.parse(conn_bc.get(uri).body, symbolize_names: true)[:data] || []
+      # calls are rate limited to 10 requests/minute/IP
+      sleep(1.5)
+      res.is_a?(Array) ? res : [res]
+    rescue StandardError
+      []
+    end
+
     # @example account_es
     #  {
     #    status: '1',
@@ -20,13 +31,14 @@ module Cns
     # @return [Array<Hash>] lista enderecos e seus saldos
     def account_es(ads)
       JSON.parse(
-        conn_es.get('api', action: 'balancemulti', tag: 'latest', address: ads.join(',')).body,
+        conn_es.get('/api', action: 'balancemulti', tag: 'latest', address: ads.join(',')).body,
         symbolize_names: true
       )[:result]
     rescue StandardError
       []
     end
 
+    # @example account_gm
     # @example account_gm
     #  {
     #    account_name: '...',
@@ -119,7 +131,7 @@ module Cns
     # @return [Array<Hash>] lista completa transacoes etherscan
     def norml_es(add, pag = 0, aes = [])
       res = JSON.parse(
-        conn_es.get('api', action: 'txlist', offset: 10_000, address: add, page: pag += 1).body,
+        conn_es.get('/api', action: 'txlist', offset: 10_000, address: add, page: pag += 1).body,
         symbolize_names: true
       )[:result]
       aes += res
@@ -164,7 +176,7 @@ module Cns
       # -quando ha erros na blockchain (acho)
       # -quando ha token events identicos no mesmo block (acho)
       res = JSON.parse(
-        conn_es.get('api', action: 'tokentx', offset: 10_000, address: add, page: pag += 1).body,
+        conn_es.get('/api', action: 'tokentx', offset: 10_000, address: add, page: pag += 1).body,
         symbolize_names: true
       )[:result]
       aes += res
@@ -245,7 +257,7 @@ module Cns
     def conn_es
       @conn_es ||=
         Faraday.new(
-          url: 'https://api.etherscan.io/',
+          url: 'https://api.etherscan.io',
           params: { module: 'account', apikey: ENV['ETHERSCAN_API_KEY'] },
           headers: { content_type: 'application/json', accept: 'application/json', user_agent: 'etherscan;ruby' }
         ) do |con|
@@ -258,6 +270,15 @@ module Cns
     def conn_gm
       @conn_gm ||=
         Faraday.new(url: 'https://eos.greymass.com', headers: { content_type: 'application/json' }) do |con|
+          con.request(:url_encoded)
+          con.adapter(adapter)
+        end
+    end
+
+    # @return [<Faraday::Connection>] connection object for beaconchain
+    def conn_bc
+      @conn_bc ||=
+        Faraday.new(url: 'https://beaconcha.in', headers: { accept: 'application/json' }) do |con|
           con.request(:url_encoded)
           con.adapter(adapter)
         end

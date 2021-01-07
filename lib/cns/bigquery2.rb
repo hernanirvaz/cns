@@ -6,6 +6,18 @@ module Cns
   class Bigquery
     private
 
+    # @return [String] comando insert SQL formatado fr (ledger)
+    def mtl_ins
+      "insert #{BD}.mt(id,time,type,valor,moe,pair,note,trade_id,dias) " \
+      "VALUES#{apimt.ledger.map { |obj| mtl_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado eth2bh
+    def eth2bh_ins
+      "insert #{BD}.eth2bh(balance,effectivebalance,epoch,validatorindex" \
+        ") VALUES#{apibc.nov[0..900].map { |obj| eth2bh_1val(obj) }.join(',')}"
+    end
+
     # @return [Etherscan] API blockchain ETH
     def apies
       @apies ||= Etherscan.new(
@@ -24,6 +36,17 @@ module Cns
         {
           wb: sql("select * from #{BD}.walletEos order by 2"),
           nt: sql("select itx,iax from #{BD}.eostx")
+        },
+        ops
+      )
+    end
+
+    # @return [Beaconchain] API blockchain ETH2
+    def apibc
+      @apibc ||= Beaconchain.new(
+        {
+          wb: sql("select * from #{BD}.walletEth2 order by 1"),
+          nb: sql("select itx,iax from #{BD}.eth2bhx")
         },
         ops
       )

@@ -29,14 +29,14 @@ module Cns
       ") VALUES#{apigm.novax.map { |obj| eost_1val(obj) }.join(',')}"
     end
 
-    # @return [String] comando insert SQL formatado det (trades)
-    def det_ins
-      "insert #{BD}.det(txid,time,tp,user,btc,eur,dtc,dias) VALUES#{apide.trades.map { |obj| det_1val(obj) }.join(',')}"
-    end
-
-    # @return [String] comando insert SQL formatado del (ledger)
-    def del_ins
-      "insert #{BD}.del(txid,time,tp,add,moe,qt,fee) VALUES#{apide.ledger.map { |obj| del_val(obj) }.join(',')}"
+    # @example (see Beaconchain#formata_saldos)
+    # @param (see Beaconchain#formata_saldos)
+    # @return [String] valores formatados etht (norml parte1)
+    def eth2bh_1val(htb)
+      "(#{Integer(htb[:balance])}," \
+      "#{Integer(htb[:effectivebalance])}," \
+      "#{Integer(htb[:epoch])}," \
+      "#{Integer(htb[:validatorindex])})"
     end
 
     # @example (see Apibc#norml_es)
@@ -145,5 +145,52 @@ module Cns
       "nullif('#{str.gsub(/['"]/, '')}','nil')," \
       "#{ops[:h][String(hlx[:itx])] || 0})"
     end
+
+    # def eth2at_ins
+    #   "insert #{BD}.eth2at(attesterslot,committeeindex,epoch,inclusionslot,status,validatorindex" \
+    #   ") VALUES#{apibc.novtx.map { |obj| eth2at_1val(obj) }.join(',')}"
+    # end
+    # def eth2pr_ins
+    #   "insert #{BD}.eth2pr(attestationscount,attesterslashingscount,blockroot,depositscount,epoch," \
+    #     'eth1data_blockhash,eth1data_depositcount,eth1data_depositroot,graffiti,graffiti_text,parentroot,' \
+    #     'proposer,proposerslashingscount,randaoreveal,signature,slot,stateroot,status,voluntaryexitscount' \
+    #   ") VALUES#{apibc.novkx.map { |obj| eth2pr_1val(obj) }.join(',')}"
+    # end
+    # def eth2at_1val(htx)
+    #   "(#{Integer(htx[:attesterslot])}," \
+    #   "#{Integer(htx[:committeeindex])}," \
+    #   "#{Integer(htx[:epoch])}," \
+    #   "#{Integer(htx[:inclusionslot])}," \
+    #   "#{Integer(htx[:status])}," \
+    #   "#{Integer(htx[:validatorindex])})"
+    # end
+    # def eth2pr_1val(htx)
+    #   "(#{Integer(htx[:attestationscount])}," \
+    #   "#{Integer(htx[:attesterslashingscount])}," \
+    #   "'#{htx[:blockroot]}'," \
+    #   "#{Integer(htx[:depositscount])}," \
+    #   "#{Integer(htx[:epoch])}," \
+    #   "'#{htx[:eth1data_blockhash]}'," \
+    #   "#{eth2pr_2val(htx)}"
+    # end
+    # def eth2pr_2val(htx)
+    #   grf = htx[:graffiti_text]
+    #   "#{Integer(htx[:eth1data_depositcount])}," \
+    #   "'#{htx[:eth1data_depositroot]}'," \
+    #   "'#{htx[:graffiti]}'," \
+    #   "#{grf.length.zero? ? 'null' : "'#{grf}'"}," \
+    #   "'#{htx[:parentroot]}'," \
+    #   "#{Integer(htx[:proposer])}," \
+    #   "#{eth2pr_3val(htx)}"
+    # end
+    # def eth2pr_3val(htx)
+    #   "#{Integer(htx[:proposerslashingscount])}," \
+    #   "'#{htx[:randaoreveal]}'," \
+    #   "'#{htx[:signature]}'," \
+    #   "#{Integer(htx[:slot])}," \
+    #   "'#{htx[:stateroot]}'," \
+    #   "#{Integer(htx[:status])}," \
+    #   "#{Integer(htx[:voluntaryexitscount])})"
+    # end
   end
 end

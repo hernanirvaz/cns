@@ -6,6 +6,16 @@ module Cns
   class Bigquery
     private
 
+    # @return [String] comando insert SQL formatado det (trades)
+    def det_ins
+      "insert #{BD}.det(txid,time,tp,user,btc,eur,dtc,dias) VALUES#{apide.trades.map { |obj| det_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado del (ledger)
+    def del_ins
+      "insert #{BD}.del(txid,time,tp,add,moe,qt,fee) VALUES#{apide.ledger.map { |obj| del_val(obj) }.join(',')}"
+    end
+
     # @return [String] comando insert SQL formatado ust (trades)
     def ust_ins
       "insert #{BD}.ust(txid,ordertxid,pair,time,type,ordertype,price,cost,fee,vol,margin,misc,ledgers,dias) " \
@@ -21,12 +31,6 @@ module Cns
     # @return [String] comando insert SQL formatado fr (ledger)
     def frl_ins
       "insert #{BD}.fr(uuid,tipo,valor,moe,time,dias) VALUES#{apifr.ledger.map { |obj| frl_val(obj) }.join(',')}"
-    end
-
-    # @return [String] comando insert SQL formatado fr (ledger)
-    def mtl_ins
-      "insert #{BD}.mt(id,time,type,valor,moe,pair,note,trade_id,dias) " \
-      "VALUES#{apimt.ledger.map { |obj| mtl_1val(obj) }.join(',')}"
     end
 
     # @example (see Apice#trades_de)
