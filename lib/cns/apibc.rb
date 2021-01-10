@@ -12,7 +12,7 @@ module Cns
     def data_bc(uri)
       res = JSON.parse(conn_bc.get(uri).body, symbolize_names: true)[:data] || []
       # calls are rate limited to 10 requests/minute/IP
-      sleep(1.5)
+      sleep(3)
       res.is_a?(Array) ? res : [res]
     rescue StandardError
       []
