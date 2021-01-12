@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (0.2.2)
+    cns (0.2.3)
       curb
       faraday
       google-cloud-bigquery
@@ -24,7 +24,7 @@ GEM
       faraday-net_http (~> 1.0)
       multipart-post (>= 1.2, < 3)
       ruby2_keywords
-    faraday-net_http (1.0.0)
+    faraday-net_http (1.0.1)
     google-api-client (0.52.0)
       addressable (~> 2.5, >= 2.5.1)
       googleauth (~> 0.9)

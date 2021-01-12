@@ -68,7 +68,7 @@ module Cns
     # @param [Hash] abc account etherscan
     # @return [Hash] dados etherscan - address, saldo & transacoes
     def base_bc(abc)
-      acc = abc[:account]
+      acc = abc[:account].downcase
       {
         ax: acc,
         sl: (abc[:balance].to_d / 10**18).round(10),
@@ -99,7 +99,7 @@ module Cns
     def filtrar_tx(add, ary)
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
       # elimina chaves irrelevantes (DL) & adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.delete_if { |odl| odl[:to] == add && lax.include?(odl[:from]) }
+      ary.delete_if { |odl| add.casecmp?(odl[:to]) && lax.include?(odl[:from].downcase) }
          .map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: Integer(omp[:blockNumber]), iax: add) }
     end
 
