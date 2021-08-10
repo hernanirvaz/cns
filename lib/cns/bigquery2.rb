@@ -15,7 +15,7 @@ module Cns
     # @return [String] comando insert SQL formatado eth2bh
     def eth2bh_ins
       "insert #{BD}.eth2bh(balance,effectivebalance,epoch,validatorindex" \
-        ") VALUES#{apibc.nov[0..1300].map { |obj| eth2bh_1val(obj) }.join(',')}"
+        ") VALUES#{apibc.nov[0..1000].map { |obj| eth2bh_1val(obj) }.join(',')}"
     end
 
     # @return [Etherscan] API blockchain ETH
