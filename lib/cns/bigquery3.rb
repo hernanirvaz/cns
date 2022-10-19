@@ -16,6 +16,19 @@ module Cns
       ") VALUES#{apies.novtx.map { |obj| etht_1val(obj) }.join(',')}"
     end
 
+    # @return [String] comando insert SQL formatado ethi (internas)
+    def ethi_ins
+      "insert #{BD}.ethi(blocknumber,timestamp,txhash,axfrom,axto,iax," \
+      'value,contractaddress,input,type,gas,gasused,traceid,iserror,errcode' \
+      ") VALUES#{apies.novix.map { |obj| ethi_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado ethp (block)
+    def ethp_ins
+      "insert #{BD}.ethp(blocknumber,timestamp,blockreward,iax" \
+      ") VALUES#{apies.novpx.map { |obj| ethp_1val(obj) }.join(',')}"
+    end
+
     # @return [String] comando insert SQL formatado ethk (token)
     def ethk_ins
       "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
@@ -76,6 +89,47 @@ module Cns
       "#{inp.length.zero? ? 'null' : "'#{inp}'"}," \
       "#{cta.length.zero? ? 'null' : "'#{cta}'"}," \
       "#{Integer(ops[:h][htx[:blockNumber]] || 0)})"
+    end
+
+    # @example (see Apibc#inter_es)
+    # @param [Hash] htx transacao internas etherscan
+    # @return [String] valores formatados ethi (internas parte1)
+    def ethi_1val(htx)
+      cta = htx[:contractAddress]
+      "(#{Integer(htx[:blockNumber])}," \
+      "#{Integer(htx[:timeStamp])}," \
+      "'#{htx[:hash]}'," \
+      "'#{htx[:from]}'," \
+      "'#{htx[:to]}'," \
+      "'#{htx[:iax]}'," \
+      "cast('#{htx[:value]}' as numeric)," \
+      "#{cta.length.zero? ? 'null' : "'#{cta}'"}," \
+      "#{ethi_2val(htx)}"
+    end
+
+    # @param (see ethi_1val)
+    # @return [String] valores formatados ethi (internas parte2)
+    def ethi_2val(htx)
+      inp = htx[:input]
+      tid = htx[:traceId]
+      txr = htx[:errCode]
+      "#{inp.length.zero? ? 'null' : "'#{inp}'"}," \
+      "'#{htx[:type]}'," \
+      "cast('#{htx[:gas]}' as numeric)," \
+      "cast('#{htx[:gasUsed]}' as numeric)," \
+      "#{tid.length.zero? ? 'null' : "'#{tid}'"}," \
+      "#{Integer(htx[:isError])}," \
+      "#{txr.length.zero? ? 'null' : txr})"
+    end
+
+    # @example (see Apibc#block_es)
+    # @param [Hash] htx transacao block etherscan
+    # @return [String] valores formatados ethi (block parte1)
+    def ethp_1val(htx)
+      "(#{Integer(htx[:blockNumber])}," \
+      "#{Integer(htx[:timeStamp])}," \
+      "cast('#{htx[:blockReward]}' as numeric)," \
+      "'#{htx[:iax]}')"
     end
 
     # @example (see Apibc#token_es)

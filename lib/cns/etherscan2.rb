@@ -8,9 +8,11 @@ module Cns
     def mostra_resumo
       return unless dados.count.positive?
 
-      puts("\nid     address                            etherscan nm tk     bigquery nm tk")
+      puts("\nid     address                 etherscan tn ti tb tk     bigquery tn ti tb tk")
       dados.each { |obj| puts(formata_carteira(obj)) }
       mostra_transacao_norml
+      mostra_transacao_inter
+      mostra_transacao_block
       mostra_transacao_token
       mostra_configuracao_ajuste_dias
     end
@@ -19,9 +21,9 @@ module Cns
     # @return [String] texto formatado duma carteira
     def formata_carteira(hjn)
       format(
-        '%<s1>-6.6s %<s2>-32.32s ',
+        '%<s1>-6.6s %<s2>-20.20s ',
         s1: hjn[:id],
-        s2: formata_endereco(hjn[:ax], 32)
+        s2: formata_enderec1(hjn[:ax], 20)
       ) + formata_valores(hjn)
     end
 
@@ -29,13 +31,17 @@ module Cns
     # @return [String] texto formatado valores duma carteira
     def formata_valores(hjn)
       format(
-        '%<v1>11.6f %<n1>2i %<n3>2i %<v2>12.6f %<n2>2i %<n4>2i %<ok>-3s',
+        '%<v1>12.6f %<n1>2i %<n2>2i %<n3>2i %<n4>2i %<v2>12.6f %<n5>2i %<n6>2i %<n7>2i %<n8>2i %<ok>-3s',
         v1: hjn[:es],
         n1: hjn[:et].count,
-        n3: hjn[:ek].count,
+        n2: hjn[:ei].count,
+        n3: hjn[:ep].count,
+        n4: hjn[:ek].count,
         v2: hjn[:bs],
-        n2: hjn[:bt].count,
-        n4: hjn[:bk].count,
+        n5: hjn[:bt].count,
+        n6: hjn[:bi].count,
+        n7: hjn[:bp].count,
+        n8: hjn[:bk].count,
         ok: ok?(hjn) ? 'OK' : 'NOK'
       )
     end
@@ -43,7 +49,7 @@ module Cns
     # @param (see formata_carteira)
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:bs] == hjn[:es] && hjn[:bt].count == hjn[:et].count && hjn[:bk].count == hjn[:ek].count
+      hjn[:bs].round(6) == hjn[:es].round(6) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count
     end
 
     # @example ether address inicio..fim
@@ -51,10 +57,29 @@ module Cns
     # @param add (see filtrar_tx)
     # @param [Integer] max chars a mostrar
     # @return [String] endereco formatado
-    def formata_endereco(add, max)
-      int = Integer((max - 2) / 2)
-      hid = (max <= 20 ? bqd[:wb].select { |obj| obj[:ax] == add }.first : nil) || { id: add }
-      max < 7 ? 'erro' : "#{hid[:id][0, int - 3]}..#{add[-int - 3..]}"
+    def formata_enderec1(add, max)
+      return 'erro' if max < 7
+
+      max -= 2
+      ini = Integer(max / 2)
+      inf = max % 2
+      "#{add[0, ini - 3]}..#{add[-inf - ini - 3..]}"
+    end
+
+    # @example ether address inicio..fim
+    #  me-app..4b437776403d
+    # @param add (see filtrar_tx)
+    # @param [Integer] max chars a mostrar
+    # @return [String] endereco formatado
+    def formata_enderec2(add, max)
+      return 'erro' if max < 7
+
+      max -= 2
+      ini = Integer(max / 2)
+      inf = max % 2
+      hid = bqd[:wb].select { |obj| obj[:ax] == add }.first
+      ndd = hid ? hid[:id] + '-' + add : add
+      "#{ndd[0, ini - 3]}..#{ndd[-inf - ini - 3..]}"
     end
 
     # @example (see Apibc#norml_es)
@@ -64,10 +89,23 @@ module Cns
       format(
         '%<bn>9i %<fr>-20.20s %<to>-20.20s %<dt>10.10s %<vl>17.6f',
         bn: htx[:blockNumber],
-        fr: formata_endereco(htx[:from], 20),
-        to: formata_endereco(htx[:to], 20),
+        fr: formata_enderec2(htx[:from], 20),
+        to: formata_enderec2(htx[:to], 20),
         dt: Time.at(Integer(htx[:timeStamp])),
         vl: (htx[:value].to_d / 10**18).round(10)
+      )
+    end
+
+    # @example (see Apibc#block_es)
+    # @param [Hash] htx transacao block etherscan
+    # @return [String] texto formatado transacao block etherscan
+    def formata_transacao_block(htx)
+      format(
+        '%<bn>9i %<fr>-41.41s %<dt>10.10s %<vl>17.6f',
+        bn: htx[:blockNumber],
+        fr: formata_enderec2(htx[:iax], 41),
+        dt: Time.at(Integer(htx[:timeStamp])),
+        vl: (htx[:blockReward].to_d / 10**18).round(10)
       )
     end
 
@@ -78,8 +116,8 @@ module Cns
       format(
         '%<bn>9i %<fr>-20.20s %<to>-20.20s %<dt>10.10s %<vl>11.3f %<sy>-5.5s',
         bn: hkx[:blockNumber],
-        fr: formata_endereco(hkx[:from], 20),
-        to: formata_endereco(hkx[:to], 20),
+        fr: formata_enderec2(hkx[:from], 20),
+        to: formata_enderec2(hkx[:to], 20),
         dt: Time.at(Integer(hkx[:timeStamp])),
         vl: (hkx[:value].to_d / 10**18).round(10),
         sy: hkx[:tokenSymbol]
@@ -92,6 +130,22 @@ module Cns
 
       puts("\ntx normal from                 to                   data                   valor")
       sortx.each { |obj| puts(formata_transacao_norml(obj)) }
+    end
+
+    # @return [String] texto transacoes internas
+    def mostra_transacao_inter
+      return unless ops[:v] && novix.count.positive?
+
+      puts("\ntx intern from                 to                   data                   valor")
+      sorix.each { |obj| puts(formata_transacao_norml(obj)) }
+    end
+
+    # @return [String] texto transacoes block
+    def mostra_transacao_block
+      return unless ops[:v] && novpx.count.positive?
+
+      puts("\ntx block  address                                   data                   valor")
+      sorpx.each { |obj| puts(formata_transacao_block(obj)) }
     end
 
     # @return [String] texto transacoes token

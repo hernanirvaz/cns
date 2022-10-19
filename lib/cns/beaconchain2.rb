@@ -16,11 +16,7 @@ module Cns
     # @param [Hash] hjn dados juntos bigquery & beaconchain
     # @return [String] texto formatado dum validador
     def formata_validador(hjn)
-      format(
-        '%<s1>-5.5s %<s2>-34.34s ',
-        s1: hjn[:id],
-        s2: formata_endereco(hjn[:ax], 34)
-      ) + formata_valores(hjn)
+      format('%<s1>-5.5s %<s2>-34.34s ', s1: hjn[:id], s2: formata_endereco(hjn[:ax], 34)) + formata_valores(hjn)
     end
 
     # @param (see formata_validador)
@@ -48,8 +44,12 @@ module Cns
     # @param [Integer] max chars a mostrar
     # @return [String] pubkey formatada
     def formata_endereco(add, max)
-      int = Integer((max - 2) / 2)
-      max < 7 ? 'erro' : "#{add[0, int - 3]}..#{add[-int - 3..]}"
+      return 'erro' if max < 7
+
+      max -= 2
+      ini = Integer(max / 2)
+      inf = max % 2
+      "#{add[0, ini - 3]}..#{add[-inf - ini - 3..]}"
     end
 
     # @example
@@ -68,7 +68,7 @@ module Cns
       format(
         '%<vi>5i %<vl>17.6f %<ep>6i %<id>9i',
         vi: idx,
-        vl: (hbh[:balance].to_d / 10**9).round(10),
+        vl: (hbh[:balance].to_d / (10**9)).round(10),
         ep: epc,
         id: itx(epc, idx)
       )

@@ -31,6 +31,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency('reek')
   spec.add_development_dependency('rubocop')
   spec.add_development_dependency('rubocop-rake')
+  spec.add_development_dependency('ruby-lint')
   spec.add_development_dependency('solargraph')
   spec.add_development_dependency('yard')
 

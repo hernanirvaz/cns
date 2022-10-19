@@ -32,6 +32,16 @@ module Cns
       @novtx ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
     end
 
+    # @return [Array<Hash>] lista transacoes internas novas
+    def novix
+      @novix ||= bcd.map { |obc| obc[:ix].select { |obj| idi.include?(obj[:itx]) } }.flatten
+    end
+
+    # @return [Array<Hash>] lista transacoes block novas
+    def novpx
+      @novpx ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten
+    end
+
     # @return [Array<Hash>] lista transacoes token novas
     def novkx
       @novkx ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten
@@ -58,6 +68,18 @@ module Cns
                (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
     end
 
+    # @return [Array<Integer>] lista indices transacoes internas novas
+    def idi
+      @idi ||= bcd.map { |obc| obc[:ix].map { |obj| obj[:itx] } }.flatten -
+               (ops[:t] ? [] : bqd[:ni].map { |obq| obq[:itx] })
+    end
+
+    # @return [Array<Integer>] lista indices transacoes block novas
+    def idp
+      @idp ||= bcd.map { |obc| obc[:px].map { |obj| obj[:itx] } }.flatten -
+               (ops[:t] ? [] : bqd[:np].map { |obq| obq[:itx] })
+    end
+
     # @return [Array<Integer>] lista indices transacoes token novas
     def idk
       @idk ||= bcd.map { |obc| obc[:kx].map { |obj| obj[:itx] } }.flatten -
@@ -71,8 +93,10 @@ module Cns
       acc = abc[:account].downcase
       {
         ax: acc,
-        sl: (abc[:balance].to_d / 10**18).round(10),
+        sl: (abc[:balance].to_d / 10**18),
         tx: filtrar_tx(acc, api.norml_es(acc)),
+        ix: filtrar_tx(acc, api.inter_es(acc)),
+        px: filtrar_px(acc, api.block_es(acc)),
         kx: filtrar_tx(acc, api.token_es(acc))
       }
     end
@@ -86,9 +110,13 @@ module Cns
         ax: xbq = wbq[:ax],
         bs: wbq[:sl],
         bt: bqd[:nt].select { |ont| ont[:iax] == xbq },
+        bi: bqd[:ni].select { |oni| oni[:iax] == xbq },
+        bp: bqd[:np].select { |onp| onp[:iax] == xbq },
         bk: bqd[:nk].select { |onk| onk[:iax] == xbq },
         es: hbc[:sl],
         et: hbc[:tx],
+        ei: hbc[:ix],
+        ep: hbc[:px],
         ek: hbc[:kx]
       }
     end
@@ -103,9 +131,27 @@ module Cns
          .map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: Integer(omp[:blockNumber]), iax: add) }
     end
 
+    # @param add (see Apibc#norml_es)
+    # @param [Array<Hash>] ary lista blocks events
+    # @return [Array<Hash>] lista blocks events filtrada
+    def filtrar_px(add, ary)
+      # adiciona chave indice itx & adiciona identificador da carteira iax
+      ary.map { |omp| omp.merge(itx: Integer(omp[:blockNumber]), iax: add) }
+    end
+
     # @return [Array<Hash>] lista ordenada transacoes normais novas
     def sortx
       novtx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes internas novas
+    def sorix
+      novix.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes block novas
+    def sorpx
+      novpx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes token novas

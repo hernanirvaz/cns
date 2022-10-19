@@ -24,6 +24,8 @@ module Cns
         {
           wb: sql("select * from #{BD}.walletEth order by 2"),
           nt: sql("select itx,iax from #{BD}.ethtx"),
+          ni: sql("select itx,iax from #{BD}.ethix"),
+          np: sql("select itx,iax from #{BD}.ethpx"),
           nk: sql("select itx,iax from #{BD}.ethkx")
         },
         ops

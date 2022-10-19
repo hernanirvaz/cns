@@ -38,7 +38,7 @@ module Cns
       apimt.mostra_resumo
       apies.mostra_resumo
       apigm.mostra_resumo
-      apibc.mostra_resumo
+      # apibc.mostra_resumo
     end
 
     # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
@@ -48,7 +48,7 @@ module Cns
       processa_frmt
       processa_eth
       processa_eos
-      processa_bc
+      # processa_bc
     end
 
     private
@@ -71,9 +71,11 @@ module Cns
       puts(format("%<n>4i LEDGER\tTHEROCK\t\tINSERIDAS mt", n: apimt.ledger.empty? ? 0 : dml(mtl_ins)))
     end
 
-    # insere transacoes blockchain novas nas tabelas etht (norml), ethk (token)
+    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethk (token)
     def processa_eth
-      puts(format("%<n>4i TRANSACOES\tETH\t\tINSERIDAS etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
+      puts(format("%<n>4i TRANSACOES ETH NORMAIS\tINSERIDAS etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
+      puts(format("%<n>4i TRANSACOES ETH INTERNAS\tINSERIDAS ethi", n: apies.novix.empty? ? 0 : dml(ethi_ins)))
+      puts(format("%<n>4i TRANSACOES ETH BLOCK\tINSERIDAS ethp", n: apies.novpx.empty? ? 0 : dml(ethp_ins)))
       puts(format("%<n>4i TOKENS\tETH\t\tINSERIDAS ethk", n: apies.novkx.empty? ? 0 : dml(ethk_ins)))
     end
 

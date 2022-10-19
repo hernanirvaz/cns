@@ -39,7 +39,6 @@ module Cns
     end
 
     # @example account_gm
-    # @example account_gm
     #  {
     #    account_name: '...',
     #    head_block_num: 141_391_122,
@@ -128,7 +127,7 @@ module Cns
     # @param [String] add endereco ETH
     # @param [Integer] pag pagina transacoes
     # @param [Array<Hash>] aes acumulador transacoes
-    # @return [Array<Hash>] lista completa transacoes etherscan
+    # @return [Array<Hash>] lista transacoes normais etherscan
     def norml_es(add, pag = 0, aes = [])
       res = JSON.parse(
         conn_es.get('/api', action: 'txlist', offset: 10_000, address: add, page: pag += 1).body,
@@ -136,6 +135,73 @@ module Cns
       )[:result]
       aes += res
       res.count < 10_000 ? aes : norml_es(add, pag, aes)
+    rescue StandardError
+      aes
+    end
+
+    # @example inter_es
+    # {
+    #   status: '1',
+    #   message: 'OK',
+    #   result: [
+    #     {
+    #       blockNumber: '15592786',
+    #       timeStamp: '1663896779',
+    #       hash: '0x...',
+    #       from: '0x...',
+    #       to: '0x...',
+    #       value: '22000000000000000',
+    #       contractAddress: '',
+    #       input: '',
+    #       type: 'call',
+    #       gas: '2300',
+    #       gasUsed: '0',
+    #       traceId: '0_1_1',
+    #       isError: '0',
+    #       errCode: ''
+    #     }
+    #   ]
+    # }
+    # @param (see norml_es)
+    # @return [Array<Hash>] lista transacoes internas etherscan
+    def inter_es(add, pag = 0, aes = [])
+      res = JSON.parse(
+        conn_es.get('/api', action: 'txlistinternal', offset: 10_000, address: add, page: pag += 1).body,
+        symbolize_names: true
+      )[:result]
+      aes += res
+      res.count < 10_000 ? aes : inter_es(add, pag, aes)
+    rescue StandardError
+      aes
+    end
+
+    # @example block_es
+    # {
+    #   status: '1',
+    #   message: 'OK',
+    #   result: [
+    #     { blockNumber: '15737070', timeStamp: '1665638459', blockReward: '8922867945448231' },
+    #     { blockNumber: '15592786', timeStamp: '1663896779', blockReward: '44997990286623752' },
+    #     { blockNumber: '15570222', timeStamp: '1663622819', blockReward: '261211525682683684' },
+    #     { blockNumber: '15568554', timeStamp: '1663602539', blockReward: '41993833217879559' }
+    #   ]
+    # }
+    # @param (see norml_es)
+    # @return [Array<Hash>] lista blocos etherscan
+    def block_es(add, pag = 0, aes = [])
+      res = JSON.parse(
+        conn_es.get(
+          '/api',
+          action: 'getminedblocks',
+          blocktype: 'blocks',
+          offset: 10_000,
+          address: add,
+          page: pag += 1
+        ).body,
+        symbolize_names: true
+      )[:result]
+      aes += res
+      res.count < 10_000 ? aes : block_es(add, pag, aes)
     rescue StandardError
       aes
     end
@@ -170,7 +236,7 @@ module Cns
     #    ]
     #  }
     # @param (see norml_es)
-    # @return [Array<Hash>] lista completa token transfer events etherscan
+    # @return [Array<Hash>] lista token transfer events etherscan
     def token_es(add, pag = 0, aes = [])
       # registos duplicados aparecem em token events (ver exemplo acima)
       # -quando ha erros na blockchain (acho)
@@ -258,7 +324,7 @@ module Cns
       @conn_es ||=
         Faraday.new(
           url: 'https://api.etherscan.io',
-          params: { module: 'account', apikey: ENV['ETHERSCAN_API_KEY'] },
+          params: { module: 'account', apikey: ENV.fetch('ETHERSCAN_API_KEY', nil) },
           headers: { content_type: 'application/json', accept: 'application/json', user_agent: 'etherscan;ruby' }
         ) do |con|
           con.request(:url_encoded)
