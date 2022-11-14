@@ -23,6 +23,13 @@ require('cns/version')
 module Cns
   # classe para carregar/mostrar dados transacoes eth & eos no bigquery
   class CLI < Thor
+    desc 'weth', 'carrega transacoes eth no bigquery'
+    option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
+    # carrega transacoes eth no bigquery
+    def weth
+      Bigquery.new(options).processa_eth
+    end
+
     desc 'work', 'carrega transacoes novas no bigquery'
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
     # carrega transacoes novas no bigquery

@@ -51,6 +51,14 @@ module Cns
       # processa_bc
     end
 
+    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethk (token)
+    def processa_eth
+      puts(format("%<n>4i TRANSACOES ETH NORMAIS\tINSERIDAS etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
+      puts(format("%<n>4i TRANSACOES ETH INTERNAS\tINSERIDAS ethi", n: apies.novix.empty? ? 0 : dml(ethi_ins)))
+      puts(format("%<n>4i TRANSACOES ETH BLOCK\tINSERIDAS ethp", n: apies.novpx.empty? ? 0 : dml(ethp_ins)))
+      puts(format("%<n>4i TOKENS\tETH\t\tINSERIDAS ethk", n: apies.novkx.empty? ? 0 : dml(ethk_ins)))
+    end
+
     private
 
     # insere transacoes exchange kraken novas nas tabelas ust (trades), usl (ledger)
@@ -69,14 +77,6 @@ module Cns
     def processa_frmt
       puts(format("%<n>4i LEDGER\tPAYMIUM\t\tINSERIDAS fr", n: apifr.ledger.empty? ? 0 : dml(frl_ins)))
       puts(format("%<n>4i LEDGER\tTHEROCK\t\tINSERIDAS mt", n: apimt.ledger.empty? ? 0 : dml(mtl_ins)))
-    end
-
-    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethk (token)
-    def processa_eth
-      puts(format("%<n>4i TRANSACOES ETH NORMAIS\tINSERIDAS etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
-      puts(format("%<n>4i TRANSACOES ETH INTERNAS\tINSERIDAS ethi", n: apies.novix.empty? ? 0 : dml(ethi_ins)))
-      puts(format("%<n>4i TRANSACOES ETH BLOCK\tINSERIDAS ethp", n: apies.novpx.empty? ? 0 : dml(ethp_ins)))
-      puts(format("%<n>4i TOKENS\tETH\t\tINSERIDAS ethk", n: apies.novkx.empty? ? 0 : dml(ethk_ins)))
     end
 
     # insere transacoes blockchain novas na tabela eos
