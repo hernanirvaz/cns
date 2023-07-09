@@ -8,12 +8,13 @@ module Cns
     def mostra_resumo
       return unless dados.count.positive?
 
-      puts("\nid     address                 etherscan tn ti tb tk     bigquery tn ti tb tk")
+      puts("\nid     address             etherscan  tn ti tb tk  tw     bigquery  tn ti tb tk  tw")
       dados.each { |obj| puts(formata_carteira(obj)) }
       mostra_transacao_norml
       mostra_transacao_inter
       mostra_transacao_block
       mostra_transacao_token
+      mostra_transacao_withw
       mostra_configuracao_ajuste_dias
     end
 
@@ -21,9 +22,9 @@ module Cns
     # @return [String] texto formatado duma carteira
     def formata_carteira(hjn)
       format(
-        '%<s1>-6.6s %<s2>-20.20s ',
+        '%<s1>-6.6s %<s2>-16.16s ',
         s1: hjn[:id],
-        s2: formata_enderec1(hjn[:ax], 20)
+        s2: formata_enderec1(hjn[:ax], 16)
       ) + formata_valores(hjn)
     end
 
@@ -31,17 +32,19 @@ module Cns
     # @return [String] texto formatado valores duma carteira
     def formata_valores(hjn)
       format(
-        '%<v1>12.6f %<n1>2i %<n2>2i %<n3>2i %<n4>2i %<v2>12.6f %<n5>2i %<n6>2i %<n7>2i %<n8>2i %<ok>-3s',
+        '%<v1>12.6f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>3i %<v2>12.6f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>3i %<ok>-3s',
         v1: hjn[:es],
         n1: hjn[:et].count,
         n2: hjn[:ei].count,
         n3: hjn[:ep].count,
         n4: hjn[:ek].count,
+        w1: hjn[:ew].count,
         v2: hjn[:bs],
         n5: hjn[:bt].count,
         n6: hjn[:bi].count,
         n7: hjn[:bp].count,
         n8: hjn[:bk].count,
+        w2: hjn[:bw].count,
         ok: ok?(hjn) ? 'OK' : 'NOK'
       )
     end
@@ -49,7 +52,7 @@ module Cns
     # @param (see formata_carteira)
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:bs].round(6) == hjn[:es].round(6) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count
+      hjn[:bs].round(6) == hjn[:es].round(6) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count && hjn[:bw].count == hjn[:ew].count
     end
 
     # @example ether address inicio..fim
@@ -61,7 +64,7 @@ module Cns
       return 'erro' if max < 7
 
       max -= 2
-      ini = Integer(max / 2)
+      ini = Integer(max / 2) + 3
       inf = max % 2
       "#{add[0, ini - 3]}..#{add[-inf - ini - 3..]}"
     end
@@ -124,6 +127,19 @@ module Cns
       )
     end
 
+    # @example (see Apibc#block_es)
+    # @param [Hash] htx transacao withdrawals etherscan
+    # @return [String] texto formatado transacao withdrawals etherscan
+    def formata_transacao_withw(htx)
+      format(
+        '%<vi>9i %<bn>9i %<dt>10.10s %<vl>10.6f',
+        vi: htx[:validatorIndex],
+        bn: htx[:blockNumber],
+        dt: Time.at(Integer(htx[:timestamp])),
+        vl: (htx[:amount].to_d / 10**9).round(10)
+      )
+    end
+
     # @return [String] texto transacoes normais
     def mostra_transacao_norml
       return unless ops[:v] && novtx.count.positive?
@@ -154,6 +170,14 @@ module Cns
 
       puts("\ntx token  from                 to                   data             valor")
       sorkx.each { |obj| puts(formata_transacao_token(obj)) }
+    end
+
+    # @return [String] texto transacoes withdrawals
+    def mostra_transacao_withw
+      return unless ops[:v] && novwx.count.positive?
+
+      puts("\nvalidator     block data            valor")
+      sorwx.each { |obj| puts(formata_transacao_withw(obj)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes (normais & token)

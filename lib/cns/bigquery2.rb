@@ -26,6 +26,7 @@ module Cns
           nt: sql("select itx,iax from #{BD}.ethtx"),
           ni: sql("select itx,iax from #{BD}.ethix"),
           np: sql("select itx,iax from #{BD}.ethpx"),
+          nw: sql("select itx,iax from #{BD}.ethwx"),
           nk: sql("select itx,iax from #{BD}.ethkx")
         },
         ops

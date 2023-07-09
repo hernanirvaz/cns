@@ -34,21 +34,21 @@ module Cns
     def mostra_tudo
       apius.mostra_resumo
       apide.mostra_resumo
-      apifr.mostra_resumo
-      apimt.mostra_resumo
+      #apifr.mostra_resumo
+      #apimt.mostra_resumo
       apies.mostra_resumo
       apigm.mostra_resumo
-      # apibc.mostra_resumo
+      #apibc.mostra_resumo
     end
 
     # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
     def processa_tudo
       processa_us
       processa_de
-      processa_frmt
+      #processa_frmt
       processa_eth
       processa_eos
-      # processa_bc
+      #processa_bc
     end
 
     # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethk (token)
@@ -56,6 +56,7 @@ module Cns
       puts(format("%<n>4i TRANSACOES ETH NORMAIS\tINSERIDAS etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
       puts(format("%<n>4i TRANSACOES ETH INTERNAS\tINSERIDAS ethi", n: apies.novix.empty? ? 0 : dml(ethi_ins)))
       puts(format("%<n>4i TRANSACOES ETH BLOCK\tINSERIDAS ethp", n: apies.novpx.empty? ? 0 : dml(ethp_ins)))
+      puts(format("%<n>4i TRANSACOES ETH WITHDRAWALS\tINSERIDAS ethw", n: apies.novwx.empty? ? 0 : dml(ethw_ins)))
       puts(format("%<n>4i TOKENS\tETH\t\tINSERIDAS ethk", n: apies.novkx.empty? ? 0 : dml(ethk_ins)))
     end
 

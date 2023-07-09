@@ -29,6 +29,12 @@ module Cns
       ") VALUES#{apies.novpx.map { |obj| ethp_1val(obj) }.join(',')}"
     end
 
+    # @return [String] comando insert SQL formatado ethw (withdrawals)
+    def ethw_ins
+      "insert #{BD}.ethw(withdrawalindex,validatorindex,address,amount,blocknumber,timestamp" \
+      ") VALUES#{apies.novwx.map { |obj| ethw_1val(obj) }.join(',')}"
+    end
+
     # @return [String] comando insert SQL formatado ethk (token)
     def ethk_ins
       "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
@@ -130,6 +136,18 @@ module Cns
       "#{Integer(htx[:timeStamp])}," \
       "cast('#{htx[:blockReward]}' as numeric)," \
       "'#{htx[:iax]}')"
+    end
+
+    # @example (see Apibc#block_es)
+    # @param [Hash] htx transacao withdrawals etherscan
+    # @return [String] valores formatados ethi (withdrawals parte1)
+    def ethw_1val(htx)
+      "(#{Integer(htx[:withdrawalIndex])}," \
+      "#{Integer(htx[:validatorIndex])}," \
+      "'#{htx[:address]}'," \
+      "cast('#{htx[:amount]}' as numeric)," \
+      "#{Integer(htx[:blockNumber])}," \
+      "#{Integer(htx[:timestamp])})"
     end
 
     # @example (see Apibc#token_es)

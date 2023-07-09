@@ -206,6 +206,40 @@ module Cns
       aes
     end
 
+    # @example withw_es
+    # {
+    #    "status":"1",
+    #    "message":"OK",
+    #    "result":[
+    #       {
+    #          "withdrawalIndex":"14",
+    #          "validatorIndex":"119023",
+    #          "address":"0xb9d7934878b5fb9610b3fe8a5e441e8fad7e293f",
+    #          "amount":"3244098967",
+    #          "blockNumber":"17034877",
+    #          "timestamp":"1681338599"
+    #       }
+    #    ]
+    # }
+    # @param (see norml_es)
+    # @return [Array<Hash>] lista blocos etherscan
+    def withw_es(add, pag = 0, aes = [])
+      res = JSON.parse(
+        conn_es.get(
+          '/api',
+          action: 'txsBeaconWithdrawal',
+          address: add,
+          offset: 10_000,
+          page: pag += 1
+        ).body,
+        symbolize_names: true
+      )[:result]
+      aes += res
+      res.count < 10_000 ? aes : withw_es(add, pag, aes)
+    rescue StandardError
+      aes
+    end
+
     # @example token_es
     #  {
     #    status: '1',

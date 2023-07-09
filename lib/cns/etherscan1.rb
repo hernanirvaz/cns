@@ -42,6 +42,11 @@ module Cns
       @novpx ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten
     end
 
+    # @return [Array<Hash>] lista transacoes withdrawals novas
+    def novwx
+      @novwx ||= bcd.map { |obc| obc[:wx].select { |obj| idw.include?(obj[:itx]) } }.flatten
+    end
+
     # @return [Array<Hash>] lista transacoes token novas
     def novkx
       @novkx ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten
@@ -80,6 +85,12 @@ module Cns
                (ops[:t] ? [] : bqd[:np].map { |obq| obq[:itx] })
     end
 
+    # @return [Array<Integer>] lista indices transacoes withdrawals novas
+    def idw
+      @idw ||= bcd.map { |obc| obc[:wx].map { |obj| obj[:itx] } }.flatten -
+               (ops[:t] ? [] : bqd[:nw].map { |obq| obq[:itx] })
+    end
+
     # @return [Array<Integer>] lista indices transacoes token novas
     def idk
       @idk ||= bcd.map { |obc| obc[:kx].map { |obj| obj[:itx] } }.flatten -
@@ -97,6 +108,7 @@ module Cns
         tx: filtrar_tx(acc, api.norml_es(acc)),
         ix: filtrar_tx(acc, api.inter_es(acc)),
         px: filtrar_px(acc, api.block_es(acc)),
+        wx: filtrar_px(acc, api.withw_es(acc)),
         kx: filtrar_tx(acc, api.token_es(acc))
       }
     end
@@ -112,11 +124,13 @@ module Cns
         bt: bqd[:nt].select { |ont| ont[:iax] == xbq },
         bi: bqd[:ni].select { |oni| oni[:iax] == xbq },
         bp: bqd[:np].select { |onp| onp[:iax] == xbq },
+        bw: bqd[:nw].select { |onw| onw[:iax] == xbq },
         bk: bqd[:nk].select { |onk| onk[:iax] == xbq },
         es: hbc[:sl],
         et: hbc[:tx],
         ei: hbc[:ix],
         ep: hbc[:px],
+        ew: hbc[:wx],
         ek: hbc[:kx]
       }
     end
@@ -152,6 +166,11 @@ module Cns
     # @return [Array<Hash>] lista ordenada transacoes block novas
     def sorpx
       novpx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes withdrawals novas
+    def sorwx
+      novwx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes token novas
