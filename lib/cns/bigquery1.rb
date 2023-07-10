@@ -89,7 +89,7 @@ module Cns
     def processa_bc
       # puts(format("%<n>4i ATTESTATIONS INSERIDAS #{BD}.eth2at", n: apibc.novtx.empty? ? 0 : dml(eth2at_ins)))
       # puts(format("%<n>4i PROPOSALS INSERIDAS #{BD}.eth2pr", n: apibc.novkx.empty? ? 0 : dml(eth2pr_ins)))
-      puts(format("%<n>4i BALANCES\tETH2\t\tINSERIDOS eth2bh", n: apibc.nov.empty? ? 0 : dml(eth2bh_ins)))
+      puts(format("%<n>4i BALANCES\tETH2\t\tINSERIDOS #{BD}.eth2bh", n: apibc.nov.empty? ? 0 : dml(eth2bh_ins)))
     end
 
     # cria job bigquery & verifica execucao
