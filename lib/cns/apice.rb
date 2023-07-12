@@ -380,7 +380,8 @@ module Cns
         symbolize_names: true
       )[:result]
       has.merge!(res[:trades])
-      (ofs += 50) < res[:count] ? trades_us(ofs, has) : has
+      sleep 2
+      res[:trades].count > 0 ? trades_us(ofs + res[:trades].count, has) : has
     rescue StandardError
       has
     end
@@ -416,7 +417,8 @@ module Cns
         symbolize_names: true
       )[:result]
       has.merge!(res[:ledger])
-      (ofs += 50) < res[:count] ? ledger_us(ofs, has) : has
+      sleep 2
+      res[:ledger].count > 0 ? ledger_us(ofs + res[:ledger].count, has) : has
     rescue StandardError
       has
     end
