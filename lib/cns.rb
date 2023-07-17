@@ -20,7 +20,7 @@ module Cns
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
     # carrega transacoes eth no bigquery
     def weth
-      Bigquery.new(options).processa_eth
+      Bigquery.new(options).processa_weth
     end
 
     desc 'work', 'carrega transacoes novas no bigquery'

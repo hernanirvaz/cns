@@ -51,13 +51,18 @@ module Cns
       #processa_bc
     end
 
-    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethk (token)
+    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
     def processa_eth
       puts(format("%<n>4i TRANSACOES ETH NORMAIS\tINSERIDAS etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
       puts(format("%<n>4i TRANSACOES ETH INTERNAS\tINSERIDAS ethi", n: apies.novix.empty? ? 0 : dml(ethi_ins)))
       puts(format("%<n>4i TRANSACOES ETH BLOCK\tINSERIDAS ethp", n: apies.novpx.empty? ? 0 : dml(ethp_ins)))
       puts(format("%<n>4i TRANSACOES ETH WITHDRAWALS\tINSERIDAS ethw", n: apies.novwx.empty? ? 0 : dml(ethw_ins)))
       puts(format("%<n>4i TOKENS\tETH\t\tINSERIDAS ethk", n: apies.novkx.empty? ? 0 : dml(ethk_ins)))
+    end
+
+    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
+    def processa_weth
+      puts(format("%<m>16s etht %<t>4i NORMAIS\t;ethi %<i>4i INTERNAS\t;ethp %<p>4i BLOCK\t;ethw %<w>4i WITHDRAWALS\t;ethk %<k>4i TOKENS", m: Time.now.strftime("%Y-%m-%d %k:%M"), t: apies.novtx.empty? ? 0 : dml(etht_ins), i: apies.novix.empty? ? 0 : dml(ethi_ins), p: apies.novpx.empty? ? 0 : dml(ethp_ins), w: apies.novwx.empty? ? 0 : dml(ethw_ins), k: apies.novkx.empty? ? 0 : dml(ethk_ins)))
     end
 
     private
