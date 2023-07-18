@@ -187,7 +187,7 @@ module Cns
     def mostra_resumo
       return unless dados.count.positive?
 
-      puts("\nid     address             etherscan  tn ti tb tk  tw     bigquery  tn ti tb tk  tw")
+      puts("\nid     address      etherscan  tn ti tb tk  tw    bigquery  tn ti tb tk  tw")
       dados.each { |obj| puts(formata_carteira(obj)) }
       mostra_transacao_norml
       mostra_transacao_inter
@@ -201,9 +201,9 @@ module Cns
     # @return [String] texto formatado duma carteira
     def formata_carteira(hjn)
       format(
-        '%<s1>-6.6s %<s2>-16.16s ',
+        '%<s1>-6.6s %<s2>-10.10s ',
         s1: hjn[:id],
-        s2: formata_enderec1(hjn[:ax], 16)
+        s2: formata_enderec1(hjn[:ax], 10)
       ) + formata_valores(hjn)
     end
 
@@ -211,7 +211,7 @@ module Cns
     # @return [String] texto formatado valores duma carteira
     def formata_valores(hjn)
       format(
-        '%<v1>12.6f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>3i %<v2>12.6f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>3i %<ok>-3s',
+        '%<v1>11.4f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>3i %<v2>11.4f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>3i %<ok>-3s',
         v1: hjn[:es],
         n1: hjn[:et].count,
         n2: hjn[:ei].count,
@@ -231,7 +231,7 @@ module Cns
     # @param (see formata_carteira)
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:bs].round(6) == hjn[:es].round(6) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count && hjn[:bw].count == hjn[:ew].count
+      hjn[:bs].round(4) == hjn[:es].round(4) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count && hjn[:bw].count == hjn[:ew].count
     end
 
     # @example ether address inicio..fim
@@ -243,7 +243,7 @@ module Cns
       return 'erro' if max < 7
 
       max -= 2
-      ini = Integer(max / 2) + 3
+      ini = Integer(max / 2) + 4
       inf = max % 2
       "#{add[0, ini - 3]}..#{add[-inf - ini - 3..]}"
     end
