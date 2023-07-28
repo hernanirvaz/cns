@@ -38,7 +38,7 @@ module Cns
     # @return [String] texto saldos & transacoes & ajuste dias
     def mostra_resumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
-      exd[:sl].each { |key, val| puts(formata_saldos(key, val)) }
+      exd[:sl].sort { |ant, prx| ant <=> prx }.each { |key, val| puts(formata_saldos(key, val)) }
       mostra_totais
 
       mostra_trades
@@ -72,8 +72,8 @@ module Cns
     # @param [Hash] hsx saldo bitcoinde da moeda
     # @return [String] texto formatado saldos
     def formata_saldos(moe, hsx)
-      vbq = bqd[:sl][moe.downcase.to_sym].to_d
-      vex = hsx[:total_amount].to_d
+      vbq = bqd[:sl][moe.downcase.to_sym].to_d.round(9)
+      vex = hsx[:total_amount].to_d.round(9)
       format(
         '%<mo>-5.5s %<ex>21.9f %<bq>21.9f %<ok>3.3s',
         mo: moe.upcase,
