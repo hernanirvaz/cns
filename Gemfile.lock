@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (0.4.1)
+    cns (0.4.2)
       curb
       faraday
       google-cloud-bigquery
@@ -10,7 +10,7 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    addressable (2.8.4)
+    addressable (2.8.5)
       public_suffix (>= 2.0.2, < 6.0)
     ast (2.4.2)
     backport (1.2.0)

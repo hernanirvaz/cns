@@ -23,6 +23,13 @@ module Cns
       Bigquery.new(options).processa_weth
     end
 
+    desc 'wkrk', 'carrega transacoes kraken/eth no bigquery'
+    option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
+    # carrega transacoes kraken/eth no bigquery
+    def wkrk
+      Bigquery.new(options).processa_wkrk
+    end
+
     desc 'work', 'carrega transacoes novas no bigquery'
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
     # carrega transacoes novas no bigquery
@@ -38,6 +45,14 @@ module Cns
       Bigquery.new(options).mostra_tudo
     end
 
-    default_task :show
+    desc 'skrk', 'mostra kraken/eth transacoes'
+    option :v, type: :boolean, default: true, desc: 'mostra transacoes'
+    option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
+    # mostra kraken/eth transacoes
+    def skrk
+      Bigquery.new(options).mostra_skrk
+    end
+
+    default_task :skrk
   end
 end

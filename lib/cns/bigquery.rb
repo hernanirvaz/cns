@@ -41,6 +41,12 @@ module Cns
       #apibc.mostra_resumo
     end
 
+    # mostra situacao completa entre kraken/etherscan & bigquery
+    def mostra_skrk
+      apius.mostra_resumo
+      apies.mostra_resumo
+    end
+
     # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
     def processa_tudo
       processa_us
@@ -49,6 +55,12 @@ module Cns
       processa_eth
       processa_eos
       #processa_bc
+    end
+
+    # insere (caso existam) dados novos kraken/etherscan/ no bigquery
+    def processa_wkrk
+      processa_us
+      processa_eth
     end
 
     # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
@@ -62,7 +74,8 @@ module Cns
 
     # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
     def processa_weth
-      puts(format("%<m>16s etht %<t>4i NORMAIS\t;ethi %<i>4i INTERNAS\t;ethp %<p>4i BLOCK\t;ethw %<w>4i WITHDRAWALS\t;ethk %<k>4i TOKENS", m: Time.now.strftime("%Y-%m-%d %k:%M"), t: apies.novtx.empty? ? 0 : dml(etht_ins), i: apies.novix.empty? ? 0 : dml(ethi_ins), p: apies.novpx.empty? ? 0 : dml(ethp_ins), w: apies.novwx.empty? ? 0 : dml(ethw_ins), k: apies.novkx.empty? ? 0 : dml(ethk_ins)))
+      #puts(format("%<m>16s etht %<t>4i NORMAIS\t;ethi %<i>4i INTERNAS\t;ethp %<p>4i BLOCK\t;ethw %<w>4i WITHDRAWALS\t;ethk %<k>4i TOKENS", m: Time.now.strftime("%Y-%m-%d %k:%M"), t: apies.novtx.empty? ? 0 : dml(etht_ins), i: apies.novix.empty? ? 0 : dml(ethi_ins), p: apies.novpx.empty? ? 0 : dml(ethp_ins), w: apies.novwx.empty? ? 0 : dml(ethw_ins), k: apies.novkx.empty? ? 0 : dml(ethk_ins)))
+      processa_eth
     end
 
     private
