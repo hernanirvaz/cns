@@ -231,7 +231,7 @@ module Cns
     # @param (see formata_carteira)
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:bs].round(4) == hjn[:es].round(4) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count && hjn[:bw].count == hjn[:ew].count
+      hjn[:es].round(4) == hjn[:bs].round(4) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count && hjn[:bw].count == hjn[:ew].count
     end
 
     # @example ether address inicio..fim
