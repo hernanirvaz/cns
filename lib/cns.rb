@@ -16,11 +16,27 @@ require('cns/version')
 module Cns
   # classe para carregar/mostrar dados transacoes eth & eos no bigquery
   class CLI < Thor
+    desc 'seth', 'mostra eth transacoes'
+    option :v, type: :boolean, default: true, desc: 'mostra transacoes'
+    option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
+    # mostra eth transacoes
+    def seth
+      Bigquery.new(options).mostra_seth
+    end
+
     desc 'weth', 'carrega transacoes eth no bigquery'
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
     # carrega transacoes eth no bigquery
     def weth
       Bigquery.new(options).processa_weth
+    end
+
+    desc 'skrk', 'mostra kraken/eth transacoes'
+    option :v, type: :boolean, default: true, desc: 'mostra transacoes'
+    option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
+    # mostra kraken/eth transacoes
+    def skrk
+      Bigquery.new(options).mostra_skrk
     end
 
     desc 'wkrk', 'carrega transacoes kraken/eth no bigquery'
@@ -45,14 +61,6 @@ module Cns
       Bigquery.new(options).mostra_tudo
     end
 
-    desc 'skrk', 'mostra kraken/eth transacoes'
-    option :v, type: :boolean, default: true, desc: 'mostra transacoes'
-    option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
-    # mostra kraken/eth transacoes
-    def skrk
-      Bigquery.new(options).mostra_skrk
-    end
-
-    default_task :skrk
+    default_task :seth
   end
 end
