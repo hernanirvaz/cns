@@ -41,16 +41,6 @@ module Cns
       #apibc.mostra_resumo
     end
 
-    # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
-    def processa_tudo
-      processa_us
-      processa_de
-      #processa_frmt
-      processa_eth
-      processa_eos
-      #processa_bc
-    end
-
     # mostra situacao completa entre kraken/etherscan & bigquery
     def mostra_skrk
       apius.mostra_resumo
@@ -62,57 +52,68 @@ module Cns
       apies.mostra_resumo
     end
 
+    # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
+    def processa_tudo
+      puts(Time.now.strftime("%d-%m-%Y %H:%M TRANSACOES ") + processa_us + ", " + processa_de + ", " + processa_eth + ", " + processa_eos)
+    end
+
     # insere (caso existam) dados novos kraken/etherscan no bigquery
     def processa_wkrk
-      processa_us
-      processa_eth
+      puts(Time.now.strftime("%d-%m-%Y %H:%M TRANSACOES ") + processa_us + ", " + processa_eth)
     end
 
     # insere (caso existam) dados novos etherscan no bigquery
     def processa_weth
-      processa_eth
-    end
-
-    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
-    def processa_eth
-      puts(format("%<n>4i TRANSACOES ETH NORMAIS\tINSERIDAS etht", n: apies.novtx.empty? ? 0 : dml(etht_ins)))
-      puts(format("%<n>4i TRANSACOES ETH INTERNAS\tINSERIDAS ethi", n: apies.novix.empty? ? 0 : dml(ethi_ins)))
-      puts(format("%<n>4i TRANSACOES ETH BLOCK\tINSERIDAS ethp", n: apies.novpx.empty? ? 0 : dml(ethp_ins)))
-      puts(format("%<n>4i TRANSACOES ETH WITHDRAWALS\tINSERIDAS ethw", n: apies.novwx.empty? ? 0 : dml(ethw_ins)))
-      puts(format("%<n>4i TOKENS\tETH\t\tINSERIDAS ethk", n: apies.novkx.empty? ? 0 : dml(ethk_ins)))
+      puts(Time.now.strftime("%d-%m-%Y %H:%M TRANSACOES ") + processa_eth)
     end
 
     private
 
+    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
+    def processa_eth
+      str = "ETH"
+      str << format(" %<n>i etht", n: dml(etht_ins)) if apies.novtx.count > 0
+      str << format(" %<n>i ethi", n: dml(ethi_ins)) if apies.novix.count > 0
+      str << format(" %<n>i ethp", n: dml(ethp_ins)) if apies.novpx.count > 0
+      str << format(" %<n>i ethw", n: dml(ethw_ins)) if apies.novwx.count > 0
+      str << format(" %<n>i ethk", n: dml(ethk_ins)) if apies.novkx.count > 0
+      str
+    end
+
     # insere transacoes exchange kraken novas nas tabelas ust (trades), usl (ledger)
     def processa_us
-      puts(format("%<n>4i TRADES\tKRAKEN\t\tINSERIDAS ust", n: apius.trades.empty? ? 0 : dml(ust_ins)))
-      puts(format("%<n>4i LEDGER\tKRAKEN\t\tINSERIDAS usl", n: apius.ledger.empty? ? 0 : dml(usl_ins)))
+      str = "KRAKEN"
+      str << format(" %<n>i ust", n: dml(ust_ins)) if apius.trades.count > 0
+      str << format(" %<n>i usl", n: dml(usl_ins)) if apius.ledger.count > 0
+      str
     end
 
     # insere transacoes exchange bitcoinde novas nas tabelas det (trades), del (ledger)
     def processa_de
-      puts(format("%<n>4i TRADES\tBITCOINDE\tINSERIDAS det", n: apide.trades.empty? ? 0 : dml(det_ins)))
-      puts(format("%<n>4i LEDGER\tBITCOINDE\tINSERIDAS del", n: apide.ledger.empty? ? 0 : dml(del_ins)))
-    end
-
-    # insere transacoes exchange paymium/therock  novas na tabela fr/mt (ledger)
-    def processa_frmt
-      puts(format("%<n>4i LEDGER\tPAYMIUM\t\tINSERIDAS fr", n: apifr.ledger.empty? ? 0 : dml(frl_ins)))
-      puts(format("%<n>4i LEDGER\tTHEROCK\t\tINSERIDAS mt", n: apimt.ledger.empty? ? 0 : dml(mtl_ins)))
+      str = "BITCOINDE"
+      str << format(" %<n>i det", n: dml(det_ins)) if apide.trades.count > 0
+      str << format(" %<n>i del", n: dml(del_ins)) if apide.ledger.count > 0
+      str
     end
 
     # insere transacoes blockchain novas na tabela eos
     def processa_eos
-      puts(format("%<n>4i TRANSACOES\tEOS\t\tINSERIDAS eos ", n: apigm.novax.empty? ? 0 : dml(eost_ins)))
+      str = "EOS"
+      str << format(" %<n>i eos ", n: dml(eost_ins)) if apigm.novax.count > 0
+      str
     end
 
+    # insere transacoes exchange paymium/therock  novas na tabela fr/mt (ledger)
+    # def processa_frmt
+    #   puts(format("%<n>4i LEDGER\tPAYMIUM\t\tINSERIDAS fr", n: apifr.ledger.empty? ? 0 : dml(frl_ins)))
+    #   puts(format("%<n>4i LEDGER\tTHEROCK\t\tINSERIDAS mt", n: apimt.ledger.empty? ? 0 : dml(mtl_ins)))
+    # end
     # insere historico sados novos na tabela eth2bh
-    def processa_bc
-      # puts(format("%<n>4i ATTESTATIONS INSERIDAS eth2at", n: apibc.novtx.empty? ? 0 : dml(eth2at_ins)))
-      # puts(format("%<n>4i PROPOSALS INSERIDAS eth2pr", n: apibc.novkx.empty? ? 0 : dml(eth2pr_ins)))
-      puts(format("%<n>4i BALANCES\tETH2\t\tINSERIDOS eth2bh", n: apibc.nov.empty? ? 0 : dml(eth2bh_ins)))
-    end
+    # def processa_bc
+    #   puts(format("%<n>4i ATTESTATIONS INSERIDAS eth2at", n: apibc.novtx.empty? ? 0 : dml(eth2at_ins)))
+    #   puts(format("%<n>4i PROPOSALS INSERIDAS eth2pr", n: apibc.novkx.empty? ? 0 : dml(eth2pr_ins)))
+    #   puts(format("%<n>4i BALANCES\tETH2\t\tINSERIDOS eth2bh", n: apibc.nov.empty? ? 0 : dml(eth2bh_ins)))
+    # end
 
     # cria job bigquery & verifica execucao
     #

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (0.4.4)
+    cns (0.4.5)
       curb
       faraday
       google-cloud-bigquery
@@ -20,12 +20,12 @@ GEM
     curb (1.0.5)
     declarative (0.0.20)
     e2mmap (0.1.0)
-    faraday (2.7.11)
+    faraday (2.7.12)
       base64
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
     faraday-net_http (3.0.2)
-    google-apis-bigquery_v2 (0.60.0)
+    google-apis-bigquery_v2 (0.61.0)
       google-apis-core (>= 0.11.0, < 2.a)
     google-apis-core (0.11.2)
       addressable (~> 2.5, >= 2.5.1)
@@ -64,14 +64,14 @@ GEM
     kwalify (0.7.2)
     mini_mime (1.1.5)
     multi_json (1.15.0)
-    nokogiri (1.15.4-x86_64-linux)
+    nokogiri (1.15.5-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
     parallel (1.23.0)
     parser (2.7.2.0)
       ast (~> 2.4.1)
     psych (3.3.4)
-    public_suffix (5.0.3)
+    public_suffix (5.0.4)
     racc (1.7.3)
     rainbow (3.1.1)
     rake (12.3.3)
