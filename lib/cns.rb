@@ -31,6 +31,13 @@ module Cns
       Bigquery.new(options).processa_weth
     end
 
+    desc 'ceth', 'carrega transacoes eth no bigquery (cron)'
+    option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
+    # carrega transacoes eth no bigquery (output to file)
+    def ceth
+      Bigquery.new(options).processa_ceth
+    end
+
     desc 'skrk', 'mostra kraken/eth transacoes'
     option :v, type: :boolean, default: true, desc: 'mostra transacoes'
     option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'

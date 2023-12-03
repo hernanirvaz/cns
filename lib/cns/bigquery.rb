@@ -6,6 +6,7 @@ require('bigdecimal/util')
 # @author Hernani Rodrigues Vaz
 module Cns
   BD = 'hernanirvaz.coins'
+  FO = File.expand_path('~/' + File.basename($0) + '.out')
 
   # classe para processar bigquery
   class Bigquery
@@ -67,39 +68,52 @@ module Cns
       puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_eth)
     end
 
+    # insere (caso existam) dados novos etherscan no bigquery (output to file)
+    def processa_ceth
+      File.open(FO, mode: 'a') { |out| out.puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_eth) }
+    end
+
     private
 
     # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
+    #
+    # @return [String] linhas & tabelas afetadas
     def processa_eth
       str = "ETH"
-      str << format(" %<n>i etht", n: dml(etht_ins)) if apies.novtx.count > 0
-      str << format(" %<n>i ethi", n: dml(ethi_ins)) if apies.novix.count > 0
-      str << format(" %<n>i ethp", n: dml(ethp_ins)) if apies.novpx.count > 0
-      str << format(" %<n>i ethw", n: dml(ethw_ins)) if apies.novwx.count > 0
-      str << format(" %<n>i ethk", n: dml(ethk_ins)) if apies.novkx.count > 0
+      str += format(" %<n>i etht", n: dml(etht_ins)) if apies.novtx.count > 0
+      str += format(" %<n>i ethi", n: dml(ethi_ins)) if apies.novix.count > 0
+      str += format(" %<n>i ethp", n: dml(ethp_ins)) if apies.novpx.count > 0
+      str += format(" %<n>i ethw", n: dml(ethw_ins)) if apies.novwx.count > 0
+      str += format(" %<n>i ethk", n: dml(ethk_ins)) if apies.novkx.count > 0
       str
     end
 
     # insere transacoes exchange kraken novas nas tabelas ust (trades), usl (ledger)
+    #
+    # @return [String] linhas & tabelas afetadas
     def processa_us
       str = "KRAKEN"
-      str << format(" %<n>i ust", n: dml(ust_ins)) if apius.trades.count > 0
-      str << format(" %<n>i usl", n: dml(usl_ins)) if apius.ledger.count > 0
+      str += format(" %<n>i ust", n: dml(ust_ins)) if apius.trades.count > 0
+      str += format(" %<n>i usl", n: dml(usl_ins)) if apius.ledger.count > 0
       str
     end
 
     # insere transacoes exchange bitcoinde novas nas tabelas det (trades), del (ledger)
+    #
+    # @return [String] linhas & tabelas afetadas
     def processa_de
       str = "BITCOINDE"
-      str << format(" %<n>i det", n: dml(det_ins)) if apide.trades.count > 0
-      str << format(" %<n>i del", n: dml(del_ins)) if apide.ledger.count > 0
+      str += format(" %<n>i det", n: dml(det_ins)) if apide.trades.count > 0
+      str += format(" %<n>i del", n: dml(del_ins)) if apide.ledger.count > 0
       str
     end
 
     # insere transacoes blockchain novas na tabela eos
+    #
+    # @return [String] linhas & tabelas afetadas
     def processa_eos
       str = "EOS"
-      str << format(" %<n>i eos ", n: dml(eost_ins)) if apigm.novax.count > 0
+      str += format(" %<n>i eos ", n: dml(eost_ins)) if apigm.novax.count > 0
       str
     end
 
