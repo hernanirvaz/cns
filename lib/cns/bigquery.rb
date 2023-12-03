@@ -54,17 +54,17 @@ module Cns
 
     # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
     def processa_tudo
-      puts(Time.now.strftime("%d-%m-%Y %H:%M TRANSACOES ") + processa_us + ", " + processa_de + ", " + processa_eth + ", " + processa_eos)
+      puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_us + ", " + processa_de + ", " + processa_eth + ", " + processa_eos)
     end
 
     # insere (caso existam) dados novos kraken/etherscan no bigquery
     def processa_wkrk
-      puts(Time.now.strftime("%d-%m-%Y %H:%M TRANSACOES ") + processa_us + ", " + processa_eth)
+      puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_us + ", " + processa_eth)
     end
 
     # insere (caso existam) dados novos etherscan no bigquery
     def processa_weth
-      puts(Time.now.strftime("%d-%m-%Y %H:%M TRANSACOES ") + processa_eth)
+      puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_eth)
     end
 
     private
