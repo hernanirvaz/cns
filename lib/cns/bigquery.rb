@@ -6,7 +6,7 @@ require('bigdecimal/util')
 # @author Hernani Rodrigues Vaz
 module Cns
   BD = 'hernanirvaz.coins'
-  FO = File.expand_path('~/' + File.basename($0) + '.out')
+  FO = File.expand_path('~/' + File.basename($0) + '.log')
 
   # classe para processar bigquery
   class Bigquery
