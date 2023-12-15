@@ -187,7 +187,7 @@ module Cns
     def mostra_resumo
       return unless dados.count.positive?
 
-      puts("\nid     address      etherscan  tn ti tb tk  tw    bigquery  tn ti tb tk  tw")
+      puts("\nid     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw")
       dados.each { |obj| puts(formata_carteira(obj)) }
       mostra_transacao_norml
       mostra_transacao_inter
@@ -211,7 +211,7 @@ module Cns
     # @return [String] texto formatado valores duma carteira
     def formata_valores(hjn)
       format(
-        '%<v1>11.4f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>3i %<v2>11.4f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>3i %<ok>-3s',
+        '%<v1>11.4f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>4i %<v2>11.4f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>4i %<ok>-3s',
         v1: hjn[:es],
         n1: hjn[:et].count,
         n2: hjn[:ei].count,
