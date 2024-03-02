@@ -70,7 +70,7 @@ module Cns
 
     # insere (caso existam) dados novos etherscan no bigquery (output to file)
     def processa_ceth
-      File.open(FO, mode: 'a') { |out| out.puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_eth) }
+      File.open(FO, mode: 'a') { |out| out.puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_ethc) }
     end
 
     private
@@ -85,6 +85,19 @@ module Cns
       str += format(" %<n>i ethp", n: dml(ethp_ins)) if apies.novpx.count > 0
       str += format(" %<n>i ethw", n: dml(ethw_ins)) if apies.novwx.count > 0
       str += format(" %<n>i ethk", n: dml(ethk_ins)) if apies.novkx.count > 0
+      str
+    end
+
+    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
+    #
+    # @return [String] linhas & tabelas afetadas
+    def processa_ethc
+      str = "ETH"
+      str += format(" %<n>i etht", n: dml(ethtc_ins)) if apiesc.novtx.count > 0
+      str += format(" %<n>i ethi", n: dml(ethic_ins)) if apiesc.novix.count > 0
+      str += format(" %<n>i ethp", n: dml(ethpc_ins)) if apiesc.novpx.count > 0
+      str += format(" %<n>i ethw", n: dml(ethwc_ins)) if apiesc.novwx.count > 0
+      str += format(" %<n>i ethk", n: dml(ethkc_ins)) if apiesc.novkx.count > 0
       str
     end
 
@@ -180,6 +193,21 @@ module Cns
           np: sql("select itx,iax from #{BD}.ethpx"),
           nw: sql("select itx,iax from #{BD}.ethwx"),
           nk: sql("select itx,iax from #{BD}.ethkx")
+        },
+        ops
+      )
+    end
+
+    # @return [Etherscan] API blockchain ETH
+    def apiesc
+      @apies ||= Etherscan.new(
+        {
+          wb: sql("select * from #{BD}.walletEthc order by 2"),
+          nt: sql("select itx,iax from #{BD}.ethtxc"),
+          ni: sql("select itx,iax from #{BD}.ethixc"),
+          np: sql("select itx,iax from #{BD}.ethpxc"),
+          nw: sql("select itx,iax from #{BD}.ethwxc"),
+          nk: sql("select itx,iax from #{BD}.ethkxc")
         },
         ops
       )
@@ -284,6 +312,39 @@ module Cns
       "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
       'value,tokenname,tokensymbol,tokendecimal,gas,gasprice,gasused,input,contractaddress,dias' \
       ") VALUES#{apies.novkx.map { |obj| ethk_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado etht (norml)
+    def ethtc_ins
+      "insert #{BD}.etht(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
+      'value,gas,gasprice,gasused,iserror,txreceipt_status,input,contractaddress,dias' \
+      ") VALUES#{apiesc.novtx.map { |obj| etht_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado ethi (internas)
+    def ethic_ins
+      "insert #{BD}.ethi(blocknumber,timestamp,txhash,axfrom,axto,iax," \
+      'value,contractaddress,input,type,gas,gasused,traceid,iserror,errcode' \
+      ") VALUES#{apiesc.novix.map { |obj| ethi_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado ethp (block)
+    def ethpc_ins
+      "insert #{BD}.ethp(blocknumber,timestamp,blockreward,iax" \
+      ") VALUES#{apiesc.novpx.map { |obj| ethp_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado ethw (withdrawals)
+    def ethwc_ins
+      "insert #{BD}.ethw(withdrawalindex,validatorindex,address,amount,blocknumber,timestamp" \
+      ") VALUES#{apiesc.novwx.map { |obj| ethw_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado ethk (token)
+    def ethkc_ins
+      "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
+      'value,tokenname,tokensymbol,tokendecimal,gas,gasprice,gasused,input,contractaddress,dias' \
+      ") VALUES#{apiesc.novkx.map { |obj| ethk_1val(obj) }.join(',')}"
     end
 
     # @return [String] comando insert SQL formatado eos
