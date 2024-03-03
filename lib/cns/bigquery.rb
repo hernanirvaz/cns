@@ -53,24 +53,33 @@ module Cns
       apies.mostra_resumo
     end
 
+    # @return [String] texto inicial transacoes
+    def trs_ini
+      Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M:%S ")
+    end
+
     # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
     def processa_tudo
-      puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_us + ", " + processa_de + ", " + processa_eth + ", " + processa_eos)
+      str = processa_us + ", " + processa_de + ", " + processa_eth + ", " + processa_eos
+      puts(trs_ini + str)
     end
 
     # insere (caso existam) dados novos kraken/etherscan no bigquery
     def processa_wkrk
-      puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_us + ", " + processa_eth)
+      str = processa_us + ", " + processa_eth
+      puts(trs_ini + str)
     end
 
     # insere (caso existam) dados novos etherscan no bigquery
     def processa_weth
-      puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_eth)
+      str = processa_eth
+      puts(trs_ini + str)
     end
 
     # insere (caso existam) dados novos etherscan no bigquery (output to file)
     def processa_ceth
-      File.open(FO, mode: 'a') { |out| out.puts(Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M ") + processa_ethc) }
+      str = processa_ethc
+      File.open(FO, mode: 'a') { |out| out.puts(trs_ini + str) }
     end
 
     private
