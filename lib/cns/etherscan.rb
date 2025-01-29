@@ -121,11 +121,11 @@ module Cns
         id: wbq[:id],
         ax: xbq = wbq[:ax],
         bs: wbq[:sl],
-        bt: bqd[:nt].select { |ont| ont[:iax] == xbq },
-        bi: bqd[:ni].select { |oni| oni[:iax] == xbq },
-        bp: bqd[:np].select { |onp| onp[:iax] == xbq },
-        bw: bqd[:nw].select { |onw| onw[:iax] == xbq },
-        bk: bqd[:nk].select { |onk| onk[:iax] == xbq },
+        bt: bqd[:nt].select { |ont| ont[:axfrom].casecmp?(xbq) },
+        bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
+        bp: bqd[:np].select { |onp| onp[:iax].casecmp?(xbq) },
+        bw: bqd[:nw].select { |onw| onw[:iax].casecmp?(xbq) },
+        bk: bqd[:nk].select { |onk| onk[:iax].casecmp?(xbq) },
         es: hbc[:sl],
         et: hbc[:tx],
         ei: hbc[:ix],
@@ -140,9 +140,9 @@ module Cns
     # @return [Array<Hash>] lista transacoes/token events filtrada
     def filtrar_tx(add, ary)
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
+      # .delete_if { |odl| add.casecmp?(odl[:to]) && lax.include?(odl[:from].downcase) }
       # elimina chaves irrelevantes (DL) & adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.delete_if { |odl| add.casecmp?(odl[:to]) && lax.include?(odl[:from].downcase) }
-         .map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: Integer(omp[:blockNumber]), iax: add) }
+      ary.map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: Integer(omp[:blockNumber]), iax: add) }
     end
 
     # @param add (see Apibc#norml_es)
@@ -229,9 +229,26 @@ module Cns
     end
 
     # @param (see formata_carteira)
+    # @example set hjn
+    # {
+    #   id: wbq[:id],
+    #   ax: xbq = wbq[:ax],
+    #   bs: wbq[:sl],  INPORTANTE saldo bigquery
+    #   bt: bqd[:nt].select { |ont| ont[:axfrom].casecmp?(xbq) },
+    #   bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
+    #   bp: bqd[:np].select { |onp| onp[:iax].casecmp?(xbq) },
+    #   bw: bqd[:nw].select { |onw| onw[:iax].casecmp?(xbq) },
+    #   bk: bqd[:nk].select { |onk| onk[:iax].casecmp?(xbq) },
+    #   es: hbc[:sl],  INPORTANTE saldo etherscan
+    #   et: hbc[:tx],
+    #   ei: hbc[:ix],
+    #   ep: hbc[:px],
+    #   ew: hbc[:wx],
+    #   ek: hbc[:kx]
+    # }
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:es].round(4) == hjn[:bs].round(4) && hjn[:bt].count == hjn[:et].count && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bk].count == hjn[:ek].count && hjn[:bw].count == hjn[:ew].count
+      hjn[:es].round(4) == hjn[:bs].round(4) && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bw].count == hjn[:ew].count
     end
 
     # @example ether address inicio..fim

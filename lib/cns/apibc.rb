@@ -7,17 +7,6 @@ require('json')
 module Cns
   # classe para acesso dados blockchains
   class Apibc
-    # @param [String] uri ETH2 API
-    # @return [Array<Hash>] lista dados beaconchain
-    def data_bc(uri)
-      res = JSON.parse(conn_bc.get(uri).body, symbolize_names: true)[:data] || []
-      # calls are rate limited to 10 requests/minute/IP
-      sleep(3)
-      res.is_a?(Array) ? res : [res]
-    rescue StandardError
-      []
-    end
-
     # @example account_es
     #  {
     #    status: '1',
@@ -27,7 +16,7 @@ module Cns
     #      { account: '0x...', balance: '87000000000000000000' }
     #    ]
     #  }
-    # @param [String] ads lista enderecos ETH (max 20)
+    # @param [Array<String>] ads lista enderecos ETH (max 20)
     # @return [Array<Hash>] lista enderecos e seus saldos
     def account_es(ads)
       JSON.parse(
@@ -375,13 +364,23 @@ module Cns
         end
     end
 
+    # @param [String] uri ETH2 API
+    # @return [Array<Hash>] lista dados beaconchain
+    # def data_bc(uri)
+    #   res = JSON.parse(conn_bc.get(uri).body, symbolize_names: true)[:data] || []
+    #   # calls are rate limited to 10 requests/minute/IP
+    #   sleep(3)
+    #   res.is_a?(Array) ? res : [res]
+    # rescue StandardError
+    #   []
+    # end
     # @return [<Faraday::Connection>] connection object for beaconchain
-    def conn_bc
-      @conn_bc ||=
-        Faraday.new(url: 'https://beaconcha.in', headers: { accept: 'application/json' }) do |con|
-          con.request(:url_encoded)
-          con.adapter(adapter)
-        end
-    end
+    # def conn_bc
+    #   @conn_bc ||=
+    #     Faraday.new(url: 'https://beaconcha.in', headers: { accept: 'application/json' }) do |con|
+    #       con.request(:url_encoded)
+    #       con.adapter(adapter)
+    #     end
+    # end
   end
 end

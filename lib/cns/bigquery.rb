@@ -31,7 +31,7 @@ module Cns
       @ops = pop
     end
 
-    # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain & bigquery
+    # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
     def mostra_tudo
       apius.mostra_resumo
       apide.mostra_resumo
@@ -39,7 +39,6 @@ module Cns
       #apimt.mostra_resumo
       apies.mostra_resumo
       apigm.mostra_resumo
-      #apibc.mostra_resumo
     end
 
     # mostra situacao completa entre kraken/etherscan & bigquery
@@ -58,7 +57,7 @@ module Cns
       Time.now.strftime("TRANSACOES  %Y-%m-%d %H:%M:%S ")
     end
 
-    # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass/beaconchain no bigquery
+    # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass no bigquery
     def processa_tudo
       str = processa_us + ", " + processa_de + ", " + processa_eth + ", " + processa_eos
       puts(trs_ini + str)
@@ -139,18 +138,6 @@ module Cns
       str
     end
 
-    # insere transacoes exchange paymium/therock  novas na tabela fr/mt (ledger)
-    # def processa_frmt
-    #   puts(format("%<n>4i LEDGER\tPAYMIUM\t\tINSERIDAS fr", n: apifr.ledger.empty? ? 0 : dml(frl_ins)))
-    #   puts(format("%<n>4i LEDGER\tTHEROCK\t\tINSERIDAS mt", n: apimt.ledger.empty? ? 0 : dml(mtl_ins)))
-    # end
-    # insere historico sados novos na tabela eth2bh
-    # def processa_bc
-    #   puts(format("%<n>4i ATTESTATIONS INSERIDAS eth2at", n: apibc.novtx.empty? ? 0 : dml(eth2at_ins)))
-    #   puts(format("%<n>4i PROPOSALS INSERIDAS eth2pr", n: apibc.novkx.empty? ? 0 : dml(eth2pr_ins)))
-    #   puts(format("%<n>4i BALANCES\tETH2\t\tINSERIDOS eth2bh", n: apibc.nov.empty? ? 0 : dml(eth2bh_ins)))
-    # end
-
     # cria job bigquery & verifica execucao
     #
     # @param cmd (see sql)
@@ -186,22 +173,16 @@ module Cns
       "VALUES#{apimt.ledger.map { |obj| mtl_1val(obj) }.join(',')}"
     end
 
-    # @return [String] comando insert SQL formatado eth2bh
-    def eth2bh_ins
-      "insert #{BD}.eth2bh(balance,effectivebalance,epoch,validatorindex" \
-        ") VALUES#{apibc.nov[0..1000].map { |obj| eth2bh_1val(obj) }.join(',')}"
-    end
-
     # @return [Etherscan] API blockchain ETH
     def apies
       @apies ||= Etherscan.new(
         {
           wb: sql("select * from #{BD}.walletEth order by 2"),
-          nt: sql("select itx,iax from #{BD}.ethtx"),
-          ni: sql("select itx,iax from #{BD}.ethix"),
-          np: sql("select itx,iax from #{BD}.ethpx"),
-          nw: sql("select itx,iax from #{BD}.ethwx"),
-          nk: sql("select itx,iax from #{BD}.ethkx")
+          nt: sql("select * from #{BD}.ethtx"),
+          ni: sql("select * from #{BD}.ethix"),
+          np: sql("select * from #{BD}.ethpx"),
+          nw: sql("select * from #{BD}.ethwx"),
+          nk: sql("select * from #{BD}.ethkx")
         },
         ops
       )
@@ -212,11 +193,11 @@ module Cns
       @apies ||= Etherscan.new(
         {
           wb: sql("select * from #{BD}.walletEthc order by 2"),
-          nt: sql("select itx,iax from #{BD}.ethtxc"),
-          ni: sql("select itx,iax from #{BD}.ethixc"),
-          np: sql("select itx,iax from #{BD}.ethpxc"),
-          nw: sql("select itx,iax from #{BD}.ethwxc"),
-          nk: sql("select itx,iax from #{BD}.ethkxc")
+          nt: sql("select * from #{BD}.ethtxc"),
+          ni: sql("select * from #{BD}.ethixc"),
+          np: sql("select * from #{BD}.ethpxc"),
+          nw: sql("select * from #{BD}.ethwxc"),
+          nk: sql("select * from #{BD}.ethkxc")
         },
         ops
       )
@@ -227,18 +208,7 @@ module Cns
       @apigm ||= Greymass.new(
         {
           wb: sql("select * from #{BD}.walletEos order by 2"),
-          nt: sql("select itx,iax from #{BD}.eostx")
-        },
-        ops
-      )
-    end
-
-    # @return [Beaconchain] API blockchain ETH2
-    def apibc
-      @apibc ||= Beaconchain.new(
-        {
-          wb: sql("select * from #{BD}.walletEth2 order by 1"),
-          nb: sql("select itx,iax from #{BD}.eth2bhx")
+          nt: sql("select * from #{BD}.eostx")
         },
         ops
       )
@@ -387,16 +357,6 @@ module Cns
     # @return [String] comando insert SQL formatado fr (ledger)
     def frl_ins
       "insert #{BD}.fr(uuid,tipo,valor,moe,time,dias) VALUES#{apifr.ledger.map { |obj| frl_val(obj) }.join(',')}"
-    end
-
-    # @example (see Beaconchain#formata_saldos)
-    # @param (see Beaconchain#formata_saldos)
-    # @return [String] valores formatados etht (norml parte1)
-    def eth2bh_1val(htb)
-      "(#{Integer(htb[:balance])}," \
-      "#{Integer(htb[:effectivebalance])}," \
-      "#{Integer(htb[:epoch])}," \
-      "#{Integer(htb[:validatorindex])})"
     end
 
     # @example (see Apibc#norml_es)
@@ -677,6 +637,41 @@ module Cns
       "#{Integer(ops[:h][String(hlx[:id])] || 0)})"
     end
 
+    # @example (see Beaconchain#formata_saldos)
+    # @param (see Beaconchain#formata_saldos)
+    # @return [String] valores formatados etht (norml parte1)
+    # def eth2bh_1val(htb)
+    #   "(#{Integer(htb[:balance])}," \
+    #   "#{Integer(htb[:effectivebalance])}," \
+    #   "#{Integer(htb[:epoch])}," \
+    #   "#{Integer(htb[:validatorindex])})"
+    # end
+    # @return [Beaconchain] API blockchain ETH2
+    # def apibc
+    #   @apibc ||= Beaconchain.new(
+    #     {
+    #       wb: sql("select * from #{BD}.walletEth2 order by 1"),
+    #     nb: sql("select itx,iax from #{BD}.eth2bhx")
+    #     },
+    #     ops
+    #   )
+    # end
+    # @return [String] comando insert SQL formatado eth2bh
+    # def eth2bh_ins
+    #   "insert #{BD}.eth2bh(balance,effectivebalance,epoch,validatorindex" \
+    #     ") VALUES#{apibc.nov[0..1000].map { |obj| eth2bh_1val(obj) }.join(',')}"
+    # end
+    # insere transacoes exchange paymium/therock  novas na tabela fr/mt (ledger)
+    # def processa_frmt
+    #   puts(format("%<n>4i LEDGER\tPAYMIUM\t\tINSERIDAS fr", n: apifr.ledger.empty? ? 0 : dml(frl_ins)))
+    #   puts(format("%<n>4i LEDGER\tTHEROCK\t\tINSERIDAS mt", n: apimt.ledger.empty? ? 0 : dml(mtl_ins)))
+    # end
+    # insere historico sados novos na tabela eth2bh
+    # def processa_bc
+    #   puts(format("%<n>4i ATTESTATIONS INSERIDAS eth2at", n: apibc.novtx.empty? ? 0 : dml(eth2at_ins)))
+    #   puts(format("%<n>4i PROPOSALS INSERIDAS eth2pr", n: apibc.novkx.empty? ? 0 : dml(eth2pr_ins)))
+    #   puts(format("%<n>4i BALANCES\tETH2\t\tINSERIDOS eth2bh", n: apibc.nov.empty? ? 0 : dml(eth2bh_ins)))
+    # end
     # def eth2at_ins
     #   "insert #{BD}.eth2at(attesterslot,committeeindex,epoch,inclusionslot,status,validatorindex" \
     #   ") VALUES#{apibc.novtx.map { |obj| eth2at_1val(obj) }.join(',')}"
