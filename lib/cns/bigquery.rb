@@ -49,7 +49,7 @@ module Cns
 
     # mostra situacao completa entre etherscan & bigquery
     def mostra_seth
-      apies.mostra_resumo
+      apies.mostra_resumo_simples
     end
 
     # @return [String] texto inicial transacoes

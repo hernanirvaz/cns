@@ -142,7 +142,7 @@ module Cns
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
       # .delete_if { |odl| add.casecmp?(odl[:to]) && lax.include?(odl[:from].downcase) }
       # elimina chaves irrelevantes (DL) & adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: Integer(omp[:blockNumber]), iax: add) }
+      ary.map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: String(omp[:hash]), iax: add) }
     end
 
     # @param add (see Apibc#norml_es)
@@ -184,6 +184,20 @@ module Cns
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
+    def mostra_resumo_simples
+      return unless dados.count.positive?
+
+      puts("\nid     address                                      etherscan    bigquery")
+      dados.each { |obj| puts(formata_carteira_simples(obj)) }
+      mostra_transacao_norml
+      mostra_transacao_inter
+      mostra_transacao_block
+      mostra_transacao_token
+      mostra_transacao_withw
+      mostra_configuracao_ajuste_dias
+    end
+
+    # @return [String] texto carteiras & transacoes & ajuste dias
     def mostra_resumo
       return unless dados.count.positive?
 
@@ -199,12 +213,33 @@ module Cns
 
     # @param [Hash] hjn dados juntos bigquery & etherscan
     # @return [String] texto formatado duma carteira
+    def formata_carteira_simples(hjn)
+      format(
+        '%<s1>-6.6s %<s2>-42.42s ',
+        s1: hjn[:id],
+        s2: hjn[:ax]
+      ) + formata_valores_simples(hjn)
+    end
+
+    # @param [Hash] hjn dados juntos bigquery & etherscan
+    # @return [String] texto formatado duma carteira
     def formata_carteira(hjn)
       format(
         '%<s1>-6.6s %<s2>-10.10s ',
         s1: hjn[:id],
         s2: formata_enderec1(hjn[:ax], 10)
       ) + formata_valores(hjn)
+    end
+
+    # @param (see formata_carteira)
+    # @return [String] texto formatado valores duma carteira
+    def formata_valores_simples(hjn)
+      format(
+        '%<v1>11.4f %<v2>11.4f %<ok>-3s',
+        v1: hjn[:es],
+        v2: hjn[:bs],
+        ok: ok?(hjn) ? 'OK' : 'NOK'
+      )
     end
 
     # @param (see formata_carteira)
