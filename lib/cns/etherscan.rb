@@ -142,7 +142,7 @@ module Cns
       # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
       # .delete_if { |odl| add.casecmp?(odl[:to]) && lax.include?(odl[:from].downcase) }
       # elimina chaves irrelevantes (DL) & adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: String(omp[:hash]), iax: add) }
+      ary.map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: String(omp[:hash]), iax: add, srx: Integer(omp[:timeStamp])) }
     end
 
     # @param add (see Apibc#norml_es)
@@ -153,14 +153,15 @@ module Cns
       ary.map { |omp| omp.merge(itx: Integer(omp[:blockNumber]), iax: add) }
     end
 
+    #dt: Time.at(Integer(htx[:timeStamp])),
     # @return [Array<Hash>] lista ordenada transacoes normais novas
     def sortx
-      novtx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+      novtx.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes internas novas
     def sorix
-      novix.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+      novix.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes block novas
@@ -175,12 +176,7 @@ module Cns
 
     # @return [Array<Hash>] lista ordenada transacoes token novas
     def sorkx
-      novkx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes (normais & token) novas
-    def sorax
-      (novtx + novkx).sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+      novkx.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
@@ -413,9 +409,8 @@ module Cns
 
     # @return [String] texto configuracao ajuste dias das transacoes (normais & token)
     def mostra_configuracao_ajuste_dias
-      return unless (novtx.count + novkx.count).positive?
-
-      puts("\nstring ajuste dias\n-h=#{sorax.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias transacoes normais\n-h=#{sortx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novtx.count.positive?
+      puts("\nstring ajuste dias transacoes token  \n-h=#{sorkx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novkx.count.positive?
     end
   end
 end

@@ -44,7 +44,7 @@ module Cns
     # mostra situacao completa entre kraken/etherscan & bigquery
     def mostra_skrk
       apius.mostra_resumo
-      apies.mostra_resumo
+      apies.mostra_resumo_simples
     end
 
     # mostra situacao completa entre etherscan & bigquery
