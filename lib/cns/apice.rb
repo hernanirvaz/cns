@@ -38,53 +38,6 @@ module Cns
       {}
     end
 
-    # @example account_fr
-    #  {
-    #    name: '...',
-    #    email: '...',
-    #    locale: 'en',
-    #    channel_id: '...',
-    #    meta_state: 'approved',
-    #    balance_eur: '0.0',
-    #    locked_eur: '0.0',
-    #    balance_btc: '0.0',
-    #    locked_btc: '0.0',
-    #    balance_lbtc: '0.0',
-    #    locked_lbtc: '0.0'
-    #  }
-    # @param (see account_de)
-    # @return [Hash] saldos no paymium
-    def account_fr(uri = 'https://paymium.com/api/v1/user')
-      JSON.parse(
-        Curl.get(uri) { |obj| obj.headers = hfr(uri) }.body,
-        symbolize_names: true
-      )
-    rescue StandardError
-      {}
-    end
-
-    # @example account_mt
-    #  {
-    #    balances: [
-    #      { currency: 'BTC', balance: 0.0, trading_balance: 0.0 },
-    #      { currency: 'ETH', balance: 0.0, trading_balance: 0.0 },
-    #      { currency: 'EUR', balance: 0.0, trading_balance: 0.0 },
-    #      { currency: 'DAI', balance: 0.0, trading_balance: 0.0 },
-    #    ]
-    #  }
-    # @param (see account_de)
-    # @return [Array<Hash>] lista saldos no therock
-    def account_mt(uri = 'https://api.therocktrading.com/v1/balances')
-      JSON.parse(
-        Curl.get(uri) { |obj| obj.headers = hmt(uri) }.body,
-        symbolize_names: true
-      )[:balances]
-          .delete_if { |del| DC.include?(del[:currency]) }
-          .sort { |oba, obb| oba[:currency] <=> obb[:currency] }
-    rescue StandardError
-      []
-    end
-
     # @example account_us
     #  {
     #   error: [],
@@ -269,82 +222,6 @@ module Cns
       }.merge(tp: 'withdrawal', moe: 'btc')
     end
 
-    # @example ledger_fr
-    #  [
-    #    {
-    #      uuid: '50551e61-4e74-4ae7-85fd-9c2040542818',
-    #      currency_amount: nil,
-    #      state: 'executed',
-    #      btc_fee: '0.0',
-    #      currency_fee: '0.0',
-    #      created_at: '2014-03-04T09:00Z',
-    #      updated_at: '2014-03-04T09:00Z',
-    #      currency: 'EUR',
-    #      comment: '5723',
-    #      amount: '100.0',
-    #      type: 'WireDeposit',
-    #      account_operations: [{
-    #        uuid: 'b5058a68-cf99-4438-86d3-e773eba418ec',
-    #        name: 'wire_deposit',
-    #        amount: '100.0',
-    #        currency: 'EUR',
-    #        created_at: '2014-03-04T09:00Z',
-    #        created_at_int: 1_393_923_644,
-    #        is_trading_account: false
-    #      }, {}]
-    #    },
-    #    {}
-    #  ]
-    # @param (see trades_de)
-    # @return [Array<Hash>] lista ledger paymium
-    def ledger_fr(pag = 0, ary = [], uri = 'https://paymium.com/api/v1/user/orders')
-      res = JSON.parse(
-        Curl.get(uri, offset: pag) { |obj| obj.headers = hfr("#{uri}?#{URI.encode_www_form(offset: pag)}") }.body,
-        symbolize_names: true
-      )
-      res.empty? ? ary : ledger_fr(pag + res.size, ary + res)
-    rescue StandardError
-      ary
-    end
-
-    # @example ledger_mt
-    #  {
-    #    transactions: [
-    #      {
-    #        id: 305_445,
-    #        date: '2014-03-06T10:59:13.000Z',
-    #        type: 'withdraw',
-    #        price: 97.47,
-    #        currency: 'EUR',
-    #        fund_id: nil,
-    #        order_id: nil,
-    #        trade_id: nil,
-    #        note: 'BOV withdraw',
-    #        transfer_detail: nil
-    #      },
-    #      {}
-    #    ],
-    #    meta: {
-    #      total_count: nil,
-    #      first: { page: 1, href: 'https://api.therocktrading.com/v1/transactions?page=1' },
-    #      previous: nil,
-    #      current: { page: 1, href: 'https://api.therocktrading.com/v1/transactions?page=1' },
-    #      next: { page: 2, href: 'https://api.therocktrading.com/v1/transactions?page=2' },
-    #      last: nil
-    #    }
-    #  }
-    # @param (see trades_de)
-    # @return [Array<Hash>] lista ledger therock
-    def ledger_mt(pag = 1, ary = [], uri = 'https://api.therocktrading.com/v1/transactions')
-      res = JSON.parse(
-        Curl.get(uri, page: pag) { |obj| obj.headers = hmt("#{uri}?#{URI.encode_www_form(page: pag)}") }.body,
-        symbolize_names: true
-      )[:transactions]
-      res.empty? ? ary : ledger_mt(pag + res.size, ary + res)
-    rescue StandardError
-      ary
-    end
-
     # @example trades_us
     #  {
     #    error: [],
@@ -423,6 +300,129 @@ module Cns
       has
     end
 
+    # @example account_fr
+    #  {
+    #    name: '...',
+    #    email: '...',
+    #    locale: 'en',
+    #    channel_id: '...',
+    #    meta_state: 'approved',
+    #    balance_eur: '0.0',
+    #    locked_eur: '0.0',
+    #    balance_btc: '0.0',
+    #    locked_btc: '0.0',
+    #    balance_lbtc: '0.0',
+    #    locked_lbtc: '0.0'
+    #  }
+    # @param (see account_de)
+    # @return [Hash] saldos no paymium
+    # def account_fr(uri = 'https://paymium.com/api/v1/user')
+    #   JSON.parse(
+    #     Curl.get(uri) { |obj| obj.headers = hfr(uri) }.body,
+    #     symbolize_names: true
+    #   )
+    # rescue StandardError
+    #   {}
+    # end
+    #
+    # @example account_mt
+    #  {
+    #    balances: [
+    #      { currency: 'BTC', balance: 0.0, trading_balance: 0.0 },
+    #      { currency: 'ETH', balance: 0.0, trading_balance: 0.0 },
+    #      { currency: 'EUR', balance: 0.0, trading_balance: 0.0 },
+    #      { currency: 'DAI', balance: 0.0, trading_balance: 0.0 },
+    #    ]
+    #  }
+    # @param (see account_de)
+    # @return [Array<Hash>] lista saldos no therock
+    # def account_mt(uri = 'https://api.therocktrading.com/v1/balances')
+    #   JSON.parse(
+    #     Curl.get(uri) { |obj| obj.headers = hmt(uri) }.body,
+    #     symbolize_names: true
+    #   )[:balances]
+    #       .delete_if { |del| DC.include?(del[:currency]) }
+    #       .sort { |oba, obb| oba[:currency] <=> obb[:currency] }
+    # rescue StandardError
+    #   []
+    # end
+    #
+    # @example ledger_fr
+    #  [
+    #    {
+    #      uuid: '50551e61-4e74-4ae7-85fd-9c2040542818',
+    #      currency_amount: nil,
+    #      state: 'executed',
+    #      btc_fee: '0.0',
+    #      currency_fee: '0.0',
+    #      created_at: '2014-03-04T09:00Z',
+    #      updated_at: '2014-03-04T09:00Z',
+    #      currency: 'EUR',
+    #      comment: '5723',
+    #      amount: '100.0',
+    #      type: 'WireDeposit',
+    #      account_operations: [{
+    #        uuid: 'b5058a68-cf99-4438-86d3-e773eba418ec',
+    #        name: 'wire_deposit',
+    #        amount: '100.0',
+    #        currency: 'EUR',
+    #        created_at: '2014-03-04T09:00Z',
+    #        created_at_int: 1_393_923_644,
+    #        is_trading_account: false
+    #      }, {}]
+    #    },
+    #    {}
+    #  ]
+    # @param (see trades_de)
+    # @return [Array<Hash>] lista ledger paymium
+    # def ledger_fr(pag = 0, ary = [], uri = 'https://paymium.com/api/v1/user/orders')
+    #   res = JSON.parse(
+    #     Curl.get(uri, offset: pag) { |obj| obj.headers = hfr("#{uri}?#{URI.encode_www_form(offset: pag)}") }.body,
+    #     symbolize_names: true
+    #   )
+    #   res.empty? ? ary : ledger_fr(pag + res.size, ary + res)
+    # rescue StandardError
+    #   ary
+    # end
+    #
+    # @example ledger_mt
+    #  {
+    #    transactions: [
+    #      {
+    #        id: 305_445,
+    #        date: '2014-03-06T10:59:13.000Z',
+    #        type: 'withdraw',
+    #        price: 97.47,
+    #        currency: 'EUR',
+    #        fund_id: nil,
+    #        order_id: nil,
+    #        trade_id: nil,
+    #        note: 'BOV withdraw',
+    #        transfer_detail: nil
+    #      },
+    #      {}
+    #    ],
+    #    meta: {
+    #      total_count: nil,
+    #      first: { page: 1, href: 'https://api.therocktrading.com/v1/transactions?page=1' },
+    #      previous: nil,
+    #      current: { page: 1, href: 'https://api.therocktrading.com/v1/transactions?page=1' },
+    #      next: { page: 2, href: 'https://api.therocktrading.com/v1/transactions?page=2' },
+    #      last: nil
+    #    }
+    #  }
+    # @param (see trades_de)
+    # @return [Array<Hash>] lista ledger therock
+    # def ledger_mt(pag = 1, ary = [], uri = 'https://api.therocktrading.com/v1/transactions')
+    #   res = JSON.parse(
+    #     Curl.get(uri, page: pag) { |obj| obj.headers = hmt("#{uri}?#{URI.encode_www_form(page: pag)}") }.body,
+    #     symbolize_names: true
+    #   )[:transactions]
+    #   res.empty? ? ary : ledger_mt(pag + res.size, ary + res)
+    # rescue StandardError
+    #   ary
+    # end
+
     private
 
     # @return [Integer] continually-increasing unsigned integer nonce from the current Unix Time
@@ -449,26 +449,26 @@ module Cns
     # @param [String] qfr query a incluir no pedido HTTP
     # @param non (see hde)
     # @return [Hash] headers necessarios para pedido HTTP da exchange paymium
-    def hfr(qfr, non = nnc)
-      {
-        content_type: 'application/json',
-        'Api-Key': ENV['PAYMIUM_API_KEY'],
-        'Api-Nonce': non,
-        'Api-Signature': OpenSSL::HMAC.hexdigest('sha256', ENV['PAYMIUM_API_SECRET'], [non, qfr].join)
-      }
-    end
-
+    # def hfr(qfr, non = nnc)
+    #   {
+    #     content_type: 'application/json',
+    #     'Api-Key': ENV['PAYMIUM_API_KEY'],
+    #     'Api-Nonce': non,
+    #     'Api-Signature': OpenSSL::HMAC.hexdigest('sha256', ENV['PAYMIUM_API_SECRET'], [non, qfr].join)
+    #   }
+    # end
+    #
     # @param [String] qmt query a incluir no pedido HTTP
     # @param non (see hde)
     # @return [Hash] headers necessarios para pedido HTTP da exchange therock
-    def hmt(qmt, non = nnc)
-      {
-        content_type: 'application/json',
-        'X-TRT-KEY': ENV['THEROCK_API_KEY'],
-        'X-TRT-NONCE': non,
-        'X-TRT-SIGN': OpenSSL::HMAC.hexdigest('sha512', ENV['THEROCK_API_SECRET'], [non, qmt].join)
-      }
-    end
+    # def hmt(qmt, non = nnc)
+    #   {
+    #     content_type: 'application/json',
+    #     'X-TRT-KEY': ENV['THEROCK_API_KEY'],
+    #     'X-TRT-NONCE': non,
+    #     'X-TRT-SIGN': OpenSSL::HMAC.hexdigest('sha512', ENV['THEROCK_API_SECRET'], [non, qmt].join)
+    #   }
+    # end
 
     # @param [String] qus query a incluir no pedido HTTP
     # @param [Hash] ops opcoes trabalho

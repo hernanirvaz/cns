@@ -8,8 +8,6 @@ require('cns/etherscan')
 require('cns/greymass')
 require('cns/bitcoinde')
 require('cns/kraken')
-require('cns/paymium')
-require('cns/therock')
 require('cns/version')
 
 module Cns

@@ -35,8 +35,6 @@ module Cns
     def mostra_tudo
       apius.mostra_resumo
       apide.mostra_resumo
-      #apifr.mostra_resumo
-      #apimt.mostra_resumo
       apies.mostra_resumo
       apigm.mostra_resumo
     end
@@ -44,7 +42,7 @@ module Cns
     # mostra situacao completa entre kraken/etherscan & bigquery
     def mostra_skrk
       apius.mostra_resumo
-      apies.mostra_resumo_simples
+      apies.mostra_resumo
     end
 
     # mostra situacao completa entre etherscan & bigquery
@@ -167,12 +165,6 @@ module Cns
       job?(cmd) ? 0 : job.num_dml_affected_rows
     end
 
-    # @return [String] comando insert SQL formatado fr (ledger)
-    def mtl_ins
-      "insert #{BD}.mt(id,time,type,valor,moe,pair,note,trade_id,dias) " \
-      "VALUES#{apimt.ledger.map { |obj| mtl_1val(obj) }.join(',')}"
-    end
-
     # @return [Etherscan] API blockchain ETH
     def apies
       @apies ||= Etherscan.new(
@@ -218,9 +210,10 @@ module Cns
     def apius
       @apius ||= Kraken.new(
         {
-          sl: sql("select sum(btc) xxbt,sum(eth) xeth,sum(eos) eos,sum(eur) zeur from #{BD}.ussl")[0],
-          nt: sql("select * from #{BD}.ustx order by time,txid"),
-          nl: sql("select * from #{BD}.uslx order by time,txid")
+          #sl: sql("select sum(btc) xxbt,sum(eth) xeth,sum(eos) eos,sum(eur) zeur from #{BD}.ussl")[0],
+          sl: sql("select * from #{BD}.ussl")[0],
+          nt: sql("select * from #{BD}.ust order by time,txid"),
+          nl: sql("select * from #{BD}.usl order by time,txid")
         },
         ops
       )
@@ -230,31 +223,9 @@ module Cns
     def apide
       @apide ||= Bitcoinde.new(
         {
-          sl: sql("select sum(btc) btc from #{BD}.desl")[0],
-          nt: sql("select * from #{BD}.detx order by time,txid"),
-          nl: sql("select * from #{BD}.delx order by time,txid")
-        },
-        ops
-      )
-    end
-
-    # @return [Paymium] API exchange paymium
-    def apifr
-      @apifr ||= Paymium.new(
-        {
-          sl: sql("select sum(btc) btc,sum(eur) eur from #{BD}.frsl")[0],
-          nl: sql("select * from #{BD}.frlx order by time,txid")
-        },
-        ops
-      )
-    end
-
-    # @return [TheRock] API exchange therock
-    def apimt
-      @apimt ||= TheRock.new(
-        {
-          sl: sql("select sum(btc) btc,sum(eur) eur from #{BD}.mtsl")[0],
-          nl: sql("select * from #{BD}.mtlx order by time,txid")
+          sl: sql("select * from #{BD}.desl")[0],
+          nt: sql("select * from #{BD}.det order by time,txid"),
+          nl: sql("select * from #{BD}.del order by time,txid")
         },
         ops
       )
@@ -352,11 +323,6 @@ module Cns
     def usl_ins
       "insert #{BD}.usl(txid,refid,time,type,aclass,asset,amount,fee) " \
       "VALUES#{apius.ledger.map { |key, val| usl_val(key, val) }.join(',')}"
-    end
-
-    # @return [String] comando insert SQL formatado fr (ledger)
-    def frl_ins
-      "insert #{BD}.fr(uuid,tipo,valor,moe,time,dias) VALUES#{apifr.ledger.map { |obj| frl_val(obj) }.join(',')}"
     end
 
     # @example (see Apibc#norml_es)
@@ -600,43 +566,76 @@ module Cns
       "cast(#{hlx[:fee]} as numeric))"
     end
 
+    # @return [Paymium] API exchange paymium
+    # def apifr
+    #   @apifr ||= Paymium.new(
+    #     {
+    #       sl: sql("select * from #{BD}.frsl")[0],
+    #       nl: sql("select uuid txid,tipo,valor,moe,time,dias from #{BD}.fr order by time,1")
+    #     },
+    #     ops
+    #   )
+    # end
+    #
+    # @return [TheRock] API exchange therock
+    # def apimt
+    #   @apimt ||= TheRock.new(
+    #     {
+    #       sl: sql("select sum(btc) btc,sum(eur) eur from #{BD}.mtsl")[0],
+    #       nl: sql("select id txid,time,type,valor,moe,pair,note,dias from #{BD}.mt order by time,1")
+    #     },
+    #     ops
+    #   )
+    # end
+    #
+    # @return [String] comando insert SQL formatado fr (ledger)
+    # def frl_ins
+    #   "insert #{BD}.fr(uuid,tipo,valor,moe,time,dias) VALUES#{apifr.ledger.map { |obj| frl_val(obj) }.join(',')}"
+    # end
+    #
+    # @return [String] comando insert SQL formatado fr (ledger)
+    # def mtl_ins
+    #   "insert #{BD}.mt(id,time,type,valor,moe,pair,note,trade_id,dias) " \
+    #   "VALUES#{apimt.ledger.map { |obj| mtl_1val(obj) }.join(',')}"
+    # end
+    #
     # @example (see Apice#ledger_fr)
     # @param [Hash] hlx ledger paymium
     # @return [String] valores formatados frl (ledger)
-    def frl_val(hlx)
-      uid = hlx[:uuid]
-      "('#{uid}'," \
-      "'#{hlx[:name]}'," \
-      "cast(#{hlx[:amount]} as numeric)," \
-      "'#{hlx[:currency]}'," \
-      "PARSE_DATETIME('%s', '#{hlx[:created_at_int]}')," \
-      "#{Integer(ops[:h][uid] || 0)})"
-    end
-
+    # def frl_val(hlx)
+    #   uid = hlx[:uuid]
+    #   "('#{uid}'," \
+    #   "'#{hlx[:name]}'," \
+    #   "cast(#{hlx[:amount]} as numeric)," \
+    #   "'#{hlx[:currency]}'," \
+    #   "PARSE_DATETIME('%s', '#{hlx[:created_at_int]}')," \
+    #   "#{Integer(ops[:h][uid] || 0)})"
+    # end
+    #
     # @example (see Apice#ledger_mt)
     # @param [Hash] hlx ledger therock
     # @return [String] valores formatados mtl (ledger parte1)
-    def mtl_1val(hlx)
-      fid = hlx[:fund_id].to_s
-      "(#{hlx[:id]}," \
-      "DATETIME(TIMESTAMP('#{hlx[:date]}'))," \
-      "'#{hlx[:type]}'," \
-      "cast(#{hlx[:price]} as numeric)," \
-      "'#{hlx[:currency]}'," \
-      "#{fid.empty? ? 'null' : "'#{fid}'"}," \
-      "#{mtl_2val(hlx)}"
-    end
-
+    # def mtl_1val(hlx)
+    #   fid = hlx[:fund_id].to_s
+    #   "(#{hlx[:id]}," \
+    #   "DATETIME(TIMESTAMP('#{hlx[:date]}'))," \
+    #   "'#{hlx[:type]}'," \
+    #   "cast(#{hlx[:price]} as numeric)," \
+    #   "'#{hlx[:currency]}'," \
+    #   "#{fid.empty? ? 'null' : "'#{fid}'"}," \
+    #   "#{mtl_2val(hlx)}"
+    # end
+    #
     # @param (see mtl_1val)
     # @return [String] valores formatados mtl (ledger parte2)
-    def mtl_2val(hlx)
-      nte = hlx[:note].to_s
-      tid = hlx[:trade_id].to_s
-      "#{nte.empty? ? 'null' : "'#{nte}'"}," \
-      "#{tid.empty? ? 'null' : tid.to_s}," \
-      "#{Integer(ops[:h][String(hlx[:id])] || 0)})"
-    end
-
+    # def mtl_2val(hlx)
+    #   nte = hlx[:note].to_s
+    #   tid = hlx[:trade_id].to_s
+    #   "#{nte.empty? ? 'null' : "'#{nte}'"}," \
+    #   "#{tid.empty? ? 'null' : tid.to_s}," \
+    #   "#{Integer(ops[:h][String(hlx[:id])] || 0)})"
+    # end
+    #
     # @example (see Beaconchain#formata_saldos)
     # @param (see Beaconchain#formata_saldos)
     # @return [String] valores formatados etht (norml parte1)
