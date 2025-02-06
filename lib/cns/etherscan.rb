@@ -259,24 +259,6 @@ module Cns
       )
     end
 
-    # @param (see formata_carteira)
-    # @example set hjn
-    # {
-    #   id: wbq[:id],
-    #   ax: xbq = wbq[:ax],
-    #   bs: wbq[:sl],  INPORTANTE saldo bigquery
-    #   bt: bqd[:nt].select { |ont| ont[:axfrom].casecmp?(xbq) },
-    #   bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
-    #   bp: bqd[:np].select { |onp| onp[:iax].casecmp?(xbq) },
-    #   bw: bqd[:nw].select { |onw| onw[:iax].casecmp?(xbq) },
-    #   bk: bqd[:nk].select { |onk| onk[:iax].casecmp?(xbq) },
-    #   es: hbc[:sl],  INPORTANTE saldo etherscan
-    #   et: hbc[:tx],
-    #   ei: hbc[:ix],
-    #   ep: hbc[:px],
-    #   ew: hbc[:wx],
-    #   ek: hbc[:kx]
-    # }
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
       hjn[:es].round(4) == hjn[:bs].round(4) && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bw].count == hjn[:ew].count

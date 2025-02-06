@@ -81,29 +81,29 @@ module Cns
 
     private
 
-    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
+    # insere transacoes blockchain novas nas tabelas netht (norml), nethi (internas), nethp (block), nethw (withdrawals), nethk (token)
     #
     # @return [String] linhas & tabelas afetadas
     def processa_eth
       str = "ETH"
-      str += format(" %<n>i etht", n: dml(etht_ins)) if apies.novtx.count > 0
-      str += format(" %<n>i ethi", n: dml(ethi_ins)) if apies.novix.count > 0
-      str += format(" %<n>i ethp", n: dml(ethp_ins)) if apies.novpx.count > 0
-      str += format(" %<n>i ethw", n: dml(ethw_ins)) if apies.novwx.count > 0
-      str += format(" %<n>i ethk", n: dml(ethk_ins)) if apies.novkx.count > 0
+      str += format(" %<n>i netht", n: dml(netht_ins)) if apies.novtx.count > 0
+      str += format(" %<n>i nethi", n: dml(nethi_ins)) if apies.novix.count > 0
+      str += format(" %<n>i nethp", n: dml(nethp_ins)) if apies.novpx.count > 0
+      str += format(" %<n>i nethw", n: dml(nethw_ins)) if apies.novwx.count > 0
+      str += format(" %<n>i nethk", n: dml(nethk_ins)) if apies.novkx.count > 0
       str
     end
 
-    # insere transacoes blockchain novas nas tabelas etht (norml), ethi (internas), ethp (block), ethw (withdrawals), ethk (token)
+    # insere transacoes blockchain novas nas tabelas netht (norml), nethi (internas), nethp (block), nethw (withdrawals), nethk (token)
     #
     # @return [String] linhas & tabelas afetadas
     def processa_ethc
       str = "ETH"
-      str += format(" %<n>i etht", n: dml(ethtc_ins)) if apiesc.novtx.count > 0
-      str += format(" %<n>i ethi", n: dml(ethic_ins)) if apiesc.novix.count > 0
-      str += format(" %<n>i ethp", n: dml(ethpc_ins)) if apiesc.novpx.count > 0
-      str += format(" %<n>i ethw", n: dml(ethwc_ins)) if apiesc.novwx.count > 0
-      str += format(" %<n>i ethk", n: dml(ethkc_ins)) if apiesc.novkx.count > 0
+      str += format(" %<n>i netht", n: dml(netbt_ins)) if apiesc.novtx.count > 0
+      str += format(" %<n>i nethi", n: dml(netbi_ins)) if apiesc.novix.count > 0
+      str += format(" %<n>i nethp", n: dml(netbp_ins)) if apiesc.novpx.count > 0
+      str += format(" %<n>i nethw", n: dml(netbw_ins)) if apiesc.novwx.count > 0
+      str += format(" %<n>i nethk", n: dml(netbk_ins)) if apiesc.novkx.count > 0
       str
     end
 
@@ -169,12 +169,12 @@ module Cns
     def apies
       @apies ||= Etherscan.new(
         {
-          wb: sql("select * from #{BD}.walletEth order by 2"),
-          nt: sql("select * from #{BD}.ethtx"),
-          ni: sql("select * from #{BD}.ethix"),
-          np: sql("select * from #{BD}.ethpx"),
-          nw: sql("select * from #{BD}.ethwx"),
-          nk: sql("select * from #{BD}.ethkx")
+          wb: sql("select * from #{BD}.weth order by 2"),
+          ni: sql("select * from #{BD}.netai"),
+          nk: sql("select * from #{BD}.netak"),
+          np: sql("select * from #{BD}.netap"),
+          nt: sql("select * from #{BD}.netat"),
+          nw: sql("select * from #{BD}.netaw")
         },
         ops
       )
@@ -184,12 +184,12 @@ module Cns
     def apiesc
       @apies ||= Etherscan.new(
         {
-          wb: sql("select * from #{BD}.walletEthc order by 2"),
-          nt: sql("select * from #{BD}.ethtxc"),
-          ni: sql("select * from #{BD}.ethixc"),
-          np: sql("select * from #{BD}.ethpxc"),
-          nw: sql("select * from #{BD}.ethwxc"),
-          nk: sql("select * from #{BD}.ethkxc")
+          wb: sql("select * from #{BD}.wetc order by 2"),
+          ni: sql("select * from #{BD}.netbi"),
+          nk: sql("select * from #{BD}.netbk"),
+          np: sql("select * from #{BD}.netbp"),
+          nt: sql("select * from #{BD}.netbt"),
+          nw: sql("select * from #{BD}.netbw")
         },
         ops
       )
@@ -199,8 +199,8 @@ module Cns
     def apigm
       @apigm ||= Greymass.new(
         {
-          wb: sql("select * from #{BD}.walletEos order by 2"),
-          nt: sql("select * from #{BD}.eostx")
+          wb: sql("select * from #{BD}.weos order by 2"),
+          nt: sql("select * from #{BD}.neosx")
         },
         ops
       )
@@ -210,10 +210,9 @@ module Cns
     def apius
       @apius ||= Kraken.new(
         {
-          #sl: sql("select sum(btc) xxbt,sum(eth) xeth,sum(eos) eos,sum(eur) zeur from #{BD}.ussl")[0],
-          sl: sql("select * from #{BD}.ussl")[0],
-          nt: sql("select * from #{BD}.ust order by time,txid"),
-          nl: sql("select * from #{BD}.usl order by time,txid")
+          sl: sql("select * from #{BD}.cuss")[0],
+          nt: sql("select * from #{BD}.cust order by time,txid"),
+          nl: sql("select * from #{BD}.cusl order by time,txid")
         },
         ops
       )
@@ -223,112 +222,124 @@ module Cns
     def apide
       @apide ||= Bitcoinde.new(
         {
-          sl: sql("select * from #{BD}.desl")[0],
-          nt: sql("select * from #{BD}.det order by time,txid"),
-          nl: sql("select * from #{BD}.del order by time,txid")
+          sl: sql("select * from #{BD}.cdes")[0],
+          nt: sql("select * from #{BD}.cdet order by time,txid"),
+          nl: sql("select * from #{BD}.cdel order by time,txid")
         },
         ops
       )
     end
 
-    # @return [String] comando insert SQL formatado etht (norml)
-    def etht_ins
-      "insert #{BD}.etht(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
-      'value,gas,gasprice,gasused,iserror,txreceipt_status,input,contractaddress,dias' \
-      ") VALUES#{apies.novtx.map { |obj| etht_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado netht (norml)
+    def bnetht_ins
+      "insert #{BD}.netht(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
+      'value,gas,gasprice,gasused,iserror,txreceipt_status,input,contractaddress,dias) VALUES'
     end
 
-    # @return [String] comando insert SQL formatado ethi (internas)
-    def ethi_ins
-      "insert #{BD}.ethi(blocknumber,timestamp,txhash,axfrom,axto,iax," \
-      'value,contractaddress,input,type,gas,gasused,traceid,iserror,errcode' \
-      ") VALUES#{apies.novix.map { |obj| ethi_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethi (internas)
+    def bnethi_ins
+      "insert #{BD}.nethi(blocknumber,timestamp,txhash,axfrom,axto,iax," \
+      'value,contractaddress,input,type,gas,gasused,traceid,iserror,errcode) VALUES'
     end
 
-    # @return [String] comando insert SQL formatado ethp (block)
-    def ethp_ins
-      "insert #{BD}.ethp(blocknumber,timestamp,blockreward,iax" \
-      ") VALUES#{apies.novpx.map { |obj| ethp_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethp (block)
+    def bnethp_ins
+      "insert #{BD}.nethp(blocknumber,timestamp,blockreward,iax) VALUES"
     end
 
-    # @return [String] comando insert SQL formatado ethw (withdrawals)
-    def ethw_ins
-      "insert #{BD}.ethw(withdrawalindex,validatorindex,address,amount,blocknumber,timestamp" \
-      ") VALUES#{apies.novwx.map { |obj| ethw_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethw (withdrawals)
+    def bnethw_ins
+      "insert #{BD}.nethw(withdrawalindex,validatorindex,address,amount,blocknumber,timestamp) VALUES"
     end
 
-    # @return [String] comando insert SQL formatado ethk (token)
-    def ethk_ins
-      "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
-      'value,tokenname,tokensymbol,tokendecimal,gas,gasprice,gasused,input,contractaddress,dias' \
-      ") VALUES#{apies.novkx.map { |obj| ethk_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethk (token)
+    def bnethk_ins
+      "insert #{BD}.nethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
+      'value,tokenname,tokensymbol,tokendecimal,gas,gasprice,gasused,input,contractaddress,dias) VALUES'
     end
 
-    # @return [String] comando insert SQL formatado etht (norml)
-    def ethtc_ins
-      "insert #{BD}.etht(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
-      'value,gas,gasprice,gasused,iserror,txreceipt_status,input,contractaddress,dias' \
-      ") VALUES#{apiesc.novtx.map { |obj| etht_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado netht (norml)
+    def netht_ins
+      "#{bnetht_ins}#{apies.novtx.map { |obj| netht_1val(obj) }.join(',')}"
     end
 
-    # @return [String] comando insert SQL formatado ethi (internas)
-    def ethic_ins
-      "insert #{BD}.ethi(blocknumber,timestamp,txhash,axfrom,axto,iax," \
-      'value,contractaddress,input,type,gas,gasused,traceid,iserror,errcode' \
-      ") VALUES#{apiesc.novix.map { |obj| ethi_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethi (internas)
+    def nethi_ins
+      "#{bnethi_ins}#{apies.novix.map { |obj| nethi_1val(obj) }.join(',')}"
     end
 
-    # @return [String] comando insert SQL formatado ethp (block)
-    def ethpc_ins
-      "insert #{BD}.ethp(blocknumber,timestamp,blockreward,iax" \
-      ") VALUES#{apiesc.novpx.map { |obj| ethp_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethp (block)
+    def nethp_ins
+      "#{bnethp_ins}#{apies.novpx.map { |obj| nethp_1val(obj) }.join(',')}"
     end
 
-    # @return [String] comando insert SQL formatado ethw (withdrawals)
-    def ethwc_ins
-      "insert #{BD}.ethw(withdrawalindex,validatorindex,address,amount,blocknumber,timestamp" \
-      ") VALUES#{apiesc.novwx.map { |obj| ethw_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethw (withdrawals)
+    def nethw_ins
+      "#{bnethw_ins}#{apies.novwx.map { |obj| nethw_1val(obj) }.join(',')}"
     end
 
-    # @return [String] comando insert SQL formatado ethk (token)
-    def ethkc_ins
-      "insert #{BD}.ethk(blocknumber,timestamp,txhash,nonce,blockhash,transactionindex,axfrom,axto,iax," \
-      'value,tokenname,tokensymbol,tokendecimal,gas,gasprice,gasused,input,contractaddress,dias' \
-      ") VALUES#{apiesc.novkx.map { |obj| ethk_1val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado nethk (token)
+    def nethk_ins
+      "#{bnethk_ins}#{apies.novkx.map { |obj| nethk_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado netht (norml)
+    def netbt_ins
+      "#{bnetht_ins}#{apiesc.novtx.map { |obj| netht_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado nethi (internas)
+    def netbi_ins
+      "#{bnethi_ins}#{apiesc.novix.map { |obj| nethi_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado nethp (block)
+    def netbp_ins
+      "#{bnethp_ins}#{apiesc.novpx.map { |obj| nethp_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado nethw (withdrawals)
+    def netbw_ins
+      "#{bnethw_ins}#{apiesc.novwx.map { |obj| nethw_1val(obj) }.join(',')}"
+    end
+
+    # @return [String] comando insert SQL formatado nethk (token)
+    def netbk_ins
+      "#{bnethk_ins}#{apiesc.novkx.map { |obj| nethk_1val(obj) }.join(',')}"
     end
 
     # @return [String] comando insert SQL formatado eos
     def eost_ins
-      "insert #{BD}.eos(gseq,aseq,bnum,time,contract,action,acfrom,acto,iax,amount,moeda,memo,dias" \
+      "insert #{BD}.neost(gseq,aseq,bnum,time,contract,action,acfrom,acto,iax,amount,moeda,memo,dias" \
       ") VALUES#{apigm.novax.map { |obj| eost_1val(obj) }.join(',')}"
     end
 
     # @return [String] comando insert SQL formatado det (trades)
     def det_ins
-      "insert #{BD}.det(txid,time,tp,user,btc,eur,dtc,dias) VALUES#{apide.trades.map { |obj| det_1val(obj) }.join(',')}"
+      "insert #{BD}.cdet(txid,time,tp,user,btc,eur,dtc,dias) VALUES#{apide.trades.map { |obj| det_1val(obj) }.join(',')}"
     end
 
     # @return [String] comando insert SQL formatado del (ledger)
     def del_ins
-      "insert #{BD}.del(txid,time,tp,add,moe,qt,fee) VALUES#{apide.ledger.map { |obj| del_val(obj) }.join(',')}"
+      "insert #{BD}.cdel(txid,time,tp,add,moe,qt,fee) VALUES#{apide.ledger.map { |obj| del_val(obj) }.join(',')}"
     end
 
     # @return [String] comando insert SQL formatado ust (trades)
     def ust_ins
-      "insert #{BD}.ust(txid,ordertxid,pair,time,type,ordertype,price,cost,fee,vol,margin,misc,ledgers,dias) " \
+      "insert #{BD}.cust(txid,ordertxid,pair,time,type,ordertype,price,cost,fee,vol,margin,misc,ledgers,dias) " \
       "VALUES#{apius.trades.map { |key, val| ust_1val(key, val) }.join(',')}"
     end
 
     # @return [String] comando insert SQL formatado usl (ledger)
     def usl_ins
-      "insert #{BD}.usl(txid,refid,time,type,aclass,asset,amount,fee) " \
+      "insert #{BD}.cusl(txid,refid,time,type,aclass,asset,amount,fee) " \
       "VALUES#{apius.ledger.map { |key, val| usl_val(key, val) }.join(',')}"
     end
 
     # @example (see Apibc#norml_es)
     # @param [Hash] htx transacao norml etherscan
-    # @return [String] valores formatados etht (norml parte1)
-    def etht_1val(htx)
+    # @return [String] valores formatados netht (norml parte1)
+    def netht_1val(htx)
       "(#{Integer(htx[:blockNumber])}," \
       "#{Integer(htx[:timeStamp])}," \
       "'#{htx[:hash]}'," \
@@ -338,12 +349,12 @@ module Cns
       "'#{htx[:from]}'," \
       "'#{htx[:to]}'," \
       "'#{htx[:iax]}'," \
-      "#{etht_2val(htx)}"
+      "#{netht_2val(htx)}"
     end
 
-    # @param (see etht_1val)
-    # @return [String] valores formatados etht (norml parte2)
-    def etht_2val(htx)
+    # @param (see netht_1val)
+    # @return [String] valores formatados netht (norml parte2)
+    def netht_2val(htx)
       txr = htx[:txreceipt_status]
       "cast('#{htx[:value]}' as numeric)," \
       "cast('#{htx[:gas]}' as numeric)," \
@@ -351,12 +362,12 @@ module Cns
       "cast('#{htx[:gasUsed]}' as numeric)," \
       "#{Integer(htx[:isError])}," \
       "#{txr.length.zero? ? 'null' : txr}," \
-      "#{etht_3val(htx)}"
+      "#{netht_3val(htx)}"
     end
 
-    # @param (see etht_1val)
-    # @return [String] valores formatados etht (norml parte3)
-    def etht_3val(htx)
+    # @param (see netht_1val)
+    # @return [String] valores formatados netht (norml parte3)
+    def netht_3val(htx)
       cta = htx[:contractAddress]
       inp = htx[:input]
       "#{inp.length.zero? ? 'null' : "'#{inp}'"}," \
@@ -366,8 +377,8 @@ module Cns
 
     # @example (see Apibc#inter_es)
     # @param [Hash] htx transacao internas etherscan
-    # @return [String] valores formatados ethi (internas parte1)
-    def ethi_1val(htx)
+    # @return [String] valores formatados nethi (internas parte1)
+    def nethi_1val(htx)
       cta = htx[:contractAddress]
       "(#{Integer(htx[:blockNumber])}," \
       "#{Integer(htx[:timeStamp])}," \
@@ -377,12 +388,12 @@ module Cns
       "'#{htx[:iax]}'," \
       "cast('#{htx[:value]}' as numeric)," \
       "#{cta.length.zero? ? 'null' : "'#{cta}'"}," \
-      "#{ethi_2val(htx)}"
+      "#{nethi_2val(htx)}"
     end
 
-    # @param (see ethi_1val)
-    # @return [String] valores formatados ethi (internas parte2)
-    def ethi_2val(htx)
+    # @param (see nethi_1val)
+    # @return [String] valores formatados nethi (internas parte2)
+    def nethi_2val(htx)
       inp = htx[:input]
       tid = htx[:traceId]
       txr = htx[:errCode]
@@ -397,8 +408,8 @@ module Cns
 
     # @example (see Apibc#block_es)
     # @param [Hash] htx transacao block etherscan
-    # @return [String] valores formatados ethi (block parte1)
-    def ethp_1val(htx)
+    # @return [String] valores formatados nethi (block parte1)
+    def nethp_1val(htx)
       "(#{Integer(htx[:blockNumber])}," \
       "#{Integer(htx[:timeStamp])}," \
       "cast('#{htx[:blockReward]}' as numeric)," \
@@ -407,8 +418,8 @@ module Cns
 
     # @example (see Apibc#block_es)
     # @param [Hash] htx transacao withdrawals etherscan
-    # @return [String] valores formatados ethi (withdrawals parte1)
-    def ethw_1val(htx)
+    # @return [String] valores formatados nethi (withdrawals parte1)
+    def nethw_1val(htx)
       "(#{Integer(htx[:withdrawalIndex])}," \
       "#{Integer(htx[:validatorIndex])}," \
       "'#{htx[:address]}'," \
@@ -419,8 +430,8 @@ module Cns
 
     # @example (see Apibc#token_es)
     # @param [Hash] hkx token event etherscan
-    # @return [String] valores formatados ethk (token parte1)
-    def ethk_1val(hkx)
+    # @return [String] valores formatados nethk (token parte1)
+    def nethk_1val(hkx)
       "(#{Integer(hkx[:blockNumber])}," \
       "#{Integer(hkx[:timeStamp])}," \
       "'#{hkx[:hash]}'," \
@@ -430,12 +441,12 @@ module Cns
       "'#{hkx[:from]}'," \
       "'#{hkx[:to]}'," \
       "'#{hkx[:iax]}'," \
-      "#{ethk_2val(hkx)}"
+      "#{nethk_2val(hkx)}"
     end
 
-    # @param (see ethk_1val)
-    # @return [String] valores formatados ethk (token parte2)
-    def ethk_2val(hkx)
+    # @param (see nethk_1val)
+    # @return [String] valores formatados nethk (token parte2)
+    def nethk_2val(hkx)
       "cast('#{hkx[:value]}' as numeric)," \
       "'#{hkx[:tokenName]}'," \
       "'#{hkx[:tokenSymbol]}'," \
@@ -443,12 +454,12 @@ module Cns
       "cast('#{hkx[:gas]}' as numeric)," \
       "cast('#{hkx[:gasPrice]}' as numeric)," \
       "cast('#{hkx[:gasUsed]}' as numeric)," \
-      "#{ethk_3val(hkx)}"
+      "#{nethk_3val(hkx)}"
     end
 
-    # @param (see ethk_1val)
-    # @return [String] valores formatados ethk (token parte3)
-    def ethk_3val(hkx)
+    # @param (see nethk_1val)
+    # @return [String] valores formatados nethk (token parte3)
+    def nethk_3val(hkx)
       cta = hkx[:contractAddress]
       inp = hkx[:input]
       "#{inp.length.zero? ? 'null' : "'#{inp}'"}," \
