@@ -169,7 +169,7 @@ module Cns
     def apies
       @apies ||= Etherscan.new(
         {
-          wb: sql("select * from #{BD}.weth order by 2"),
+          wb: sql("select * from #{BD}.wetb order by 2"),
           ni: sql("select * from #{BD}.netai"),
           nk: sql("select * from #{BD}.netak"),
           np: sql("select * from #{BD}.netap"),
