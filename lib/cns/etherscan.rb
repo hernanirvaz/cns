@@ -183,7 +183,7 @@ module Cns
     def mostra_resumo_simples
       return unless dados.count.positive?
 
-      puts("\nid     address                                      etherscan    bigquery")
+      puts("\nid     address                                        etherscan      bigquery")
       dados.each { |obj| puts(formata_carteira_simples(obj)) }
       mostra_transacao_norml
       mostra_transacao_inter
@@ -230,8 +230,11 @@ module Cns
     # @param (see formata_carteira)
     # @return [String] texto formatado valores duma carteira
     def formata_valores_simples(hjn)
+      #id     address                                        etherscan      bigquery
+      #me-app 0x27c7f54e48956a906af2cbfbc8684b437776403d     22.377364     22.377364 OK
+      #mm-hot 0x534029b6371dc4453dd750bc1198181f55c859fe      4.556609      4.556609 OK
       format(
-        '%<v1>11.4f %<v2>11.4f %<ok>-3s',
+        '%<v1>13.6f %<v2>13.6f %<ok>-3s',
         v1: hjn[:es],
         v2: hjn[:bs],
         ok: ok?(hjn) ? 'OK' : 'NOK'
@@ -241,6 +244,9 @@ module Cns
     # @param (see formata_carteira)
     # @return [String] texto formatado valores duma carteira
     def formata_valores(hjn)
+      #id     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw
+      #me-app 0x27c..b43     22.3774  31  6  0 16 2190     22.3774  25  6  0 16 2190 OK
+      #mm-hot 0x534..81f      4.5566 182 18 74  7   51      4.5566  33 18 74  6   51 OK
       format(
         '%<v1>11.4f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>4i %<v2>11.4f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>4i %<ok>-3s',
         v1: hjn[:es],
@@ -261,7 +267,7 @@ module Cns
 
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:es].round(4) == hjn[:bs].round(4) && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bw].count == hjn[:ew].count
+      hjn[:es].round(6) == hjn[:bs].round(6) && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bw].count == hjn[:ew].count
     end
 
     # @example ether address inicio..fim
