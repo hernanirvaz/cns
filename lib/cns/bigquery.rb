@@ -169,22 +169,7 @@ module Cns
     def apies
       @apies ||= Etherscan.new(
         {
-          wb: sql("select * from #{BD}.wetb order by 2"),
-          ni: sql("select * from #{BD}.netai"),
-          nk: sql("select * from #{BD}.netak"),
-          np: sql("select * from #{BD}.netap"),
-          nt: sql("select * from #{BD}.netat"),
-          nw: sql("select * from #{BD}.netaw")
-        },
-        ops
-      )
-    end
-
-    # @return [Etherscan] API blockchain ETH
-    def apiesc
-      @apies ||= Etherscan.new(
-        {
-          wb: sql("select * from #{BD}.wetc order by 2"),
+          wb: sql("select * from #{BD}.wetb order by ax"),
           ni: sql("select * from #{BD}.netbi"),
           nk: sql("select * from #{BD}.netbk"),
           np: sql("select * from #{BD}.netbp"),
@@ -195,11 +180,26 @@ module Cns
       )
     end
 
+    # @return [Etherscan] API blockchain ETH
+    def apiesc
+      @apies ||= Etherscan.new(
+        {
+          wb: sql("select * from #{BD}.wetc order by ax"),
+          ni: sql("select * from #{BD}.netci"),
+          nk: sql("select * from #{BD}.netck"),
+          np: sql("select * from #{BD}.netcp"),
+          nt: sql("select * from #{BD}.netct"),
+          nw: sql("select * from #{BD}.netcw")
+        },
+        ops
+      )
+    end
+
     # @return [Greymass] API blockchain EOS
     def apigm
       @apigm ||= Greymass.new(
         {
-          wb: sql("select * from #{BD}.weos order by 2"),
+          wb: sql("select * from #{BD}.weos order by ax"),
           nt: sql("select * from #{BD}.neosx")
         },
         ops
