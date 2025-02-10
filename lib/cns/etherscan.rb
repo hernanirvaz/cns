@@ -281,7 +281,7 @@ module Cns
       max -= 2
       ini = Integer(max / 2) + 4
       inf = max % 2
-      "#{add[0, ini - 3]}..#{add[-inf - ini - 3..]}"
+      "#{add[0, ini - 3]}..#{add[-inf - ini + 5..]}"
     end
 
     # @example ether address inicio..fim
