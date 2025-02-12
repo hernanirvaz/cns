@@ -121,7 +121,7 @@ module Cns
         id: wbq[:id],
         ax: xbq = wbq[:ax],
         bs: wbq[:sl],
-        bt: bqd[:nt].select { |ont| ont[:axfrom].casecmp?(xbq) },
+        bt: bqd[:nt].select { |ont| ont[:iax].casecmp?(xbq) },
         bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
         bp: bqd[:np].select { |onp| onp[:iax].casecmp?(xbq) },
         bw: bqd[:nw].select { |onw| onw[:iax].casecmp?(xbq) },
