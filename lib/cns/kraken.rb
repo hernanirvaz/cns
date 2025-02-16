@@ -27,12 +27,12 @@ module Cns
 
     # @return [Hash] trades kraken novos
     def trades
-      @trades ||= exd[:kt].select { |key, _| kyt.include?(key) }
+      @trades ||= exd[:kt].slice(*kyt)
     end
 
     # @return [Hash] ledger kraken novos
     def ledger
-      @ledger ||= exd[:kl].select { |key, _| kyl.include?(key) }
+      @ledger ||= exd[:kl].slice(*kyl)
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
@@ -50,11 +50,7 @@ module Cns
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
     def exd
-      @exd ||= {
-        sl: api.account_us,
-        kt: api.trades_us,
-        kl: api.ledger_us
-      }
+      @exd ||= { sl: api.account_us, kt: api.trades_us, kl: api.ledger_us }
     end
 
     # @return [Array<String>] lista txid dos trades novos

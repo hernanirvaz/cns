@@ -12,7 +12,7 @@ module Cns
     # @return [Array<Hash>] List of addresses with balances
     def account_es(addresses)
       response = etherscan_req('balancemulti', addresses.join(','), 1, tag: 'latest')
-      response[:status] == '1' ? response.dig(:result) : []
+      response[:status] == '1' ? response[:result] : []
     end
 
     # Get EOS account information
@@ -80,24 +80,14 @@ module Cns
     # Reusable Faraday connection
     def connection(base_url)
       Faraday.new(base_url) do |conn|
-        conn.headers = {
-          content_type: 'application/json',
-          accept: 'application/json',
-          user_agent: 'blockchain-api-client'
-        }
+        conn.headers = { content_type: 'application/json', accept: 'application/json', user_agent: 'blockchain-api-client' }
         conn.adapter(Faraday.default_adapter)
       end
     end
 
     # Generic Etherscan API request handler
     def etherscan_req(action, address, page = 1, params = {})
-      params = {
-        module: 'account',
-        action: action,
-        address: address,
-        page: page,
-        apikey: ENV.fetch('ETHERSCAN_API_KEY')
-      }.merge(params)
+      params = { module: 'account', action: action, address: address, page: page, apikey: ENV.fetch('ETHERSCAN_API_KEY') }.merge(params)
       parse_json(connection('https://api.etherscan.io').get('/api', params).body)
     rescue Faraday::Error, JSON::ParserError
       { status: '0', result: [] }

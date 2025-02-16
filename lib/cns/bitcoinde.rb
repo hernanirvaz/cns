@@ -50,11 +50,7 @@ module Cns
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
     def exd
-      @exd ||= {
-        sl: api.account_de,
-        tt: api.trades_de,
-        tl: api.deposits_de + api.withdrawals_de
-      }
+      @exd ||= { sl: api.account_de, tt: api.trades_de, tl: api.deposits_de + api.withdrawals_de }
     end
 
     # @return [Array<String>] lista txid dos trades novos

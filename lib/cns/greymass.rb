@@ -58,7 +58,7 @@ module Cns
       xbq = wbq[:ax]
       {
         ax: xbq,
-        sl: greymass_sl(xbq).inject(:+),
+        sl: greymass_sl(xbq).reduce(:+),
         tx: filtrar_tx(xbq, api.ledger_gm(xbq))
       }
     end

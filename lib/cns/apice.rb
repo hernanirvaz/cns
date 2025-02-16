@@ -55,10 +55,7 @@ module Cns
     # @param non (see hde)
     # @return [Hash] saldos no kraken
     def account_us(urb = 'https://api.kraken.com/0/private', uri = 'Balance', non = nnc)
-      JSON.parse(
-        Curl.post("#{urb}/#{uri}", nonce: non) { |obj| obj.headers = hus(uri, nonce: non) }.body,
-        symbolize_names: true
-      )[:result]
+      JSON.parse(Curl.post("#{urb}/#{uri}", nonce: non) { |obj| obj.headers = hus(uri, nonce: non) }.body, symbolize_names: true)[:result]
     rescue StandardError
       {}
     end
@@ -158,12 +155,7 @@ module Cns
     #  ]
     # @return [Hash] deposit uniformizado bitcoinde
     def deposit_unif(has)
-      {
-        add: has[:address],
-        time: Time.parse(has[:created_at]),
-        qt: has[:amount],
-        txid: Integer(has[:deposit_id])
-      }.merge(tp: 'deposit', moe: 'btc', fee: '0')
+      { add: has[:address], time: Time.parse(has[:created_at]), qt: has[:amount], txid: Integer(has[:deposit_id]) }.merge(tp: 'deposit', moe: 'btc', fee: '0')
     end
 
     # @example withdrawals_de
@@ -249,16 +241,14 @@ module Cns
     # @param [Hash] has acumulador dos dados
     # @param (see account_us)
     # @return [Hash] dados trades kraken
-    def trades_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private')
-      uri = 'TradesHistory'
-      non = nnc
+    def trades_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private', uri = 'TradesHistory', non = nnc)
       res = JSON.parse(
         Curl.post("#{urb}/#{uri}", nonce: non, ofs: ofs) { |obj| obj.headers = hus(uri, nonce: non, ofs: ofs) }.body,
         symbolize_names: true
       )[:result]
       has.merge!(res[:trades])
-      sleep 2
-      res[:trades].count > 0 ? trades_us(ofs + res[:trades].count, has) : has
+      sleep(2)
+      res[:trades].count.positive? ? trades_us(ofs + res[:trades].count, has) : has
     rescue StandardError
       has
     end
@@ -286,16 +276,14 @@ module Cns
     #  }
     # @param (see trades_us)
     # @return [Hash] dados ledger kraken
-    def ledger_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private')
-      uri = 'Ledgers'
-      non = nnc
+    def ledger_us(ofs = 0, has = {}, urb = 'https://api.kraken.com/0/private', uri = 'Ledgers', non = nnc)
       res = JSON.parse(
         Curl.post("#{urb}/#{uri}", nonce: non, ofs: ofs) { |obj| obj.headers = hus(uri, nonce: non, ofs: ofs) }.body,
         symbolize_names: true
       )[:result]
       has.merge!(res[:ledger])
-      sleep 2
-      res[:ledger].count > 0 ? ledger_us(ofs + res[:ledger].count, has) : has
+      sleep(2)
+      res[:ledger].count.positive? ? ledger_us(ofs + res[:ledger].count, has) : has
     rescue StandardError
       has
     end
@@ -434,13 +422,13 @@ module Cns
     # @param [Integer] non continually-increasing unsigned integer
     # @return [Hash] headers necessarios para pedido HTTP da exchange bitcoinde
     def hde(qde, non = nnc)
-      key = ENV['BITCOINDE_API_KEY']
+      key = ENV.fetch('BITCOINDE_API_KEY', nil)
       {
         'X-API-KEY': key,
         'X-API-NONCE': non,
         'X-API-SIGNATURE': OpenSSL::HMAC.hexdigest(
           'sha256',
-          ENV['BITCOINDE_API_SECRET'],
+          ENV.fetch('BITCOINDE_API_SECRET', nil),
           ['GET', qde, key, non, Digest::MD5.hexdigest('')].join('#')
         )
       }
@@ -476,11 +464,11 @@ module Cns
     # @return [Hash] headers necessarios para pedido HTTP da exchange kraken
     def hus(qus, ops)
       {
-        'api-key': ENV['KRAKEN_API_KEY'],
+        'api-key': ENV.fetch('KRAKEN_API_KEY', nil),
         'api-sign': Base64.strict_encode64(
           OpenSSL::HMAC.digest(
             'sha512',
-            Base64.decode64(ENV['KRAKEN_API_SECRET']),
+            Base64.decode64(ENV.fetch('KRAKEN_API_SECRET', nil)),
             ['/0/private/', qus, Digest::SHA256.digest("#{ops[:nonce]}#{URI.encode_www_form(ops)}")].join
           )
         )

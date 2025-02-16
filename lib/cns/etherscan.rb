@@ -104,7 +104,7 @@ module Cns
       acc = abc[:account].downcase
       {
         ax: acc,
-        sl: (abc[:balance].to_d / 10**18),
+        sl: (abc[:balance].to_d / (10**18)),
         tx: filtrar_tx(acc, api.norml_es(acc)),
         ix: filtrar_tx(acc, api.inter_es(acc)),
         px: filtrar_px(acc, api.block_es(acc)),
@@ -153,7 +153,7 @@ module Cns
       ary.map { |omp| omp.merge(itx: Integer(omp[:blockNumber]), iax: add) }
     end
 
-    #dt: Time.at(Integer(htx[:timeStamp])),
+    # dt: Time.at(Integer(htx[:timeStamp])),
     # @return [Array<Hash>] lista ordenada transacoes normais novas
     def sortx
       novtx.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
@@ -210,29 +210,21 @@ module Cns
     # @param [Hash] hjn dados juntos bigquery & etherscan
     # @return [String] texto formatado duma carteira
     def formata_carteira_simples(hjn)
-      format(
-        '%<s1>-6.6s %<s2>-42.42s ',
-        s1: hjn[:id],
-        s2: hjn[:ax]
-      ) + formata_valores_simples(hjn)
+      format('%<s1>-6.6s %<s2>-42.42s ', s1: hjn[:id], s2: hjn[:ax]) + formata_valores_simples(hjn)
     end
 
     # @param [Hash] hjn dados juntos bigquery & etherscan
     # @return [String] texto formatado duma carteira
     def formata_carteira(hjn)
-      format(
-        '%<s1>-6.6s %<s2>-10.10s ',
-        s1: hjn[:id],
-        s2: formata_enderec1(hjn[:ax], 10)
-      ) + formata_valores(hjn)
+      format('%<s1>-6.6s %<s2>-10.10s ', s1: hjn[:id], s2: formata_enderec1(hjn[:ax], 10)) + formata_valores(hjn)
     end
 
     # @param (see formata_carteira)
     # @return [String] texto formatado valores duma carteira
     def formata_valores_simples(hjn)
-      #id     address                                        etherscan      bigquery
-      #me-app 0x27c7f54e48956a906af2cbfbc8684b437776403d     22.377364     22.377364 OK
-      #mm-hot 0x534029b6371dc4453dd750bc1198181f55c859fe      4.556609      4.556609 OK
+      # id     address                                        etherscan      bigquery
+      # me-app 0x27c7f54e48956a906af2cbfbc8684b437776403d     22.377364     22.377364 OK
+      # mm-hot 0x534029b6371dc4453dd750bc1198181f55c859fe      4.556609      4.556609 OK
       format(
         '%<v1>13.6f %<v2>13.6f %<ok>-3s',
         v1: hjn[:es],
@@ -244,9 +236,9 @@ module Cns
     # @param (see formata_carteira)
     # @return [String] texto formatado valores duma carteira
     def formata_valores(hjn)
-      #id     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw
-      #me-app 0x27c..b43     22.3774  31  6  0 16 2190     22.3774  25  6  0 16 2190 OK
-      #mm-hot 0x534..81f      4.5566 182 18 74  7   51      4.5566  33 18 74  6   51 OK
+      # id     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw
+      # me-app 0x27c..b43     22.3774  31  6  0 16 2190     22.3774  25  6  0 16 2190 OK
+      # mm-hot 0x534..81f      4.5566 182 18 74  7   51      4.5566  33 18 74  6   51 OK
       format(
         '%<v1>11.4f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>4i %<v2>11.4f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>4i %<ok>-3s',
         v1: hjn[:es],
@@ -296,7 +288,7 @@ module Cns
       ini = Integer(max / 2)
       inf = max % 2
       hid = bqd[:wb].select { |obj| obj[:ax] == add }.first
-      ndd = hid ? hid[:id] + '-' + add : add
+      ndd = hid ? "#{hid[:id]}-#{add}" : add
       "#{ndd[0, ini - 3]}..#{ndd[-inf - ini - 3..]}"
     end
 
@@ -310,7 +302,7 @@ module Cns
         fr: formata_enderec2(htx[:from], 20),
         to: formata_enderec2(htx[:to], 20),
         dt: Time.at(Integer(htx[:timeStamp])),
-        vl: (htx[:value].to_d / 10**18).round(10)
+        vl: (htx[:value].to_d / (10**18)).round(10)
       )
     end
 
@@ -323,7 +315,7 @@ module Cns
         bn: htx[:blockNumber],
         fr: formata_enderec2(htx[:iax], 41),
         dt: Time.at(Integer(htx[:timeStamp])),
-        vl: (htx[:blockReward].to_d / 10**18).round(10)
+        vl: (htx[:blockReward].to_d / (10**18)).round(10)
       )
     end
 
@@ -337,7 +329,7 @@ module Cns
         fr: formata_enderec2(hkx[:from], 20),
         to: formata_enderec2(hkx[:to], 20),
         dt: Time.at(Integer(hkx[:timeStamp])),
-        vl: (hkx[:value].to_d / 10**18).round(10),
+        vl: (hkx[:value].to_d / (10**18)).round(10),
         sy: hkx[:tokenSymbol]
       )
     end
@@ -351,7 +343,7 @@ module Cns
         vi: htx[:validatorIndex],
         bn: htx[:blockNumber],
         dt: Time.at(Integer(htx[:timestamp])),
-        vl: (htx[:amount].to_d / 10**9).round(10)
+        vl: (htx[:amount].to_d / (10**9)).round(10)
       )
     end
 

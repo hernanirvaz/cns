@@ -2,12 +2,66 @@
 AllCops:
   TargetRubyVersion: 3.1
   EnabledByDefault: true
+  NewCops: enable  # Automatically enable new cops introduced in updates
 
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 25
+
+Metrics/AbcSize:
+  Max: 40
+
+# Formatting Rules
+Layout/LineLength:
+  Max: 160
+  AllowHeredoc: true
+  AllowURI: true
+
+Layout/IndentationWidth:
+  Width: 2
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: space
+
+Layout/SingleLineBlockChain:
+  Enabled: false
+
+Layout/SpaceInsideParens:
+  Enabled: true
+
+# Style Preferences
 Style/Copyright:
   Enabled: false
 
-Lint/ConstantResolution:
+Style/Documentation:
+  Enabled: false
+
+Style/RequireOrder:
   Enabled: false
 
 Style/ConstantVisibility:
+  Enabled: false
+
+Style/OptionHash:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/NumericLiterals:
+  MinDigits: 5
+
+# Linting
+Lint/UselessAssignment:
+  Enabled: true
+
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: true
+
+Lint/ConstantResolution:
   Enabled: false

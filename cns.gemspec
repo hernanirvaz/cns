@@ -31,7 +31,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency('reek')
   spec.add_development_dependency('rubocop')
   spec.add_development_dependency('rubocop-rake')
-  spec.add_development_dependency('rufo')
   spec.add_development_dependency('solargraph')
   spec.add_development_dependency('yard')
 
@@ -39,4 +38,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency('faraday')
   spec.add_dependency('google-cloud-bigquery')
   spec.add_dependency('thor')
+  spec.metadata['rubygems_mfa_required'] = 'true'
 end
