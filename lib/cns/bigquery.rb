@@ -453,7 +453,6 @@ module Cns
         "#{ops[:h][String(hlx[:itx])] || 0})"
     end
 
-    # @example (see Apice#trades_de)
     # @param [Hash] htx trade bitcoinde
     # @return [String] valores formatados det (trades parte1)
     def det_val(htx)
@@ -469,8 +468,6 @@ module Cns
         "#{Integer(ops[:h][htx[:trade_id]] || 0)})"
     end
 
-    # @example (see Apice#deposits_de)
-    # @example (see Apice#withdrawals_de)
     # @param [Hash] hlx ledger (deposits + withdrawals) bitcoinde
     # @return [String] valores formatados del (ledger)
     def del_val(hlx)
@@ -484,7 +481,6 @@ module Cns
         "cast(#{hlx[:fee]} as numeric))"
     end
 
-    # @example (see Apice#trades_us)
     # @param [String] idx identificador transacao
     # @param [Hash] htx trade kraken
     # @return [String] valores formatados ust (trades parte1)
@@ -506,7 +502,6 @@ module Cns
         "#{Integer(ops[:h][idx] || 0)})"
     end
 
-    # @example (see Apice#ledger_us)
     # @param idx (see ust_val)
     # @param [Hash] hlx ledger kraken
     # @return [String] valores formatados usl (ledger)

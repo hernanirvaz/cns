@@ -63,7 +63,6 @@ module Cns
       @kyl ||= exd[:tl].map { |oex| oex[:txid] }.flatten - (ops[:t] ? [] : bqd[:nl].map { |obq| obq[:txid] })
     end
 
-    # @example (see Apice#account_de)
     # @param [String] moe codigo bitcoinde da moeda
     # @param [Hash] hsx saldo bitcoinde da moeda
     # @return [String] texto formatado saldos
@@ -79,7 +78,6 @@ module Cns
       )
     end
 
-    # @example (see Apice#trades_de)
     # @param (see Bigquery#det_val1)
     # @return [String] texto formatado trade
     def formata_trades(htx)
@@ -95,8 +93,6 @@ module Cns
       )
     end
 
-    # @example (see Apice#deposits_unif_de)
-    # @example (see Apice#withdrawals_unif_de)
     # @param (see Bigquery#del_val)
     # @return [String] texto formatado ledger
     def formata_ledger(hlx)

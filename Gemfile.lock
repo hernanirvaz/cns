@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (0.8.2)
+    cns (0.8.3)
       curb
       faraday
       google-cloud-bigquery
@@ -136,7 +136,7 @@ GEM
     reverse_markdown (3.0.0)
       nokogiri
     rexml (3.4.1)
-    rubocop (1.72.1)
+    rubocop (1.72.2)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)

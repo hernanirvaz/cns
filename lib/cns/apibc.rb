@@ -12,15 +12,7 @@ module Cns
     # @return [Array<Hash>] List of addresses with balances
     def account_es(addresses)
       response = etherscan_req('balancemulti', addresses.join(','), 1, tag: 'latest')
-      response[:status] == '1' ? response[:result] : []
-    end
-
-    # Get EOS account information
-    # @param address [String] EOS account name
-    # @return [Hash] Account details with resources
-    def account_gm(address)
-      response = greymass_req('/v1/chain/get_account', { account_name: address })
-      response || { core_liquid_balance: 0, total_resources: { net_weight: 0, cpu_weight: 0 } }
+      response.fetch(:status, '0') == '1' ? response.fetch(:result, []) : []
     end
 
     # Get normal transactions for ETH address
@@ -58,6 +50,14 @@ module Cns
       pag_etherscan_req('tokentx', address)
     end
 
+    # Get EOS account information
+    # @param address [String] EOS account name
+    # @return [Hash] Account details with resources
+    def account_gm(address)
+      response = greymass_req('/v1/chain/get_account', account_name: address)
+      response.dig(:core_liquid_balance).to_d > 0 ? response : gm_erro
+    end
+
     # Get complete transaction history for EOS account
     # @param (see account_gm)
     # @return [Array<Hash>] lista completa transacoes greymass
@@ -65,8 +65,8 @@ module Cns
       actions = []
       pos = 0
       loop do
-        response = greymass_req('/v1/history/get_actions', { account_name: address, pos: pos, offset: 100 })
-        batch = response[:actions] || []
+        response = greymass_req('/v1/history/get_actions', account_name: address, pos: pos, offset: 100)
+        batch = response.fetch(:actions, [])
         actions += batch
         break if batch.size < 100
 
@@ -88,9 +88,9 @@ module Cns
     # Generic Etherscan API request handler
     def etherscan_req(action, address, page = 1, params = {})
       params = { module: 'account', action: action, address: address, page: page, apikey: ENV.fetch('ETHERSCAN_API_KEY') }.merge(params)
-      parse_json(connection('https://api.etherscan.io').get('/api', params).body)
-    rescue Faraday::Error, JSON::ParserError
-      { status: '0', result: [] }
+      parse_json(connection('https://api.etherscan.io').get('/api', params))
+    rescue Faraday::Error
+      { status: '0' }
     end
 
     # Generic method for paginated Etherscan requests
@@ -103,9 +103,9 @@ module Cns
       page = 1
       loop do
         response = etherscan_req(action, address, page, params)
-        break unless response[:status] == '1'
+        break unless response.fetch(:status, '0') == '1'
 
-        batch = response[:result] || []
+        batch = response.fetch(:result, [])
         results += batch
         break if batch.size < 10_000
 
@@ -114,16 +114,21 @@ module Cns
       results
     end
 
+    # Generic Greymass API error
+    def gm_erro
+      { core_liquid_balance: 0, total_resources: { net_weight: 0, cpu_weight: 0 } }
+    end
+
     # Generic Greymass API request handler
     def greymass_req(endpoint, payload)
-      parse_json((connection('https://eos.greymass.com').post(endpoint) { |req| req.body = payload.to_json }).body)
-    rescue Faraday::Error, JSON::ParserError
-      nil
+      parse_json((connection('https://eos.greymass.com').post(endpoint) { |req| req.body = payload.to_json }))
+    rescue Faraday::Error
+      gm_erro
     end
 
     # Safe JSON parsing with error handling
-    def parse_json(body)
-      JSON.parse(body, symbolize_names: true)
+    def parse_json(res)
+      JSON.parse(res.body, symbolize_names: true) || {}
     rescue JSON::ParserError
       {}
     end

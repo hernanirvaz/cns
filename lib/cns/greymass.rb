@@ -83,11 +83,7 @@ module Cns
     def greymass_sl(add)
       hac = api.account_gm(add)
       htr = hac[:total_resources]
-      [
-        hac[:core_liquid_balance].to_d,
-        htr[:net_weight].to_d,
-        htr[:cpu_weight].to_d
-      ]
+      [hac[:core_liquid_balance].to_d, htr[:net_weight].to_d, htr[:cpu_weight].to_d]
     end
 
     # @param add (see Apibc#account_gm)
