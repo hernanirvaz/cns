@@ -29,27 +29,27 @@ module Cns
 
     # @return [Array<Hash>] lista transacoes normais novas
     def novtx
-      @novtx ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
+      @novtx ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes internas novas
     def novix
-      @novix ||= bcd.map { |obc| obc[:ix].select { |obj| idi.include?(obj[:itx]) } }.flatten
+      @novix ||= bcd.map { |obc| obc[:ix].select { |obj| idi.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes block novas
     def novpx
-      @novpx ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten
+      @novpx ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes withdrawals novas
     def novwx
-      @novwx ||= bcd.map { |obc| obc[:wx].select { |obj| idw.include?(obj[:itx]) } }.flatten
+      @novwx ||= bcd.map { |obc| obc[:wx].select { |obj| idw.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes token novas
     def novkx
-      @novkx ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten
+      @novkx ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<String>] lista dos meus enderecos
@@ -108,7 +108,7 @@ module Cns
         tx: filtrar_tx(acc, api.norml_es(acc)),
         ix: filtrar_tx(acc, api.inter_es(acc)),
         px: filtrar_px(acc, api.block_es(acc)),
-        wx: filtrar_px(acc, api.withw_es(acc)),
+        wx: filtrar_wx(acc, api.withw_es(acc)),
         kx: filtrar_tx(acc, api.token_es(acc))
       }
     end
@@ -151,6 +151,14 @@ module Cns
     def filtrar_px(add, ary)
       # adiciona chave indice itx & adiciona identificador da carteira iax
       ary.map { |omp| omp.merge(itx: Integer(omp[:blockNumber]), iax: add) }
+    end
+
+    # @param add (see Apibc#norml_es)
+    # @param [Array<Hash>] ary lista blocks events
+    # @return [Array<Hash>] lista blocks events filtrada
+    def filtrar_wx(add, ary)
+      # adiciona chave indice itx & adiciona identificador da carteira iax
+      ary.map { |omp| omp.merge(itx: Integer(omp[:withdrawalIndex]), iax: add) }
     end
 
     # dt: Time.at(Integer(htx[:timeStamp])),
@@ -339,9 +347,9 @@ module Cns
     # @return [String] texto formatado transacao withdrawals etherscan
     def formata_transacao_withw(htx)
       format(
-        '%<vi>9i %<bn>9i %<dt>10.10s %<vl>10.6f',
+        '%<vi>9i %<bn>10i %<dt>10.10s %<vl>10.6f',
         vi: htx[:validatorIndex],
-        bn: htx[:blockNumber],
+        bn: htx[:withdrawalIndex],
         dt: Time.at(Integer(htx[:timestamp])),
         vl: (htx[:amount].to_d / (10**9)).round(10)
       )
@@ -383,7 +391,7 @@ module Cns
     def mostra_transacao_withw
       return unless ops[:v] && novwx.count.positive?
 
-      puts("\nvalidator     block data            valor")
+      puts("\nvalidator withdrawal data            valor")
       sorwx.each { |obj| puts(formata_transacao_withw(obj)) }
     end
 

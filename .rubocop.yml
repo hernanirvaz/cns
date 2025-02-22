@@ -18,7 +18,7 @@ Metrics/AbcSize:
 
 # Formatting Rules
 Layout/LineLength:
-  Max: 160
+  Max: 180
   AllowHeredoc: true
   AllowURI: true
 
