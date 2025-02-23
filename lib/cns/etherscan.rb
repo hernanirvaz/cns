@@ -193,11 +193,11 @@ module Cns
 
       puts("\nid     address                                        etherscan      bigquery")
       dados.each { |obj| puts(formata_carteira_simples(obj)) }
-      mostra_transacao_norml
-      mostra_transacao_inter
-      mostra_transacao_block
-      mostra_transacao_token
-      mostra_transacao_withw
+      mostra_tx_norml
+      mostra_tx_inter
+      mostra_tx_block
+      mostra_tx_token
+      mostra_tx_withw
       mostra_configuracao_ajuste_dias
     end
 
@@ -207,11 +207,11 @@ module Cns
 
       puts("\nid     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw")
       dados.each { |obj| puts(formata_carteira(obj)) }
-      mostra_transacao_norml
-      mostra_transacao_inter
-      mostra_transacao_block
-      mostra_transacao_token
-      mostra_transacao_withw
+      mostra_tx_norml
+      mostra_tx_inter
+      mostra_tx_block
+      mostra_tx_token
+      mostra_tx_withw
       mostra_configuracao_ajuste_dias
     end
 
@@ -297,27 +297,42 @@ module Cns
       inf = max % 2
       hid = bqd[:wb].select { |obj| obj[:ax] == add }.first
       ndd = hid ? "#{hid[:id]}-#{add}" : add
-      "#{ndd[0, ini - 3]}..#{ndd[-inf - ini - 3..]}"
+      "#{ndd[0, ini]}..#{ndd[-inf - ini..]}"
     end
 
     # @example (see Apibc#norml_es)
     # @param [Hash] htx transacao normal etherscan
     # @return [String] texto formatado transacao normal etherscan
-    def formata_transacao_norml(htx)
+    def formata_tx_ti(htx)
       format(
-        '%<bn>9i %<fr>-20.20s %<to>-20.20s %<dt>10.10s %<vl>17.6f',
-        bn: htx[:blockNumber],
-        fr: formata_enderec2(htx[:from], 20),
-        to: formata_enderec2(htx[:to], 20),
+        '%<hx>-29.29s %<fr>-15.15s %<to>-15.15s %<dt>10.10s %<vl>7.3f',
+        hx: formata_enderec1(htx[:hash], 29),
+        fr: formata_enderec2(htx[:from], 15),
+        to: formata_enderec2(htx[:to], 15),
         dt: Time.at(Integer(htx[:timeStamp])),
         vl: (htx[:value].to_d / (10**18)).round(10)
+      )
+    end
+
+    # @example (see Apibc#token_es)
+    # @param [Hash] hkx transacao token etherscan
+    # @return [String] texto formatado transacao token etherscan
+    def formata_tx_token(hkx)
+      format(
+        '%<hx>-23.23s %<fr>-15.15s %<to>-15.15s %<dt>10.10s %<vl>7.3f %<sy>-5.5s',
+        hx: formata_enderec1(hkx[:hash], 23),
+        fr: formata_enderec2(hkx[:from], 15),
+        to: formata_enderec2(hkx[:to], 15),
+        dt: Time.at(Integer(hkx[:timeStamp])),
+        vl: (hkx[:value].to_d / (10**18)).round(10),
+        sy: hkx[:tokenSymbol]
       )
     end
 
     # @example (see Apibc#block_es)
     # @param [Hash] htx transacao block etherscan
     # @return [String] texto formatado transacao block etherscan
-    def formata_transacao_block(htx)
+    def formata_tx_block(htx)
       format(
         '%<bn>9i %<fr>-41.41s %<dt>10.10s %<vl>17.6f',
         bn: htx[:blockNumber],
@@ -327,78 +342,66 @@ module Cns
       )
     end
 
-    # @example (see Apibc#token_es)
-    # @param [Hash] hkx transacao token etherscan
-    # @return [String] texto formatado transacao token etherscan
-    def formata_transacao_token(hkx)
-      format(
-        '%<bn>9i %<fr>-20.20s %<to>-20.20s %<dt>10.10s %<vl>11.3f %<sy>-5.5s',
-        bn: hkx[:blockNumber],
-        fr: formata_enderec2(hkx[:from], 20),
-        to: formata_enderec2(hkx[:to], 20),
-        dt: Time.at(Integer(hkx[:timeStamp])),
-        vl: (hkx[:value].to_d / (10**18)).round(10),
-        sy: hkx[:tokenSymbol]
-      )
-    end
-
     # @example (see Apibc#block_es)
     # @param [Hash] htx transacao withdrawals etherscan
     # @return [String] texto formatado transacao withdrawals etherscan
-    def formata_transacao_withw(htx)
+    def formata_tx_withw(htx)
       format(
-        '%<vi>9i %<bn>10i %<dt>10.10s %<vl>10.6f',
-        vi: htx[:validatorIndex],
+        '%<bn>10i %<vi>9i %<dt>10.10s %<vl>10.6f',
         bn: htx[:withdrawalIndex],
+        vi: htx[:validatorIndex],
         dt: Time.at(Integer(htx[:timestamp])),
         vl: (htx[:amount].to_d / (10**9)).round(10)
       )
     end
 
     # @return [String] texto transacoes normais
-    def mostra_transacao_norml
+    def mostra_tx_norml
       return unless ops[:v] && novnetht.count.positive?
 
-      puts("\ntx normal from                 to                   data                   valor")
-      sortx.each { |obj| puts(formata_transacao_norml(obj)) }
+      puts("\ntx normal                     from            to              data         valor")
+      sortx.each { |obj| puts(formata_tx_ti(obj)) }
     end
 
     # @return [String] texto transacoes internas
-    def mostra_transacao_inter
+    def mostra_tx_inter
       return unless ops[:v] && novnethi.count.positive?
 
-      puts("\ntx intern from                 to                   data                   valor")
-      sorix.each { |obj| puts(formata_transacao_norml(obj)) }
+      puts("\ntx intern                     from            to              data         valor")
+      sorix.each { |obj| puts(formata_tx_ti(obj)) }
     end
 
     # @return [String] texto transacoes block
-    def mostra_transacao_block
+    def mostra_tx_block
       return unless ops[:v] && novnethp.count.positive?
 
       puts("\ntx block  address                                   data                   valor")
-      sorpx.each { |obj| puts(formata_transacao_block(obj)) }
+      sorpx.each { |obj| puts(formata_tx_block(obj)) }
     end
 
     # @return [String] texto transacoes token
-    def mostra_transacao_token
+    def mostra_tx_token
       return unless ops[:v] && novnethk.count.positive?
 
-      puts("\ntx token  from                 to                   data             valor")
-      sorkx.each { |obj| puts(formata_transacao_token(obj)) }
+      puts("\ntx token                from            to              data         valor moeda")
+      sorkx.each { |obj| puts(formata_tx_token(obj)) }
     end
 
     # @return [String] texto transacoes withdrawals
-    def mostra_transacao_withw
+    def mostra_tx_withw
       return unless ops[:v] && novnethw.count.positive?
 
-      puts("\nvalidator withdrawal data            valor")
-      sorwx.each { |obj| puts(formata_transacao_withw(obj)) }
+      puts("\nwithdrawal validator data            valor")
+      sorwx.each { |obj| puts(formata_tx_withw(obj)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes (normais & token)
     def mostra_configuracao_ajuste_dias
-      puts("\nstring ajuste dias transacoes normais\n-h=#{sortx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novnetht.count.positive?
-      puts("\nstring ajuste dias transacoes token  \n-h=#{sorkx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novnethk.count.positive?
+      puts("\najuste dias transacoes normais    \n-h=#{sortx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnetht.count.positive?
+      puts("\najuste dias transacoes internas   \n-h=#{sorix.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethi.count.positive?
+      puts("\najuste dias transacoes block      \n-h=#{sorpx.map { |obj| "#{obj[:blockNumber]}:0"     }.join(' ')}") if novnethp.count.positive?
+      puts("\najuste dias transacoes withdrawals\n-h=#{sorwx.map { |obj| "#{obj[:withdrawalIndex]}:0" }.join(' ')}") if novnethw.count.positive?
+      puts("\najuste dias transacoes token      \n-h=#{sorkx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethk.count.positive?
     end
   end
 end

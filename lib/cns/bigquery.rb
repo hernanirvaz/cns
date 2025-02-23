@@ -8,9 +8,9 @@ module Cns
   BD = 'hernanirvaz.coins'
   FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
   TB = {
-    i: %w[blocknumber timestamp txhash axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode],
-    p: %w[blocknumber timestamp blockreward iax],
-    w: %w[withdrawalindex validatorindex address amount blocknumber timestamp],
+    i: %w[blocknumber timestamp txhash axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode dias],
+    p: %w[blocknumber timestamp blockreward iax dias],
+    w: %w[withdrawalindex validatorindex address amount blocknumber timestamp dias],
     t: %w[blocknumber timestamp txhash nonce blockhash transactionindex axfrom axto iax value gas gasprice gasused iserror txreceipt_status input contractaddress dias],
     k: %w[blocknumber timestamp txhash nonce blockhash transactionindex axfrom axto iax value tokenname tokensymbol tokendecimal gas gasprice gasused input contractaddress dias],
     neost: %w[gseq aseq bnum time contract action acfrom acto iax amount moeda memo dias],
@@ -236,19 +236,19 @@ module Cns
     end
 
     # SQL value formatting methods with improved safety
-    def quote(value)
+    def fqt(value)
       return 'null' if value.nil? || value.empty?
 
       "'#{value}'"
     end
 
-    def numeric(value)
+    def fnm(value)
       return 'null' if value.nil?
 
       "CAST('#{value}' AS NUMERIC)"
     end
 
-    def integer(value)
+    def fin(value)
       return '0' if value.nil?
 
       Integer(value).to_s
@@ -256,11 +256,11 @@ module Cns
       'null'
     end
 
-    def ptime(sec)
+    def ftm(sec)
       "PARSE_DATETIME('%s', '#{String(sec.round)}')"
     end
 
-    def ptimestamp(value)
+    def fts(value)
       "DATETIME(TIMESTAMP('#{value}'))"
     end
 
@@ -268,24 +268,24 @@ module Cns
     # @return [String] valores formatados netht (norml parte1)
     def netht_val(htx)
       "(#{[
-        integer(htx[:blockNumber]),
-        integer(htx[:timeStamp]),
-        quote(htx[:hash]),
-        integer(htx[:nonce]),
-        quote(htx[:blockHash]),
-        integer(htx[:transactionIndex]),
-        quote(htx[:from]),
-        quote(htx[:to]),
-        quote(htx[:iax]),
-        numeric(htx[:value]),
-        numeric(htx[:gas]),
-        numeric(htx[:gasPrice]),
-        numeric(htx[:gasUsed]),
-        integer(htx[:isError]),
-        integer(htx[:txreceipt_status]),
-        quote(htx[:input]),
-        quote(htx[:contractAddress]),
-        integer(ops.dig(:h, htx[:blockNumber]))
+        fin(htx[:blockNumber]),
+        fin(htx[:timeStamp]),
+        fqt(htx[:hash]),
+        fin(htx[:nonce]),
+        fqt(htx[:blockHash]),
+        fin(htx[:transactionIndex]),
+        fqt(htx[:from]),
+        fqt(htx[:to]),
+        fqt(htx[:iax]),
+        fnm(htx[:value]),
+        fnm(htx[:gas]),
+        fnm(htx[:gasPrice]),
+        fnm(htx[:gasUsed]),
+        fin(htx[:isError]),
+        fin(htx[:txreceipt_status]),
+        fqt(htx[:input]),
+        fqt(htx[:contractAddress]),
+        fin(ops.dig(:h, htx[:hash]))
       ].join(',')})"
     end
 
@@ -293,40 +293,42 @@ module Cns
     # @return [String] valores formatados nethi (internas parte1)
     def nethi_val(htx)
       "(#{[
-        integer(htx[:blockNumber]),
-        integer(htx[:timeStamp]),
-        quote(htx[:hash]),
-        quote(htx[:from]),
-        quote(htx[:to]),
-        quote(htx[:iax]),
-        numeric(htx[:value]),
-        quote(htx[:contractAddress]),
-        quote(htx[:input]),
-        quote(htx[:type]),
-        numeric(htx[:gas]),
-        numeric(htx[:gasUsed]),
-        quote(htx[:traceId]),
-        integer(htx[:isError]),
-        integer(htx[:errCode])
+        fin(htx[:blockNumber]),
+        fin(htx[:timeStamp]),
+        fqt(htx[:hash]),
+        fqt(htx[:from]),
+        fqt(htx[:to]),
+        fqt(htx[:iax]),
+        fnm(htx[:value]),
+        fqt(htx[:contractAddress]),
+        fqt(htx[:input]),
+        fqt(htx[:type]),
+        fnm(htx[:gas]),
+        fnm(htx[:gasUsed]),
+        fqt(htx[:traceId]),
+        fin(htx[:isError]),
+        fin(htx[:errCode]),
+        fin(ops.dig(:h, htx[:hash]))
       ].join(',')})"
     end
 
     # @param [Hash] htx transacao block etherscan
     # @return [String] valores formatados nethi (block parte1)
     def nethp_val(htx)
-      "(#{[integer(htx[:blockNumber]), integer(htx[:timeStamp]), numeric(htx[:blockReward]), quote(htx[:iax])].join(',')})"
+      "(#{[fin(htx[:blockNumber]), fin(htx[:timeStamp]), fnm(htx[:blockReward]), fqt(htx[:iax]), fin(ops.dig(:h, htx[:blockNumber]))].join(',')})"
     end
 
     # @param [Hash] htx transacao withdrawals etherscan
     # @return [String] valores formatados nethi (withdrawals parte1)
     def nethw_val(htx)
       "(#{[
-        integer(htx[:withdrawalIndex]),
-        integer(htx[:validatorIndex]),
-        quote(htx[:address]),
-        numeric(htx[:amount]),
-        integer(htx[:blockNumber]),
-        integer(htx[:timestamp])
+        fin(htx[:withdrawalIndex]),
+        fin(htx[:validatorIndex]),
+        fqt(htx[:address]),
+        fnm(htx[:amount]),
+        fin(htx[:blockNumber]),
+        fin(htx[:timestamp]),
+        fin(ops.dig(:h, htx[:withdrawalIndex]))
       ].join(',')})"
     end
 
@@ -334,25 +336,25 @@ module Cns
     # @return [String] valores formatados nethk (token parte1)
     def nethk_val(htx)
       "(#{[
-        integer(htx[:blockNumber]),
-        integer(htx[:timeStamp]),
-        quote(htx[:hash]),
-        integer(htx[:nonce]),
-        quote(htx[:blockHash]),
-        integer(htx[:transactionIndex]),
-        quote(htx[:from]),
-        quote(htx[:to]),
-        quote(htx[:iax]),
-        numeric(htx[:value]),
-        quote(htx[:tokenName]),
-        quote(htx[:tokenSymbol]),
-        integer(htx[:tokenDecimal]),
-        numeric(htx[:gas]),
-        numeric(htx[:gasPrice]),
-        numeric(htx[:gasUsed]),
-        quote(htx[:input]),
-        quote(htx[:contractAddress]),
-        integer(ops.dig(:h, htx[:blockNumber]))
+        fin(htx[:blockNumber]),
+        fin(htx[:timeStamp]),
+        fqt(htx[:hash]),
+        fin(htx[:nonce]),
+        fqt(htx[:blockHash]),
+        fin(htx[:transactionIndex]),
+        fqt(htx[:from]),
+        fqt(htx[:to]),
+        fqt(htx[:iax]),
+        fnm(htx[:value]),
+        fqt(htx[:tokenName]),
+        fqt(htx[:tokenSymbol]),
+        fin(htx[:tokenDecimal]),
+        fnm(htx[:gas]),
+        fnm(htx[:gasPrice]),
+        fnm(htx[:gasUsed]),
+        fqt(htx[:input]),
+        fqt(htx[:contractAddress]),
+        fin(ops.dig(:h, htx[:hash]))
       ].join(',')})"
     end
 
@@ -365,19 +367,19 @@ module Cns
       qtd = dat[:quantity].to_s
       str = dat[:memo].inspect
       "(#{[
-        integer(htx[:global_action_seq]),
-        integer(htx[:account_action_seq]),
-        integer(htx[:block_num]),
-        ptimestamp(htx[:block_time]),
-        quote(act[:account]),
-        quote(act[:name]),
-        quote(dat[:from]),
-        quote(dat[:to]),
-        quote(htx[:iax]),
+        fin(htx[:global_action_seq]),
+        fin(htx[:account_action_seq]),
+        fin(htx[:block_num]),
+        fts(htx[:block_time]),
+        fqt(act[:account]),
+        fqt(act[:name]),
+        fqt(dat[:from]),
+        fqt(dat[:to]),
+        fqt(htx[:iax]),
         qtd.to_d,
-        quote(qtd[/[[:upper:]]+/]),
-        quote(str),
-        integer(ops.dig(:h, htx[:itx]))
+        fqt(qtd[/[[:upper:]]+/]),
+        fqt(str),
+        fin(ops.dig(:h, htx[:itx]))
       ].join(',')})"
     end
 
@@ -385,14 +387,14 @@ module Cns
     # @return [String] valores formatados det (trades parte1)
     def cdet_val(htx)
       "(#{[
-        quote(htx[:trade_id]),
-        ptimestamp(htx[:successfully_finished_at]),
-        quote(htx[:type]),
-        quote(htx[:trading_partner_information][:username]),
-        numeric(htx[:type] == 'buy' ? htx[:amount_currency_to_trade_after_fee] : "-#{htx[:amount_currency_to_trade]}"),
-        numeric(htx[:volume_currency_to_pay_after_fee]),
-        ptimestamp(htx[:trade_marked_as_paid_at]),
-        integer(ops.dig(:h, htx[:trade_id]))
+        fqt(htx[:trade_id]),
+        fts(htx[:successfully_finished_at]),
+        fqt(htx[:type]),
+        fqt(htx[:trading_partner_information][:username]),
+        fnm(htx[:type] == 'buy' ? htx[:amount_currency_to_trade_after_fee] : "-#{htx[:amount_currency_to_trade]}"),
+        fnm(htx[:volume_currency_to_pay_after_fee]),
+        fts(htx[:trade_marked_as_paid_at]),
+        fin(ops.dig(:h, htx[:trade_id]))
       ].join(',')})"
     end
 
@@ -402,13 +404,13 @@ module Cns
       tip = htx[:tp]
       qtd = htx[:qt]
       "(#{[
-        integer(htx[:txid]),
-        ptimestamp(htx[:time].iso8601),
-        quote(tip),
-        quote(htx[:add]),
-        quote(htx[:moe]),
-        numeric(tip == 'withdrawal' ? "-#{qtd}" : qtd),
-        numeric(htx[:fee])
+        fin(htx[:txid]),
+        fts(htx[:time].iso8601),
+        fqt(tip),
+        fqt(htx[:add]),
+        fqt(htx[:moe]),
+        fnm(tip == 'withdrawal' ? "-#{qtd}" : qtd),
+        fnm(htx[:fee])
       ].join(',')})"
     end
 
@@ -417,20 +419,20 @@ module Cns
     # @return [String] valores formatados ust (trades parte1)
     def cust_val(idx, htx)
       "(#{[
-        quote(idx),
-        quote(htx[:ordertxid]),
-        quote(htx[:pair]),
-        ptime(htx[:time]),
-        quote(htx[:type]),
-        quote(htx[:ordertype]),
-        numeric(htx[:price]),
-        numeric(htx[:cost]),
-        numeric(htx[:fee]),
-        numeric(htx[:vol]),
-        numeric(htx[:margin]),
-        quote(htx[:misc]),
-        quote(apius.novcusl.select { |_, obj| obj[:refid] == idx.to_s }.keys.join(',')),
-        integer(ops.dig(:h, idx))
+        fqt(idx),
+        fqt(htx[:ordertxid]),
+        fqt(htx[:pair]),
+        ftm(htx[:time]),
+        fqt(htx[:type]),
+        fqt(htx[:ordertype]),
+        fnm(htx[:price]),
+        fnm(htx[:cost]),
+        fnm(htx[:fee]),
+        fnm(htx[:vol]),
+        fnm(htx[:margin]),
+        fqt(htx[:misc]),
+        fqt(apius.novcusl.select { |_, obj| obj[:refid] == idx.to_s }.keys.join(',')),
+        fin(ops.dig(:h, idx))
       ].join(',')})"
     end
 
@@ -438,7 +440,7 @@ module Cns
     # @param [Hash] hlx ledger kraken
     # @return [String] valores formatados usl (ledger)
     def cusl_val(idx, hlx)
-      "(#{[quote(idx), quote(hlx[:refid]), ptime(hlx[:time]), quote(hlx[:type]), quote(hlx[:aclass]), quote(hlx[:asset]), numeric(hlx[:amount]), numeric(hlx[:fee])].join(',')})"
+      "(#{[fqt(idx), fqt(hlx[:refid]), ftm(hlx[:time]), fqt(hlx[:type]), fqt(hlx[:aclass]), fqt(hlx[:asset]), fnm(hlx[:amount]), fnm(hlx[:fee])].join(',')})"
     end
   end
 end
