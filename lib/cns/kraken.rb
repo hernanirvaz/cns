@@ -22,17 +22,17 @@ module Cns
     def initialize(dad, pop)
       @api = Apice.new
       @bqd = dad
-      @ops = pop
+      @ops = pop.transform_keys(&:to_sym)
     end
 
     # @return [Hash] trades kraken novos
-    def trades
-      @trades ||= exd[:kt].slice(*kyt)
+    def novcust
+      @novcust ||= exd[:kt].slice(*kyt)
     end
 
     # @return [Hash] ledger kraken novos
-    def ledger
-      @ledger ||= exd[:kl].slice(*kyl)
+    def novcusl
+      @novcusl ||= exd[:kl].slice(*kyl)
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
@@ -43,7 +43,7 @@ module Cns
 
       mostra_trades
       mostra_ledger
-      return if trades.empty?
+      return if novcust.empty?
 
       puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
     end
@@ -123,18 +123,18 @@ module Cns
 
     # @return [String] texto transacoes trades
     def mostra_trades
-      return unless ops[:v] && trades.count.positive?
+      return unless ops[:v] && novcust.count.positive?
 
       puts("\ntrade  data       hora     tipo       par         preco          volume    custo")
-      trades.sort { |ant, prx| prx[1][:time] <=> ant[1][:time] }.each { |key, val| puts(formata_trades(key, val)) }
+      novcust.sort { |ant, prx| prx[1][:time] <=> ant[1][:time] }.each { |key, val| puts(formata_trades(key, val)) }
     end
 
     # @return [String] texto transacoes ledger
     def mostra_ledger
-      return unless ops[:v] && ledger.count.positive?
+      return unless ops[:v] && novcusl.count.positive?
 
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")
-      ledger.sort { |ant, prx| prx[1][:time] <=> ant[1][:time] }.each { |key, val| puts(formata_ledger(key, val)) }
+      novcusl.sort { |ant, prx| prx[1][:time] <=> ant[1][:time] }.each { |key, val| puts(formata_ledger(key, val)) }
     end
   end
 end

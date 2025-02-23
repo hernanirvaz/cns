@@ -22,12 +22,12 @@ module Cns
     def initialize(dad, pop)
       @api = Apibc.new
       @bqd = dad
-      @ops = pop
+      @ops = pop.transform_keys(&:to_sym)
     end
 
     # @return [Array<Hash>] lista transacoes novas
-    def novax
-      @novax ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
+    def novneost
+      @novneost ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
     end
 
     # @return [Array<String>] lista dos meus enderecos
@@ -98,11 +98,6 @@ module Cns
       end).map { |omp| omp.merge(itx: omp[:global_action_seq], iax: add) }
     end
 
-    # @return [Array<Hash>] lista ordenada transacoes novas
-    def sorax
-      novax.sort { |ant, prx| prx[:itx] <=> ant[:itx] }
-    end
-
     # @return [String] texto carteiras & transacoes & ajuste dias
     def mostra_resumo
       return unless dados.count.positive?
@@ -151,17 +146,17 @@ module Cns
 
     # @return [String] texto transacoes
     def mostra_transacoes_novas
-      return unless ops[:v] && novax.count.positive?
+      return unless ops[:v] && novneost.count.positive?
 
       puts("\nsequence num from         to           accao      data              valor moeda")
-      sorax.each { |obj| puts(formata_ledger(obj)) }
+      novneost.sort { |ant, prx| prx[:itx] <=> ant[:itx] }.each { |obj| puts(formata_ledger(obj)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes
     def mostra_configuracao_ajuste_dias
-      return unless novax.count.positive?
+      return unless novneost.count.positive?
 
-      puts("\nstring ajuste dias\n-h=#{sorax.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{novneost.sort { |ant, prx| prx[:itx] <=> ant[:itx] }.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")
     end
   end
 end

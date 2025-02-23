@@ -7,8 +7,7 @@ require('bigdecimal/util')
 module Cns
   BD = 'hernanirvaz.coins'
   FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
-  # Define table configurations at the class level
-  TC = {
+  TB = {
     i: %w[blocknumber timestamp txhash axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode],
     p: %w[blocknumber timestamp blockreward iax],
     w: %w[withdrawalindex validatorindex address amount blocknumber timestamp],
@@ -38,7 +37,7 @@ module Cns
       # usa env GOOGLE_APPLICATION_CREDENTIALS para obter credentials
       # @see https://cloud.google.com/bigquery/docs/authentication/getting-started
       @api = Google::Cloud::Bigquery.new
-      @ops = pop
+      @ops = pop.transform_keys(&:to_sym)
     end
 
     # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
@@ -67,26 +66,22 @@ module Cns
 
     # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass no bigquery
     def processa_tudo
-      str = "#{processa_us}, #{processa_de}, #{processa_eth}, #{processa_eos}"
-      puts(trs_ini + str)
+      puts(trs_ini + "#{processa_us}, #{processa_de}, #{processa_eth}, #{processa_eos}")
     end
 
     # insere (caso existam) dados novos kraken/etherscan no bigquery
     def processa_wkrk
-      str = "#{processa_us}, #{processa_eth}"
-      puts(trs_ini + str)
+      puts(trs_ini + "#{processa_us}, #{processa_eth}")
     end
 
     # insere (caso existam) dados novos etherscan no bigquery
     def processa_weth
-      str = processa_eth
-      puts(trs_ini + str)
+      puts(trs_ini + processa_eth)
     end
 
     # insere (caso existam) dados novos etherscan no bigquery (output to file)
     def processa_ceth
-      str = processa_ethc
-      File.open(FO, mode: 'a') { |out| out.puts(trs_ini + str) }
+      File.open(FO, mode: 'a') { |out| out.puts(trs_ini + processa_ethc) }
     end
 
     private
@@ -95,43 +90,35 @@ module Cns
     #
     # @return [String] linhas & tabelas afetadas
     def processa_eth
-      tabelas_eth(apies, 'netb')
+      tabelas_out(apies, %w[ETH], %i[t i p w k], 'neth')
     end
 
     # insere transacoes blockchain novas nas tabelas netht (norml), nethi (internas), nethp (block), nethw (withdrawals), nethk (token)
     #
     # @return [String] linhas & tabelas afetadas
     def processa_ethc
-      tabelas_eth(apiesc, 'netc')
+      tabelas_out(apiesc, %w[ETH], %i[t i p w k], 'neth')
     end
 
     # insere transacoes exchange kraken novas nas tabelas ust (trades), usl (ledger)
     #
     # @return [String] linhas & tabelas afetadas
     def processa_us
-      str = 'KRAKEN'
-      str += format(' %<n>i ust', n: dml(ust_ins)) if apius.trades.count.positive?
-      str += format(' %<n>i usl', n: dml(usl_ins)) if apius.ledger.count.positive?
-      str
+      tabelas_cus(apius, %w[KRAKEN], %i[cust cusl])
     end
 
     # insere transacoes exchange bitcoinde novas nas tabelas det (trades), del (ledger)
     #
     # @return [String] linhas & tabelas afetadas
     def processa_de
-      str = 'BITCOINDE'
-      str += format(' %<n>i det', n: dml(det_ins)) if apide.trades.count.positive?
-      str += format(' %<n>i del', n: dml(del_ins)) if apide.ledger.count.positive?
-      str
+      tabelas_out(apide, %w[BITCOINDE], %i[cdet cdel])
     end
 
     # insere transacoes blockchain novas na tabela eos
     #
     # @return [String] linhas & tabelas afetadas
     def processa_eos
-      str = 'EOS'
-      str += format(' %<n>i eos ', n: dml(eost_ins)) if apigm.novax.count.positive?
-      str
+      tabelas_out(apigm, %w[EOS], %i[neost])
     end
 
     # cria job bigquery & verifica execucao
@@ -218,70 +205,68 @@ module Cns
       )
     end
 
-    # Generic ETH data processor
-    def tabelas_eth(src, prx)
-      str = ['ETH']
-      %i[t i p w k].each do |typ|
-        novx = src.send("nov#{typ}x")
+    def tabelas_cus(src, str, ltb, prx = '')
+      ltb.each do |itm|
+        novx = src.send("nov#{prx}#{itm}")
         next if novx.empty?
 
-        str << format(' %<n>i %<t>s', n: dml(insert_eht(typ, novx)), t: "#{prx.chop}h#{typ}")
+        str << format(' %<n>i %<t>s', n: dml(insert_cus(prx, itm, novx)), t: prx + itm.to_s)
       end
       str.join
     end
 
-    def insert_eht(typ, lin)
-      "INSERT #{BD}.neth#{typ} (#{TC[typ].join(',')}) VALUES #{lin.map { |itm| send("neth#{typ}_val", itm) }.join(',')}"
+    def tabelas_out(src, str, ltb, prx = '')
+      ltb.each do |itm|
+        novx = src.send("nov#{prx}#{itm}")
+        next if novx.empty?
+
+        str << format(' %<n>i %<t>s', n: dml(insert_out(prx, itm, novx)), t: prx + itm.to_s)
+      end
+      str.join
     end
 
-    # @return [String] comando insert SQL formatado eos
-    def eost_ins
-      "insert #{BD}.neost(#{TC[:neost].join(',')}) VALUES#{apigm.novax.map { |obj| eost_val(obj) }.join(',')}"
+    # @return [String] comando insert SQL formatado
+    def insert_cus(prx, tbl, lin)
+      "INSERT #{BD}.#{prx}#{tbl} (#{TB[tbl].join(',')}) VALUES #{lin.map { |key, val| send("#{prx}#{tbl}_val", key, val) }.join(',')}"
     end
 
-    # @return [String] comando insert SQL formatado det (trades)
-    def det_ins
-      "insert #{BD}.cdet(#{TC[:cdet].join(',')}) VALUES#{apide.trades.map { |obj| det_val(obj) }.join(',')}"
-    end
-
-    # @return [String] comando insert SQL formatado del (ledger)
-    def del_ins
-      "insert #{BD}.cdel(#{TC[:cdel].join(',')}) VALUES#{apide.ledger.map { |obj| del_val(obj) }.join(',')}"
-    end
-
-    # @return [String] comando insert SQL formatado ust (trades)
-    def ust_ins
-      "insert #{BD}.cust(#{TC[:cust].join(',')}) VALUES#{apius.trades.map { |key, val| ust_val(key, val) }.join(',')}"
-    end
-
-    # @return [String] comando insert SQL formatado usl (ledger)
-    def usl_ins
-      "insert #{BD}.cusl(#{TC[:cusl].join(',')}) VALUES#{apius.ledger.map { |key, val| usl_val(key, val) }.join(',')}"
+    # @return [String] comando insert SQL formatado
+    def insert_out(prx, tbl, lin)
+      "INSERT #{BD}.#{prx}#{tbl} (#{TB[tbl].join(',')}) VALUES #{lin.map { |itm| send("#{prx}#{tbl}_val", itm) }.join(',')}"
     end
 
     # SQL value formatting methods with improved safety
     def quote(value)
       return 'null' if value.nil? || value.empty?
 
-      "'#{value.gsub('\'', "''")}'" # Escape single quotes
+      "'#{value}'"
     end
 
     def numeric(value)
+      return 'null' if value.nil?
+
       "CAST('#{value}' AS NUMERIC)"
     end
 
     def integer(value)
+      return '0' if value.nil?
+
       Integer(value).to_s
     rescue StandardError
       'null'
     end
 
+    def ptime(sec)
+      "PARSE_DATETIME('%s', '#{String(sec.round)}')"
+    end
+
+    def ptimestamp(value)
+      "DATETIME(TIMESTAMP('#{value}'))"
+    end
+
     # @param [Hash] htx transacao norml etherscan
     # @return [String] valores formatados netht (norml parte1)
     def netht_val(htx)
-      txr = htx[:txreceipt_status]
-      inp = htx[:input]
-      cta = htx[:contractAddress]
       "(#{[
         integer(htx[:blockNumber]),
         integer(htx[:timeStamp]),
@@ -297,20 +282,16 @@ module Cns
         numeric(htx[:gasPrice]),
         numeric(htx[:gasUsed]),
         integer(htx[:isError]),
-        txr.empty? ? 'null' : integer(txr),
-        inp.empty? ? 'null' : quote(inp),
-        cta.empty? ? 'null' : quote(cta),
-        integer(ops.dig(:h, htx[:blockNumber]) || 0)
+        integer(htx[:txreceipt_status]),
+        quote(htx[:input]),
+        quote(htx[:contractAddress]),
+        integer(ops.dig(:h, htx[:blockNumber]))
       ].join(',')})"
     end
 
     # @param [Hash] htx transacao internas etherscan
     # @return [String] valores formatados nethi (internas parte1)
     def nethi_val(htx)
-      cta = htx[:contractAddress]
-      inp = htx[:input]
-      tid = htx[:traceId]
-      txr = htx[:errCode]
       "(#{[
         integer(htx[:blockNumber]),
         integer(htx[:timeStamp]),
@@ -319,14 +300,14 @@ module Cns
         quote(htx[:to]),
         quote(htx[:iax]),
         numeric(htx[:value]),
-        cta.empty? ? 'null' : quote(cta),
-        inp.empty? ? 'null' : quote(inp),
+        quote(htx[:contractAddress]),
+        quote(htx[:input]),
         quote(htx[:type]),
         numeric(htx[:gas]),
         numeric(htx[:gasUsed]),
-        tid.empty? ? 'null' : quote(tid),
+        quote(htx[:traceId]),
         integer(htx[:isError]),
-        txr.empty? ? 'null' : integer(txr)
+        integer(htx[:errCode])
       ].join(',')})"
     end
 
@@ -352,8 +333,6 @@ module Cns
     # @param [Hash] hkx token event etherscan
     # @return [String] valores formatados nethk (token parte1)
     def nethk_val(htx)
-      inp = htx[:input]
-      cta = htx[:contractAddress]
       "(#{[
         integer(htx[:blockNumber]),
         integer(htx[:timeStamp]),
@@ -371,96 +350,95 @@ module Cns
         numeric(htx[:gas]),
         numeric(htx[:gasPrice]),
         numeric(htx[:gasUsed]),
-        inp.empty? ? 'null' : quote(inp),
-        cta.empty? ? 'null' : quote(cta),
-        integer(ops.dig(:h, htx[:blockNumber]) || 0)
+        quote(htx[:input]),
+        quote(htx[:contractAddress]),
+        integer(ops.dig(:h, htx[:blockNumber]))
       ].join(',')})"
     end
 
     # @example (see Apibc#ledger_gm)
     # @param [Hash] hlx ledger greymass
     # @return [String] valores formatados para insert eos (parte1)
-    def eost_val(hlx)
-      act = hlx[:action_trace][:act]
+    def neost_val(htx)
+      act = htx[:action_trace][:act]
       dat = act[:data]
       qtd = dat[:quantity].to_s
       str = dat[:memo].inspect
-      "(#{hlx[:global_action_seq]}," \
-        "#{hlx[:account_action_seq]}," \
-        "#{hlx[:block_num]}," \
-        "DATETIME(TIMESTAMP('#{hlx[:block_time]}'))," \
-        "'#{act[:account]}'," \
-        "'#{act[:name]}'," \
-        "'#{dat[:from]}'," \
-        "'#{dat[:to]}'," \
-        "'#{hlx[:iax]}'," \
-        "#{qtd.to_d},'#{qtd[/[[:upper:]]+/]}'," \
-        "nullif('#{str.gsub(/['"]/, '')}','nil')," \
-        "#{ops[:h][String(hlx[:itx])] || 0})"
+      "(#{[
+        integer(htx[:global_action_seq]),
+        integer(htx[:account_action_seq]),
+        integer(htx[:block_num]),
+        ptimestamp(htx[:block_time]),
+        quote(act[:account]),
+        quote(act[:name]),
+        quote(dat[:from]),
+        quote(dat[:to]),
+        quote(htx[:iax]),
+        qtd.to_d,
+        quote(qtd[/[[:upper:]]+/]),
+        quote(str),
+        integer(ops.dig(:h, htx[:itx]))
+      ].join(',')})"
     end
 
     # @param [Hash] htx trade bitcoinde
     # @return [String] valores formatados det (trades parte1)
-    def det_val(htx)
-      "('#{htx[:trade_id]}'," \
-        "DATETIME(TIMESTAMP('#{htx[:successfully_finished_at]}'))," \
-        "'#{htx[:type]}'," \
-        "'#{htx[:trading_partner_information][:username]}'," \
-        'cast(' \
-        "#{htx[:type] == 'buy' ? htx[:amount_currency_to_trade_after_fee] : "-#{htx[:amount_currency_to_trade]}"} " \
-        'as numeric),' \
-        "cast(#{htx[:volume_currency_to_pay_after_fee]} as numeric)," \
-        "DATETIME(TIMESTAMP('#{htx[:trade_marked_as_paid_at]}'))," \
-        "#{Integer(ops[:h][htx[:trade_id]] || 0)})"
+    def cdet_val(htx)
+      "(#{[
+        quote(htx[:trade_id]),
+        ptimestamp(htx[:successfully_finished_at]),
+        quote(htx[:type]),
+        quote(htx[:trading_partner_information][:username]),
+        numeric(htx[:type] == 'buy' ? htx[:amount_currency_to_trade_after_fee] : "-#{htx[:amount_currency_to_trade]}"),
+        numeric(htx[:volume_currency_to_pay_after_fee]),
+        ptimestamp(htx[:trade_marked_as_paid_at]),
+        integer(ops.dig(:h, htx[:trade_id]))
+      ].join(',')})"
     end
 
     # @param [Hash] hlx ledger (deposits + withdrawals) bitcoinde
     # @return [String] valores formatados del (ledger)
-    def del_val(hlx)
-      tip = hlx[:tp]
-      "(#{hlx[:txid]}," \
-        "DATETIME(TIMESTAMP('#{hlx[:time].iso8601}'))," \
-        "'#{tip}'," \
-        "'#{hlx[:add]}'," \
-        "'#{hlx[:moe]}'," \
-        "cast(#{tip == 'withdrawal' ? '-' : ''}#{hlx[:qt]} as numeric)," \
-        "cast(#{hlx[:fee]} as numeric))"
+    def cdel_val(htx)
+      tip = htx[:tp]
+      qtd = htx[:qt]
+      "(#{[
+        integer(htx[:txid]),
+        ptimestamp(htx[:time].iso8601),
+        quote(tip),
+        quote(htx[:add]),
+        quote(htx[:moe]),
+        numeric(tip == 'withdrawal' ? "-#{qtd}" : qtd),
+        numeric(htx[:fee])
+      ].join(',')})"
     end
 
     # @param [String] idx identificador transacao
     # @param [Hash] htx trade kraken
     # @return [String] valores formatados ust (trades parte1)
-    def ust_val(idx, htx)
-      msc = htx[:misc].to_s
-      "('#{idx}'," \
-        "'#{htx[:ordertxid]}'," \
-        "'#{htx[:pair]}'," \
-        "PARSE_DATETIME('%s', '#{String(htx[:time].round)}')," \
-        "'#{htx[:type]}'," \
-        "'#{htx[:ordertype]}'," \
-        "cast(#{htx[:price]} as numeric)," \
-        "cast(#{htx[:cost]} as numeric)," \
-        "cast(#{htx[:fee]} as numeric)," \
-        "cast(#{htx[:vol]} as numeric)," \
-        "cast(#{htx[:margin]} as numeric)," \
-        "#{msc.empty? ? 'null' : "'#{msc}'"}," \
-        "'#{apius.ledger.select { |_, val| val[:refid] == idx }.keys.join(',') || ''}'," \
-        "#{Integer(ops[:h][idx] || 0)})"
+    def cust_val(idx, htx)
+      "(#{[
+        quote(idx),
+        quote(htx[:ordertxid]),
+        quote(htx[:pair]),
+        ptime(htx[:time]),
+        quote(htx[:type]),
+        quote(htx[:ordertype]),
+        numeric(htx[:price]),
+        numeric(htx[:cost]),
+        numeric(htx[:fee]),
+        numeric(htx[:vol]),
+        numeric(htx[:margin]),
+        quote(htx[:misc]),
+        quote(apius.novcusl.select { |_, obj| obj[:refid] == idx.to_s }.keys.join(',')),
+        integer(ops.dig(:h, idx))
+      ].join(',')})"
     end
 
     # @param idx (see ust_val)
     # @param [Hash] hlx ledger kraken
     # @return [String] valores formatados usl (ledger)
-    def usl_val(idx, hlx)
-      acl = hlx[:aclass].to_s
-      "('#{idx}'," \
-        "'#{hlx[:refid]}'," \
-        "PARSE_DATETIME('%s', '#{String(hlx[:time].round)}')," \
-        "'#{hlx[:type]}'," \
-        "#{acl.empty? ? 'null' : "'#{acl}'"}," \
-        "'#{hlx[:asset]}'," \
-        "cast(#{hlx[:amount]} as numeric)," \
-        "cast(#{hlx[:fee]} as numeric))"
+    def cusl_val(idx, hlx)
+      "(#{[quote(idx), quote(hlx[:refid]), ptime(hlx[:time]), quote(hlx[:type]), quote(hlx[:aclass]), quote(hlx[:asset]), numeric(hlx[:amount]), numeric(hlx[:fee])].join(',')})"
     end
   end
 end

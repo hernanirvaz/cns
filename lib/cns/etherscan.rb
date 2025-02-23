@@ -24,32 +24,32 @@ module Cns
     def initialize(dad, pop)
       @api = Apibc.new
       @bqd = dad
-      @ops = pop
+      @ops = pop.transform_keys(&:to_sym)
     end
 
     # @return [Array<Hash>] lista transacoes normais novas
-    def novtx
-      @novtx ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    def novnetht
+      @novnetht ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes internas novas
-    def novix
-      @novix ||= bcd.map { |obc| obc[:ix].select { |obj| idi.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    def novnethi
+      @novnethi ||= bcd.map { |obc| obc[:ix].select { |obj| idi.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes block novas
-    def novpx
-      @novpx ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    def novnethp
+      @novnethp ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes withdrawals novas
-    def novwx
-      @novwx ||= bcd.map { |obc| obc[:wx].select { |obj| idw.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    def novnethw
+      @novnethw ||= bcd.map { |obc| obc[:wx].select { |obj| idw.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes token novas
-    def novkx
-      @novkx ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    def novnethk
+      @novnethk ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
     end
 
     # @return [Array<String>] lista dos meus enderecos
@@ -164,27 +164,27 @@ module Cns
     # dt: Time.at(Integer(htx[:timeStamp])),
     # @return [Array<Hash>] lista ordenada transacoes normais novas
     def sortx
-      novtx.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
+      novnetht.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes internas novas
     def sorix
-      novix.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
+      novnethi.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes block novas
     def sorpx
-      novpx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+      novnethp.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes withdrawals novas
     def sorwx
-      novwx.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+      novnethw.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes token novas
     def sorkx
-      novkx.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
+      novnethk.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
@@ -357,7 +357,7 @@ module Cns
 
     # @return [String] texto transacoes normais
     def mostra_transacao_norml
-      return unless ops[:v] && novtx.count.positive?
+      return unless ops[:v] && novnetht.count.positive?
 
       puts("\ntx normal from                 to                   data                   valor")
       sortx.each { |obj| puts(formata_transacao_norml(obj)) }
@@ -365,7 +365,7 @@ module Cns
 
     # @return [String] texto transacoes internas
     def mostra_transacao_inter
-      return unless ops[:v] && novix.count.positive?
+      return unless ops[:v] && novnethi.count.positive?
 
       puts("\ntx intern from                 to                   data                   valor")
       sorix.each { |obj| puts(formata_transacao_norml(obj)) }
@@ -373,7 +373,7 @@ module Cns
 
     # @return [String] texto transacoes block
     def mostra_transacao_block
-      return unless ops[:v] && novpx.count.positive?
+      return unless ops[:v] && novnethp.count.positive?
 
       puts("\ntx block  address                                   data                   valor")
       sorpx.each { |obj| puts(formata_transacao_block(obj)) }
@@ -381,7 +381,7 @@ module Cns
 
     # @return [String] texto transacoes token
     def mostra_transacao_token
-      return unless ops[:v] && novkx.count.positive?
+      return unless ops[:v] && novnethk.count.positive?
 
       puts("\ntx token  from                 to                   data             valor")
       sorkx.each { |obj| puts(formata_transacao_token(obj)) }
@@ -389,7 +389,7 @@ module Cns
 
     # @return [String] texto transacoes withdrawals
     def mostra_transacao_withw
-      return unless ops[:v] && novwx.count.positive?
+      return unless ops[:v] && novnethw.count.positive?
 
       puts("\nvalidator withdrawal data            valor")
       sorwx.each { |obj| puts(formata_transacao_withw(obj)) }
@@ -397,8 +397,8 @@ module Cns
 
     # @return [String] texto configuracao ajuste dias das transacoes (normais & token)
     def mostra_configuracao_ajuste_dias
-      puts("\nstring ajuste dias transacoes normais\n-h=#{sortx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novtx.count.positive?
-      puts("\nstring ajuste dias transacoes token  \n-h=#{sorkx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novkx.count.positive?
+      puts("\nstring ajuste dias transacoes normais\n-h=#{sortx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novnetht.count.positive?
+      puts("\nstring ajuste dias transacoes token  \n-h=#{sorkx.map { |obj| "#{obj[:blockNumber]}:0" }.join(' ')}") if novnethk.count.positive?
     end
   end
 end

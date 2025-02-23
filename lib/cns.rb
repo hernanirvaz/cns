@@ -58,7 +58,7 @@ module Cns
     end
 
     desc 'show', 'mostra resumo transacoes'
-    option :v, type: :boolean, default: false, desc: 'mostra transacoes'
+    option :v, type: :boolean, default: true, desc: 'mostra transacoes'
     option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
     # mostra resumo transacoes
     def show

@@ -22,17 +22,17 @@ module Cns
     def initialize(dad, pop)
       @api = Apice.new
       @bqd = dad
-      @ops = pop
+      @ops = pop.transform_keys(&:to_sym)
     end
 
     # @return [Array<Hash>] lista trades bitcoinde novos
-    def trades
-      @trades ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
+    def novcdet
+      @novcdet ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
     end
 
     # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
-    def ledger
-      @ledger ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
+    def novcdel
+      @novcdel ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
@@ -43,7 +43,7 @@ module Cns
 
       mostra_trades
       mostra_ledger
-      return if trades.empty?
+      return if novcdet.empty?
 
       puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
     end
@@ -120,20 +120,18 @@ module Cns
 
     # @return [String] texto transacoes trades
     def mostra_trades
-      return unless ops[:v] && !trades.empty?
+      return unless ops[:v] && !novcdet.empty?
 
       puts("\ntrades data       hora     dt criacao tipo  par                     qtd      eur")
-      trades
-        .sort { |ant, prx| Time.parse(prx[:successfully_finished_at]) <=> Time.parse(ant[:successfully_finished_at]) }
-        .each { |obj| puts(formata_trades(obj)) }
+      novcdet.sort { |ant, prx| Time.parse(prx[:successfully_finished_at]) <=> Time.parse(ant[:successfully_finished_at]) }.each { |obj| puts(formata_trades(obj)) }
     end
 
     # @return [String] texto transacoes ledger
     def mostra_ledger
-      return unless ops[:v] && !ledger.empty?
+      return unless ops[:v] && !novcdel.empty?
 
       puts("\nledger data       hora     tipo       moe          quantidade              custo")
-      ledger.sort { |ant, prx| prx[:time] <=> ant[:time] }.each { |obj| puts(formata_ledger(obj)) }
+      novcdel.sort { |ant, prx| prx[:time] <=> ant[:time] }.each { |obj| puts(formata_ledger(obj)) }
     end
   end
 end
