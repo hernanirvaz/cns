@@ -36,13 +36,13 @@ module Cns
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
-    def mostra_resumo
+    def mresumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
       exd[:sl].sort { |ant, prx| ant <=> prx }.each { |key, val| puts(formata_saldos(key, val)) }
-      mostra_totais
+      mtotais
 
-      mostra_trades
-      mostra_ledger
+      mtrades
+      mledger
       return if novcdet.empty?
 
       puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
@@ -108,7 +108,7 @@ module Cns
     end
 
     # @return [String] texto numero de transacoes
-    def mostra_totais
+    def mtotais
       vtt = exd[:tt].count
       vnt = bqd[:nt].count
       vtl = exd[:tl].count
@@ -119,7 +119,7 @@ module Cns
     end
 
     # @return [String] texto transacoes trades
-    def mostra_trades
+    def mtrades
       return unless ops[:v] && !novcdet.empty?
 
       puts("\ntrades data       hora     dt criacao tipo  par                     qtd      eur")
@@ -127,7 +127,7 @@ module Cns
     end
 
     # @return [String] texto transacoes ledger
-    def mostra_ledger
+    def mledger
       return unless ops[:v] && !novcdel.empty?
 
       puts("\nledger data       hora     tipo       moe          quantidade              custo")

@@ -99,13 +99,13 @@ module Cns
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
-    def mostra_resumo
+    def mresumo
       return unless dados.count.positive?
 
       puts("\naddress            greymass  ntx       bigquery  ntx")
       dados.each { |obj| puts(formata_carteira(obj)) }
-      mostra_transacoes_novas
-      mostra_configuracao_ajuste_dias
+      mtransacoes_novas
+      mconfiguracao_ajuste_dias
     end
 
     # @param [Hash] hjn dados juntos bigquery & greymass
@@ -145,7 +145,7 @@ module Cns
     end
 
     # @return [String] texto transacoes
-    def mostra_transacoes_novas
+    def mtransacoes_novas
       return unless ops[:v] && novneost.count.positive?
 
       puts("\nsequence num from         to           accao      data              valor moeda")
@@ -153,7 +153,7 @@ module Cns
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes
-    def mostra_configuracao_ajuste_dias
+    def mconfiguracao_ajuste_dias
       return unless novneost.count.positive?
 
       puts("\nstring ajuste dias\n-h=#{novneost.sort { |ant, prx| prx[:itx] <=> ant[:itx] }.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")

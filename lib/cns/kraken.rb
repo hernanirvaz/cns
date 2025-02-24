@@ -36,13 +36,13 @@ module Cns
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
-    def mostra_resumo
+    def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
       exd[:sl].sort { |ant, prx| ant <=> prx }.each { |key, val| puts(formata_saldos(key, val)) }
-      mostra_totais
+      mtotais
 
-      mostra_trades
-      mostra_ledger
+      mtrades
+      mledger
       return if novcust.empty?
 
       puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
@@ -84,7 +84,7 @@ module Cns
     # @return [String] texto formatado trade
     def formata_trades(idx, htx)
       format(
-        '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-8.8s %<pr>8.2f %<vl>15.7f %<co>8.2f',
+        '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-8.8s %<pr>8.2f %<vl>10.4f %<co>13.2f',
         ky: idx,
         dt: Time.at(htx[:time]),
         ty: "#{htx[:type]}/#{htx[:ordertype]}",
@@ -111,7 +111,7 @@ module Cns
     end
 
     # @return [String] texto totais numero de transacoes
-    def mostra_totais
+    def mtotais
       vkt = exd[:kt].count
       vnt = bqd[:nt].count
       vkl = exd[:kl].count
@@ -122,15 +122,15 @@ module Cns
     end
 
     # @return [String] texto transacoes trades
-    def mostra_trades
+    def mtrades
       return unless ops[:v] && novcust.count.positive?
 
-      puts("\ntrade  data       hora     tipo       par         preco          volume    custo")
+      puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
       novcust.sort { |ant, prx| prx[1][:time] <=> ant[1][:time] }.each { |key, val| puts(formata_trades(key, val)) }
     end
 
     # @return [String] texto transacoes ledger
-    def mostra_ledger
+    def mledger
       return unless ops[:v] && novcusl.count.positive?
 
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")

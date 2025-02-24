@@ -41,47 +41,47 @@ module Cns
     end
 
     # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
-    def mostra_tudo
-      apius.mostra_resumo
-      apide.mostra_resumo
-      apies.mostra_resumo
-      apigm.mostra_resumo
+    def mtudo
+      apius.mresumo
+      apide.mresumo
+      apies.mresumo
+      apigm.mresumo
     end
 
     # mostra situacao completa entre kraken/etherscan & bigquery
-    def mostra_skrk
-      apius.mostra_resumo
-      apies.mostra_resumo
+    def mskrk
+      apius.mresumo
+      apies.mresumo
     end
 
     # mostra situacao completa entre etherscan & bigquery
-    def mostra_seth
-      apies.mostra_resumo_simples
+    def mseth
+      apies.mresumo_simples
     end
 
     # @return [String] texto inicial transacoes
-    def trs_ini
-      Time.now.strftime('TRANSACOES  %Y-%m-%d %H:%M:%S ')
+    def tct
+      Time.now.strftime('TRANSACOES  %Y-%m-%d %H:%M:%S')
     end
 
     # insere (caso existam) dados novos kraken/bitcoinde/paymium/therock/etherscan/greymass no bigquery
-    def processa_tudo
-      puts(trs_ini + "#{processa_us}, #{processa_de}, #{processa_eth}, #{processa_eos}")
+    def ptudo
+      puts("#{tct} #{pus}, #{pde}, #{peth}, #{peos}")
     end
 
     # insere (caso existam) dados novos kraken/etherscan no bigquery
-    def processa_wkrk
-      puts(trs_ini + "#{processa_us}, #{processa_eth}")
+    def pwkrk
+      puts("#{tct} #{pus}, #{peth}")
     end
 
     # insere (caso existam) dados novos etherscan no bigquery
-    def processa_weth
-      puts(trs_ini + processa_eth)
+    def pweth
+      puts("#{tct} #{peth}")
     end
 
     # insere (caso existam) dados novos etherscan no bigquery (output to file)
-    def processa_ceth
-      File.open(FO, mode: 'a') { |out| out.puts(trs_ini + processa_ethc) }
+    def pceth
+      File.open(FO, mode: 'a') { |out| out.puts("#{tct} #{pethc}") }
     end
 
     private
@@ -89,35 +89,35 @@ module Cns
     # insere transacoes blockchain novas nas tabelas netht (norml), nethi (internas), nethp (block), nethw (withdrawals), nethk (token)
     #
     # @return [String] linhas & tabelas afetadas
-    def processa_eth
+    def peth
       tabelas_out(apies, %w[ETH], %i[t i p w k], 'neth')
     end
 
     # insere transacoes blockchain novas nas tabelas netht (norml), nethi (internas), nethp (block), nethw (withdrawals), nethk (token)
     #
     # @return [String] linhas & tabelas afetadas
-    def processa_ethc
+    def pethc
       tabelas_out(apiesc, %w[ETH], %i[t i p w k], 'neth')
     end
 
     # insere transacoes exchange kraken novas nas tabelas ust (trades), usl (ledger)
     #
     # @return [String] linhas & tabelas afetadas
-    def processa_us
+    def pus
       tabelas_cus(apius, %w[KRAKEN], %i[cust cusl])
     end
 
     # insere transacoes exchange bitcoinde novas nas tabelas det (trades), del (ledger)
     #
     # @return [String] linhas & tabelas afetadas
-    def processa_de
+    def pde
       tabelas_out(apide, %w[BITCOINDE], %i[cdet cdel])
     end
 
     # insere transacoes blockchain novas na tabela eos
     #
     # @return [String] linhas & tabelas afetadas
-    def processa_eos
+    def peos
       tabelas_out(apigm, %w[EOS], %i[neost])
     end
 
@@ -128,7 +128,6 @@ module Cns
     def job?(cmd)
       @job = api.query_job(cmd)
       job.wait_until_done!
-
       return false unless job.failed?
 
       puts("BigQuery Error: #{job.error['message']}")
@@ -152,7 +151,7 @@ module Cns
       job?(cmd) ? 0 : job.num_dml_affected_rows
     end
 
-    def initialize_etherscan_client(prx)
+    def apiesg(prx)
       Etherscan.new(
         {
           wb: sql("SELECT * FROM #{BD}.wet#{prx[-1]} ORDER BY ax"),
@@ -168,12 +167,12 @@ module Cns
 
     # @return [Etherscan] API blockchain ETH
     def apies
-      @apies ||= initialize_etherscan_client('netb')
+      @apies ||= apiesg('netb')
     end
 
     # @return [Etherscan] API blockchain ETH
     def apiesc
-      @apiesc ||= initialize_etherscan_client('netc')
+      @apiesc ||= apiesg('netc')
     end
 
     # @return [Greymass] API blockchain EOS
@@ -210,7 +209,7 @@ module Cns
         novx = src.send("nov#{prx}#{itm}")
         next if novx.empty?
 
-        str << format(' %<n>i %<t>s', n: dml(insert_cus(prx, itm, novx)), t: prx + itm.to_s)
+        str << format(' %<n>i %<t>s', n: dml(insert_cus(prx, itm, novx)), t: "#{prx}#{itm}")
       end
       str.join
     end
@@ -220,7 +219,7 @@ module Cns
         novx = src.send("nov#{prx}#{itm}")
         next if novx.empty?
 
-        str << format(' %<n>i %<t>s', n: dml(insert_out(prx, itm, novx)), t: prx + itm.to_s)
+        str << format(' %<n>i %<t>s', n: dml(insert_out(prx, itm, novx)), t: "#{prx}#{itm}")
       end
       str.join
     end
@@ -237,27 +236,23 @@ module Cns
 
     # SQL value formatting methods with improved safety
     def fqt(value)
-      return 'null' if value.nil? || value.empty?
-
-      "'#{value}'"
+      value.nil? || value.empty? ? 'null' : "'#{value}'"
     end
 
     def fnm(value)
-      return 'null' if value.nil?
-
-      "CAST('#{value}' AS NUMERIC)"
+      "CAST(#{value.to_d} AS NUMERIC)"
+    rescue StandardError
+      'CAST(0 AS NUMERIC)'
     end
 
     def fin(value)
-      return '0' if value.nil?
-
       Integer(value).to_s
     rescue StandardError
-      'null'
+      '0'
     end
 
     def ftm(sec)
-      "PARSE_DATETIME('%s', '#{String(sec.round)}')"
+      "PARSE_DATETIME('%s', '#{sec.round}')"
     end
 
     def fts(value)
@@ -267,7 +262,7 @@ module Cns
     # @param [Hash] htx transacao norml etherscan
     # @return [String] valores formatados netht (norml parte1)
     def netht_val(htx)
-      "(#{[
+      vls = [
         fin(htx[:blockNumber]),
         fin(htx[:timeStamp]),
         fqt(htx[:hash]),
@@ -286,13 +281,14 @@ module Cns
         fqt(htx[:input]),
         fqt(htx[:contractAddress]),
         fin(ops.dig(:h, htx[:hash]))
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @param [Hash] htx transacao internas etherscan
     # @return [String] valores formatados nethi (internas parte1)
     def nethi_val(htx)
-      "(#{[
+      vls = [
         fin(htx[:blockNumber]),
         fin(htx[:timeStamp]),
         fqt(htx[:hash]),
@@ -309,19 +305,21 @@ module Cns
         fin(htx[:isError]),
         fin(htx[:errCode]),
         fin(ops.dig(:h, htx[:hash]))
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @param [Hash] htx transacao block etherscan
     # @return [String] valores formatados nethi (block parte1)
     def nethp_val(htx)
-      "(#{[fin(htx[:blockNumber]), fin(htx[:timeStamp]), fnm(htx[:blockReward]), fqt(htx[:iax]), fin(ops.dig(:h, htx[:blockNumber]))].join(',')})"
+      vls = [fin(htx[:blockNumber]), fin(htx[:timeStamp]), fnm(htx[:blockReward]), fqt(htx[:iax]), fin(ops.dig(:h, htx[:blockNumber]))]
+      "(#{vls.join(',')})"
     end
 
     # @param [Hash] htx transacao withdrawals etherscan
     # @return [String] valores formatados nethi (withdrawals parte1)
     def nethw_val(htx)
-      "(#{[
+      vls = [
         fin(htx[:withdrawalIndex]),
         fin(htx[:validatorIndex]),
         fqt(htx[:address]),
@@ -329,13 +327,14 @@ module Cns
         fin(htx[:blockNumber]),
         fin(htx[:timestamp]),
         fin(ops.dig(:h, htx[:withdrawalIndex]))
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @param [Hash] hkx token event etherscan
     # @return [String] valores formatados nethk (token parte1)
     def nethk_val(htx)
-      "(#{[
+      vls = [
         fin(htx[:blockNumber]),
         fin(htx[:timeStamp]),
         fqt(htx[:hash]),
@@ -355,7 +354,8 @@ module Cns
         fqt(htx[:input]),
         fqt(htx[:contractAddress]),
         fin(ops.dig(:h, htx[:hash]))
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @example (see Apibc#ledger_gm)
@@ -366,7 +366,7 @@ module Cns
       dat = act[:data]
       qtd = dat[:quantity].to_s
       str = dat[:memo].inspect
-      "(#{[
+      vls = [
         fin(htx[:global_action_seq]),
         fin(htx[:account_action_seq]),
         fin(htx[:block_num]),
@@ -376,17 +376,18 @@ module Cns
         fqt(dat[:from]),
         fqt(dat[:to]),
         fqt(htx[:iax]),
-        qtd.to_d,
+        fnm(qtd),
         fqt(qtd[/[[:upper:]]+/]),
         fqt(str),
         fin(ops.dig(:h, htx[:itx]))
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @param [Hash] htx trade bitcoinde
     # @return [String] valores formatados det (trades parte1)
     def cdet_val(htx)
-      "(#{[
+      vls = [
         fqt(htx[:trade_id]),
         fts(htx[:successfully_finished_at]),
         fqt(htx[:type]),
@@ -395,7 +396,8 @@ module Cns
         fnm(htx[:volume_currency_to_pay_after_fee]),
         fts(htx[:trade_marked_as_paid_at]),
         fin(ops.dig(:h, htx[:trade_id]))
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @param [Hash] hlx ledger (deposits + withdrawals) bitcoinde
@@ -403,22 +405,24 @@ module Cns
     def cdel_val(htx)
       tip = htx[:tp]
       qtd = htx[:qt]
-      "(#{[
+      vls = [
         fin(htx[:txid]),
         fts(htx[:time].iso8601),
         fqt(tip),
         fqt(htx[:add]),
         fqt(htx[:moe]),
-        fnm(tip == 'withdrawal' ? "-#{qtd}" : qtd),
+        fnm(tip == 'withdrawal' ? "-#{qtd}" : "#{qtd}"),
         fnm(htx[:fee])
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @param [String] idx identificador transacao
     # @param [Hash] htx trade kraken
     # @return [String] valores formatados ust (trades parte1)
     def cust_val(idx, htx)
-      "(#{[
+      ldg = apius.exd[:kl].select { |_, obj| obj[:refid] == idx.to_s }.keys.join(',')
+      vls = [
         fqt(idx),
         fqt(htx[:ordertxid]),
         fqt(htx[:pair]),
@@ -431,16 +435,18 @@ module Cns
         fnm(htx[:vol]),
         fnm(htx[:margin]),
         fqt(htx[:misc]),
-        fqt(apius.novcusl.select { |_, obj| obj[:refid] == idx.to_s }.keys.join(',')),
+        fqt(ldg),
         fin(ops.dig(:h, idx))
-      ].join(',')})"
+      ]
+      "(#{vls.join(',')})"
     end
 
     # @param idx (see ust_val)
     # @param [Hash] hlx ledger kraken
     # @return [String] valores formatados usl (ledger)
     def cusl_val(idx, hlx)
-      "(#{[fqt(idx), fqt(hlx[:refid]), ftm(hlx[:time]), fqt(hlx[:type]), fqt(hlx[:aclass]), fqt(hlx[:asset]), fnm(hlx[:amount]), fnm(hlx[:fee])].join(',')})"
+      vls = [fqt(idx), fqt(hlx[:refid]), ftm(hlx[:time]), fqt(hlx[:type]), fqt(hlx[:aclass]), fqt(hlx[:asset]), fnm(hlx[:amount]), fnm(hlx[:fee])]
+      "(#{vls.join(',')})"
     end
   end
 end

@@ -188,31 +188,31 @@ module Cns
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
-    def mostra_resumo_simples
+    def mresumo_simples
       return unless dados.count.positive?
 
       puts("\nid     address                                        etherscan      bigquery")
       dados.each { |obj| puts(formata_carteira_simples(obj)) }
-      mostra_tx_norml
-      mostra_tx_inter
-      mostra_tx_block
-      mostra_tx_token
-      mostra_tx_withw
-      mostra_configuracao_ajuste_dias
+      mtx_norml
+      mtx_inter
+      mtx_block
+      mtx_token
+      mtx_withw
+      mconfiguracao_ajuste_dias
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
-    def mostra_resumo
+    def mresumo
       return unless dados.count.positive?
 
       puts("\nid     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw")
       dados.each { |obj| puts(formata_carteira(obj)) }
-      mostra_tx_norml
-      mostra_tx_inter
-      mostra_tx_block
-      mostra_tx_token
-      mostra_tx_withw
-      mostra_configuracao_ajuste_dias
+      mtx_norml
+      mtx_inter
+      mtx_block
+      mtx_token
+      mtx_withw
+      mconfiguracao_ajuste_dias
     end
 
     # @param [Hash] hjn dados juntos bigquery & etherscan
@@ -356,7 +356,7 @@ module Cns
     end
 
     # @return [String] texto transacoes normais
-    def mostra_tx_norml
+    def mtx_norml
       return unless ops[:v] && novnetht.count.positive?
 
       puts("\ntx normal                     from            to              data         valor")
@@ -364,7 +364,7 @@ module Cns
     end
 
     # @return [String] texto transacoes internas
-    def mostra_tx_inter
+    def mtx_inter
       return unless ops[:v] && novnethi.count.positive?
 
       puts("\ntx intern                     from            to              data         valor")
@@ -372,7 +372,7 @@ module Cns
     end
 
     # @return [String] texto transacoes block
-    def mostra_tx_block
+    def mtx_block
       return unless ops[:v] && novnethp.count.positive?
 
       puts("\ntx block  address                                   data                   valor")
@@ -380,7 +380,7 @@ module Cns
     end
 
     # @return [String] texto transacoes token
-    def mostra_tx_token
+    def mtx_token
       return unless ops[:v] && novnethk.count.positive?
 
       puts("\ntx token                from            to              data         valor moeda")
@@ -388,7 +388,7 @@ module Cns
     end
 
     # @return [String] texto transacoes withdrawals
-    def mostra_tx_withw
+    def mtx_withw
       return unless ops[:v] && novnethw.count.positive?
 
       puts("\nwithdrawal validator data            valor")
@@ -396,7 +396,7 @@ module Cns
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes (normais & token)
-    def mostra_configuracao_ajuste_dias
+    def mconfiguracao_ajuste_dias
       puts("\najuste dias transacoes normais    \n-h=#{sortx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnetht.count.positive?
       puts("\najuste dias transacoes internas   \n-h=#{sorix.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethi.count.positive?
       puts("\najuste dias transacoes block      \n-h=#{sorpx.map { |obj| "#{obj[:blockNumber]}:0"     }.join(' ')}") if novnethp.count.positive?
