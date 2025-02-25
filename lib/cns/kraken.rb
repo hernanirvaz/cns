@@ -25,6 +25,11 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
+    # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
+    def exd
+      @exd ||= { sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us) }
+    end
+
     # @return [Hash] trades kraken novos
     def novcust
       @novcust ||= exd[:kt].slice(*kyt)
@@ -48,19 +53,28 @@ module Cns
       puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
     end
 
-    # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
-    def exd
-      @exd ||= { sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us) }
+    private
+
+    def show_all?
+      ops[:t] || false
+    end
+
+    def bqkyt
+      show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid].to_sym } || [])
+    end
+
+    def bqkyl
+      show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid].to_sym } || [])
     end
 
     # @return [Array<String>] lista txid dos trades novos
     def kyt
-      @kyt ||= exd[:kt].keys - (ops[:t] ? [] : bqd[:nt].map { |obj| obj[:txid].to_sym })
+      @kyt ||= exd[:kt].keys - bqkyt
     end
 
     # @return [Array<String>] lista txid dos ledger novos
     def kyl
-      @kyl ||= exd[:kl].keys - (ops[:t] ? [] : bqd[:nl].map { |obj| obj[:txid].to_sym })
+      @kyl ||= exd[:kl].keys - bqkyl
     end
 
     # @example (see Apice#account_us)
@@ -135,8 +149,6 @@ module Cns
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")
       novcusl.sort_by { |itm| -itm[1][:srx] }.each { |key, val| puts(formata_ledger(key, val)) }
     end
-
-    private
 
     # Processa os trades para garantir que as datas estejam no formato correto
     def pusa(itm)

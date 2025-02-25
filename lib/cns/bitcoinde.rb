@@ -25,6 +25,11 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
+    # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
+    def exd
+      @exd ||= { sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de) }
+    end
+
     # @return [Array<Hash>] lista trades bitcoinde novos
     def novcdet
       @novcdet ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
@@ -48,19 +53,28 @@ module Cns
       puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
     end
 
-    # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
-    def exd
-      @exd ||= { sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de) }
+    private
+
+    def show_all?
+      ops[:t] || false
+    end
+
+    def bqkyt
+      show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid] } || [])
+    end
+
+    def bqkyl
+      show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid] } || [])
     end
 
     # @return [Array<String>] lista txid dos trades novos
     def kyt
-      @kyt ||= exd[:tt].map { |oex| oex[:trade_id] }.flatten - (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:txid] })
+      @kyt ||= exd[:tt].map { |oex| oex[:trade_id] } - bqkyt
     end
 
     # @return [Array<Integer>] lista txid dos ledger novos
     def kyl
-      @kyl ||= exd[:tl].map { |oex| oex[:txid] }.flatten - (ops[:t] ? [] : bqd[:nl].map { |obq| obq[:txid] })
+      @kyl ||= exd[:tl].map { |oex| oex[:txid] } - bqkyl
     end
 
     # @param [String] moe codigo bitcoinde da moeda
@@ -133,8 +147,6 @@ module Cns
       puts("\nledger data       hora     tipo       moe          quantidade              custo")
       novcdel.sort_by { |itm| -itm[:srx] }.each { |obj| puts(formata_ledger(obj)) }
     end
-
-    private
 
     # Processa os trades para garantir que as datas estejam no formato correto
     def pdea(itm)

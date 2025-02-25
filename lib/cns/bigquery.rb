@@ -45,8 +45,8 @@ module Cns
     def mtudo
       apius.mresumo
       apide.mresumo
-      apies.mresumo
-      apigm.mresumo
+      # apies.mresumo
+      # apigm.mresumo
     end
 
     # mostra situacao completa entre kraken/etherscan & bigquery
@@ -210,6 +210,7 @@ module Cns
         novx = src.send("nov#{prx}#{itm}")
         next if novx.empty?
 
+        # puts(insert_cus(prx, itm, novx))
         str << format(' %<n>i %<t>s', n: dml(insert_cus(prx, itm, novx)), t: "#{prx}#{itm}")
       end
       str.join
@@ -220,6 +221,7 @@ module Cns
         novx = src.send("nov#{prx}#{itm}")
         next if novx.empty?
 
+        # puts(insert_out(prx, itm, novx))
         str << format(' %<n>i %<t>s', n: dml(insert_out(prx, itm, novx)), t: "#{prx}#{itm}")
       end
       str.join

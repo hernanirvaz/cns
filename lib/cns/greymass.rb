@@ -55,7 +55,7 @@ module Cns
     # @return [Hash] dados greymass - address, saldo & transacoes
     def base_bc(wbq)
       xbq = wbq[:ax]
-      { ax: xbq, sl: peosa(xbq).reduce(:+), tx: pesot(xbq, api.ledger_gm(xbq)) }
+      { ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq)) }
     end
 
     # @param wbq (see base_bc)
@@ -151,7 +151,7 @@ module Cns
     # @param add (see Apibc#account_gm)
     # @param [Array<Hash>] ary lista transacoes
     # @return [Array<Hash>] lista transacoes filtrada
-    def pesot(add, ary)
+    def peost(add, ary)
       ary.map do |omp|
         omp.merge(
           name: (act = omp[:action_trace][:act])[:name],
