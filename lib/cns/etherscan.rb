@@ -69,32 +69,27 @@ module Cns
 
     # @return [Array<Integer>] lista indices transacoes normais novas
     def idt
-      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten -
-               (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
+      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
     end
 
     # @return [Array<Integer>] lista indices transacoes internas novas
     def idi
-      @idi ||= bcd.map { |obc| obc[:ix].map { |obj| obj[:itx] } }.flatten -
-               (ops[:t] ? [] : bqd[:ni].map { |obq| obq[:itx] })
+      @idi ||= bcd.map { |obc| obc[:ix].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:ni].map { |obq| obq[:itx] })
     end
 
     # @return [Array<Integer>] lista indices transacoes block novas
     def idp
-      @idp ||= bcd.map { |obc| obc[:px].map { |obj| obj[:itx] } }.flatten -
-               (ops[:t] ? [] : bqd[:np].map { |obq| obq[:itx] })
+      @idp ||= bcd.map { |obc| obc[:px].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:np].map { |obq| obq[:itx] })
     end
 
     # @return [Array<Integer>] lista indices transacoes withdrawals novas
     def idw
-      @idw ||= bcd.map { |obc| obc[:wx].map { |obj| obj[:itx] } }.flatten -
-               (ops[:t] ? [] : bqd[:nw].map { |obq| obq[:itx] })
+      @idw ||= bcd.map { |obc| obc[:wx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nw].map { |obq| obq[:itx] })
     end
 
     # @return [Array<Integer>] lista indices transacoes token novas
     def idk
-      @idk ||= bcd.map { |obc| obc[:kx].map { |obj| obj[:itx] } }.flatten -
-               (ops[:t] ? [] : bqd[:nk].map { |obq| obq[:itx] })
+      @idk ||= bcd.map { |obc| obc[:kx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nk].map { |obq| obq[:itx] })
     end
 
     # @example (see Apibc#account_es)
@@ -104,12 +99,12 @@ module Cns
       acc = abc[:account].downcase
       {
         ax: acc,
-        sl: (abc[:balance].to_d / (10**18)),
-        tx: filtrar_tx(acc, api.norml_es(acc)),
-        ix: filtrar_tx(acc, api.inter_es(acc)),
-        px: filtrar_px(acc, api.block_es(acc)),
-        wx: filtrar_wx(acc, api.withw_es(acc)),
-        kx: filtrar_tx(acc, api.token_es(acc))
+        sl: abc[:balance].to_d / (10**18),
+        tx: ftik(acc, api.norml_es(acc)),
+        ix: ftik(acc, api.inter_es(acc)),
+        px: fppp(acc, api.block_es(acc)),
+        wx: fwww(acc, api.withw_es(acc)),
+        kx: ftik(acc, api.token_es(acc))
       }
     end
 
@@ -135,56 +130,29 @@ module Cns
       }
     end
 
-    # @param add (see Apibc#norml_es)
-    # @param [Array<Hash>] ary lista transacoes/token events
-    # @return [Array<Hash>] lista transacoes/token events filtrada
-    def filtrar_tx(add, ary)
-      # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
-      # .delete_if { |odl| add.casecmp?(odl[:to]) && lax.include?(odl[:from].downcase) }
-      # elimina chaves irrelevantes (DL) & adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.map { |omp| omp.delete_if { |key, _| DL.include?(key) }.merge(itx: String(omp[:hash]), iax: add, srx: Integer(omp[:timeStamp])) }
-    end
-
-    # @param add (see Apibc#norml_es)
-    # @param [Array<Hash>] ary lista blocks events
-    # @return [Array<Hash>] lista blocks events filtrada
-    def filtrar_px(add, ary)
-      # adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.map { |omp| omp.merge(itx: Integer(omp[:blockNumber]), iax: add) }
-    end
-
-    # @param add (see Apibc#norml_es)
-    # @param [Array<Hash>] ary lista blocks events
-    # @return [Array<Hash>] lista blocks events filtrada
-    def filtrar_wx(add, ary)
-      # adiciona chave indice itx & adiciona identificador da carteira iax
-      ary.map { |omp| omp.merge(itx: Integer(omp[:withdrawalIndex]), iax: add) }
-    end
-
-    # dt: Time.at(Integer(htx[:timeStamp])),
     # @return [Array<Hash>] lista ordenada transacoes normais novas
     def sortx
-      novnetht.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
+      novnetht.sort_by { |itm| -itm[:srx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes internas novas
     def sorix
-      novnethi.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
+      novnethi.sort_by { |itm| -itm[:srx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes block novas
     def sorpx
-      novnethp.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+      novnethp.sort_by { |itm| -itm[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes withdrawals novas
     def sorwx
-      novnethw.sort { |ant, prx| ant[:itx] <=> prx[:itx] }
+      novnethw.sort_by { |itm| -itm[:itx] }
     end
 
     # @return [Array<Hash>] lista ordenada transacoes token novas
     def sorkx
-      novnethk.sort { |ant, prx| ant[:srx] <=> prx[:srx] }
+      novnethk.sort_by { |itm| -itm[:srx] }
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
@@ -230,23 +198,12 @@ module Cns
     # @param (see formata_carteira)
     # @return [String] texto formatado valores duma carteira
     def formata_valores_simples(hjn)
-      # id     address                                        etherscan      bigquery
-      # me-app 0x27c7f54e48956a906af2cbfbc8684b437776403d     22.377364     22.377364 OK
-      # mm-hot 0x534029b6371dc4453dd750bc1198181f55c859fe      4.556609      4.556609 OK
-      format(
-        '%<v1>13.6f %<v2>13.6f %<ok>-3s',
-        v1: hjn[:es],
-        v2: hjn[:bs],
-        ok: ok?(hjn) ? 'OK' : 'NOK'
-      )
+      format('%<v1>13.6f %<v2>13.6f %<ok>-3s', v1: hjn[:es], v2: hjn[:bs], ok: ok?(hjn) ? 'OK' : 'NOK')
     end
 
     # @param (see formata_carteira)
     # @return [String] texto formatado valores duma carteira
     def formata_valores(hjn)
-      # id     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw
-      # me-app 0x27c..b43     22.3774  31  6  0 16 2190     22.3774  25  6  0 16 2190 OK
-      # mm-hot 0x534..81f      4.5566 182 18 74  7   51      4.5566  33 18 74  6   51 OK
       format(
         '%<v1>11.4f %<n1>3i %<n2>2i %<n3>2i %<n4>2i %<w1>4i %<v2>11.4f %<n5>3i %<n6>2i %<n7>2i %<n8>2i %<w2>4i %<ok>-3s',
         v1: hjn[:es],
@@ -272,7 +229,6 @@ module Cns
 
     # @example ether address inicio..fim
     #  0x10f3a0cf0b534c..c033cf32e8a03586
-    # @param add (see filtrar_tx)
     # @param [Integer] max chars a mostrar
     # @return [String] endereco formatado
     def formata_enderec1(add, max)
@@ -286,7 +242,6 @@ module Cns
 
     # @example ether address inicio..fim
     #  me-app..4b437776403d
-    # @param add (see filtrar_tx)
     # @param [Integer] max chars a mostrar
     # @return [String] endereco formatado
     def formata_enderec2(add, max)
@@ -309,8 +264,8 @@ module Cns
         hx: formata_enderec1(htx[:hash], 29),
         fr: formata_enderec2(htx[:from], 15),
         to: formata_enderec2(htx[:to], 15),
-        dt: Time.at(Integer(htx[:timeStamp])),
-        vl: (htx[:value].to_d / (10**18)).round(10)
+        dt: htx[:timeStamp].strftime('%F'),
+        vl: htx[:value] / (10**18)
       )
     end
 
@@ -323,8 +278,8 @@ module Cns
         hx: formata_enderec1(hkx[:hash], 23),
         fr: formata_enderec2(hkx[:from], 15),
         to: formata_enderec2(hkx[:to], 15),
-        dt: Time.at(Integer(hkx[:timeStamp])),
-        vl: (hkx[:value].to_d / (10**18)).round(10),
+        dt: hkx[:timeStamp].strftime('%F'),
+        vl: hkx[:value] / (10**18),
         sy: hkx[:tokenSymbol]
       )
     end
@@ -337,8 +292,8 @@ module Cns
         '%<bn>9i %<fr>-41.41s %<dt>10.10s %<vl>17.6f',
         bn: htx[:blockNumber],
         fr: formata_enderec2(htx[:iax], 41),
-        dt: Time.at(Integer(htx[:timeStamp])),
-        vl: (htx[:blockReward].to_d / (10**18)).round(10)
+        dt: htx[:timeStamp].strftime('%F'),
+        vl: htx[:blockReward] / (10**18)
       )
     end
 
@@ -346,13 +301,7 @@ module Cns
     # @param [Hash] htx transacao withdrawals etherscan
     # @return [String] texto formatado transacao withdrawals etherscan
     def formata_tx_withw(htx)
-      format(
-        '%<bn>10i %<vi>9i %<dt>10.10s %<vl>10.6f',
-        bn: htx[:withdrawalIndex],
-        vi: htx[:validatorIndex],
-        dt: Time.at(Integer(htx[:timestamp])),
-        vl: (htx[:amount].to_d / (10**9)).round(10)
-      )
+      format('%<bn>10i %<vi>9i %<dt>10.10s %<vl>10.6f', bn: htx[:withdrawalIndex], vi: htx[:validatorIndex], dt: htx[:timeStamp].strftime('%F'), vl: htx[:amount] / (10**9))
     end
 
     # @return [String] texto transacoes normais
@@ -400,8 +349,31 @@ module Cns
       puts("\najuste dias transacoes normais    \n-h=#{sortx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnetht.count.positive?
       puts("\najuste dias transacoes internas   \n-h=#{sorix.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethi.count.positive?
       puts("\najuste dias transacoes block      \n-h=#{sorpx.map { |obj| "#{obj[:blockNumber]}:0"     }.join(' ')}") if novnethp.count.positive?
-      puts("\najuste dias transacoes withdrawals\n-h=#{sorwx.map { |obj| "#{obj[:withdrawalIndex]}:0" }.join(' ')}") if novnethw.count.positive?
       puts("\najuste dias transacoes token      \n-h=#{sorkx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethk.count.positive?
+      puts("\najuste dias transacoes withdrawals\n-h=#{sorwx.map { |obj| "#{obj[:withdrawalIndex]}:0" }.join(' ')}") if novnethw.count.positive?
+    end
+
+    private
+
+    # @param add (see Apibc#norml_es)
+    # @param [Array<Hash>] ary lista transacoes/token events
+    # @return [Array<Hash>] lista transacoes/token events filtrada
+    def ftik(add, ary)
+      ary.map { |o| o.merge(itx: String(o[:hash]), iax: add, value: o[:value].to_d, srx: (tym = Integer(o[:timeStamp])), timeStamp: Time.at(tym)) }
+    end
+
+    # @param add (see Apibc#norml_es)
+    # @param [Array<Hash>] ary lista blocks events
+    # @return [Array<Hash>] lista blocks events filtrada
+    def fppp(add, ary)
+      ary.map { |o| o.merge(itx: Integer(o[:blockNumber]), iax: add, blockReward: o[:blockReward].to_d, timeStamp: Time.at(Integer(o[:timeStamp]))) }
+    end
+
+    # @param add (see Apibc#norml_es)
+    # @param [Array<Hash>] ary lista blocks events
+    # @return [Array<Hash>] lista blocks events filtrada
+    def fwww(add, ary)
+      ary.map { |o| o.merge(itx: Integer(o[:withdrawalIndex]), iax: add, amount: o[:amount].to_d, timeStamp: Time.at(Integer(o[:timestamp]))) }
     end
   end
 end

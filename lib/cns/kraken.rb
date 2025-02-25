@@ -38,7 +38,7 @@ module Cns
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
-      exd[:sl].sort { |ant, prx| ant <=> prx }.each { |key, val| puts(formata_saldos(key, val)) }
+      exd[:sl].sort.each { |key, val| puts(formata_saldos(key, val)) }
       mtotais
 
       mtrades
@@ -50,7 +50,7 @@ module Cns
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
     def exd
-      @exd ||= { sl: api.account_us, kt: api.trades_us, kl: api.ledger_us }
+      @exd ||= { sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us) }
     end
 
     # @return [Array<String>] lista txid dos trades novos
@@ -68,14 +68,13 @@ module Cns
     # @param [BigDecimal] sal saldo kraken da moeda
     # @return [String] texto formatado saldos
     def formata_saldos(moe, sal)
-      vbq = bqd[:sl][moe.downcase.to_sym].to_d.round(9)
-      vsl = sal.to_d.round(9)
+      vbq = bqd[:sl][moe.downcase.to_sym].to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
         mo: moe.upcase,
-        kr: vsl,
+        kr: sal,
         bq: vbq,
-        ok: vbq == vsl ? 'OK' : 'NOK'
+        ok: vbq == sal ? 'OK' : 'NOK'
       )
     end
 
@@ -86,12 +85,12 @@ module Cns
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-8.8s %<pr>8.2f %<vl>10.4f %<co>13.2f',
         ky: idx,
-        dt: Time.at(htx[:time]),
+        dt: htx[:time].strftime('%F %T'),
         ty: "#{htx[:type]}/#{htx[:ordertype]}",
-        mo: htx[:pair].upcase,
-        pr: htx[:price].to_d,
-        vl: htx[:vol].to_d,
-        co: htx[:cost].to_d
+        mo: htx[:pair],
+        pr: htx[:price],
+        vl: htx[:vol],
+        co: htx[:cost]
       )
     end
 
@@ -102,11 +101,11 @@ module Cns
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-4.4s %<pr>18.7f %<vl>18.7f',
         ky: idx,
-        dt: Time.at(hlx[:time]),
+        dt: hlx[:time].strftime('%F %T'),
         ty: hlx[:type],
-        mo: hlx[:asset].upcase,
-        pr: hlx[:amount].to_d,
-        vl: hlx[:fee].to_d
+        mo: hlx[:asset],
+        pr: hlx[:amount],
+        vl: hlx[:fee]
       )
     end
 
@@ -126,7 +125,7 @@ module Cns
       return unless ops[:v] && novcust.count.positive?
 
       puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
-      novcust.sort { |ant, prx| prx[1][:time] <=> ant[1][:time] }.each { |key, val| puts(formata_trades(key, val)) }
+      novcust.sort_by { |itm| -itm[1][:srx] }.each { |key, val| puts(formata_trades(key, val)) }
     end
 
     # @return [String] texto transacoes ledger
@@ -134,7 +133,24 @@ module Cns
       return unless ops[:v] && novcusl.count.positive?
 
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")
-      novcusl.sort { |ant, prx| prx[1][:time] <=> ant[1][:time] }.each { |key, val| puts(formata_ledger(key, val)) }
+      novcusl.sort_by { |itm| -itm[1][:srx] }.each { |key, val| puts(formata_ledger(key, val)) }
+    end
+
+    private
+
+    # Processa os trades para garantir que as datas estejam no formato correto
+    def pusa(itm)
+      itm.select { |key, _| EM.include?(key) }.transform_values { |val| val.to_d }
+    end
+
+    # Processa os trades para garantir que as datas estejam no formato correto
+    def pust(itm)
+      itm.transform_values { |t| t.merge(srx: (tym = Integer(t[:time])), time: Time.at(tym), pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
+    end
+
+    # Processa os ledger entries para garantir que as datas estejam no formato correto
+    def pusl(itm)
+      itm.transform_values { |t| t.merge(srx: (tym = Integer(t[:time])), time: Time.at(tym), asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
     end
   end
 end

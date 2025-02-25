@@ -47,8 +47,7 @@ module Cns
 
     # @return [Array<Integer>] lista indices transacoes novas
     def idt
-      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten -
-               (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
+      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
     end
 
     # @example (see Apibc#account_gm)
@@ -56,11 +55,7 @@ module Cns
     # @return [Hash] dados greymass - address, saldo & transacoes
     def base_bc(wbq)
       xbq = wbq[:ax]
-      {
-        ax: xbq,
-        sl: greymass_sl(xbq).reduce(:+),
-        tx: filtrar_tx(xbq, api.ledger_gm(xbq))
-      }
+      { ax: xbq, sl: peosa(xbq).reduce(:+), tx: pesot(xbq, api.ledger_gm(xbq)) }
     end
 
     # @param wbq (see base_bc)
@@ -76,26 +71,6 @@ module Cns
         es: hbc[:sl],
         et: hbc[:tx]
       }
-    end
-
-    # @param (see filtrar_tx)
-    # @return [Array<BigDecimal>] lista recursos - liquido, net, spu
-    def greymass_sl(add)
-      hac = api.account_gm(add)
-      htr = hac[:total_resources]
-      [hac[:core_liquid_balance].to_d, htr[:net_weight].to_d, htr[:cpu_weight].to_d]
-    end
-
-    # @param add (see Apibc#account_gm)
-    # @param [Array<Hash>] ary lista transacoes
-    # @return [Array<Hash>] lista transacoes filtrada
-    def filtrar_tx(add, ary)
-      # elimina transferencia from: (lax) to: (add) - esta transferencia aparece em from: (add) to: (lax)
-      # adiciona chave indice itx & adiciona identificador da carteira iax
-      (ary.delete_if do |odl|
-        adt = odl[:action_trace][:act][:data]
-        adt[:to] == add && lax.include?(adt[:from])
-      end).map { |omp| omp.merge(itx: omp[:global_action_seq], iax: add) }
     end
 
     # @return [String] texto carteiras & transacoes & ajuste dias
@@ -134,13 +109,13 @@ module Cns
     def formata_ledger(hlx)
       format(
         '%<bn>12i %<fr>-12.12s %<to>-12.12s %<ac>-10.10s %<dt>10.10s %<vl>12.4f %<sy>-6.6s',
-        ac: (act = hlx[:action_trace][:act])[:name],
-        fr: (adt = act[:data])[:from],
-        vl: (aqt = adt[:quantity].to_s).to_d,
+        ac: hlx[:name],
+        fr: hlx[:from],
+        vl: hlx[:quantity],
         bn: hlx[:itx],
-        to: adt[:to],
-        dt: Date.parse(hlx[:block_time]),
-        sy: aqt[/[[:upper:]]+/]
+        to: hlx[:to],
+        dt: hlx[:block_time].strftime('%F'),
+        sy: hlx[:moe]
       )
     end
 
@@ -149,14 +124,48 @@ module Cns
       return unless ops[:v] && novneost.count.positive?
 
       puts("\nsequence num from         to           accao      data              valor moeda")
-      novneost.sort { |ant, prx| prx[:itx] <=> ant[:itx] }.each { |obj| puts(formata_ledger(obj)) }
+      soreost.each { |obj| puts(formata_ledger(obj)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes
     def mconfiguracao_ajuste_dias
       return unless novneost.count.positive?
 
-      puts("\nstring ajuste dias\n-h=#{novneost.sort { |ant, prx| prx[:itx] <=> ant[:itx] }.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{soreost.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")
+    end
+
+    private
+
+    # @return [Array<Hash>] lista ordenada transacoes
+    def soreost
+      novneost.sort_by { |itm| -itm[:itx] }
+    end
+
+    # @return [Array<BigDecimal>] lista recursos - liquido, net, spu
+    def peosa(add)
+      hac = api.account_gm(add)
+      htr = hac[:total_resources]
+      [hac[:core_liquid_balance].to_d, htr[:net_weight].to_d, htr[:cpu_weight].to_d]
+    end
+
+    # @param add (see Apibc#account_gm)
+    # @param [Array<Hash>] ary lista transacoes
+    # @return [Array<Hash>] lista transacoes filtrada
+    def pesot(add, ary)
+      ary.map do |omp|
+        omp.merge(
+          name: (act = omp[:action_trace][:act])[:name],
+          from: (adt = act[:data])[:from],
+          quantity: (qtd = adt[:quantity].to_s).to_d,
+          account: act[:account],
+          to: adt[:to],
+          memo: String(adt[:memo]).gsub(/\p{C}/, ''), # remove Non-Printable Characters
+          moe: qtd[/[[:upper:]]+/],
+          itx: omp[:global_action_seq],
+          iax: add,
+          block_time: Time.parse(omp[:block_time])
+        )
+      end
     end
   end
 end

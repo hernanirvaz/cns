@@ -7,6 +7,7 @@ require('bigdecimal/util')
 module Cns
   BD = 'hernanirvaz.coins'
   FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
+  EM = %i[EOS XETH ZEUR btc eth]
   TB = {
     i: %w[blocknumber timestamp txhash axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode dias],
     p: %w[blocknumber timestamp blockreward iax dias],
@@ -256,7 +257,7 @@ module Cns
     end
 
     def fts(value)
-      "DATETIME(TIMESTAMP('#{value}'))"
+      "DATETIME(TIMESTAMP('#{value.iso8601}'))"
     end
 
     # @param [Hash] htx transacao norml etherscan
@@ -303,7 +304,7 @@ module Cns
         fnm(htx[:gasUsed]),
         fqt(htx[:traceId]),
         fin(htx[:isError]),
-        fin(htx[:errCode]),
+        fqt(htx[:errCode]),
         fin(ops.dig(:h, htx[:hash]))
       ]
       "(#{vls.join(',')})"
@@ -325,7 +326,7 @@ module Cns
         fqt(htx[:address]),
         fnm(htx[:amount]),
         fin(htx[:blockNumber]),
-        fin(htx[:timestamp]),
+        fin(htx[:timeStamp]),
         fin(ops.dig(:h, htx[:withdrawalIndex]))
       ]
       "(#{vls.join(',')})"
@@ -362,23 +363,23 @@ module Cns
     # @param [Hash] hlx ledger greymass
     # @return [String] valores formatados para insert eos (parte1)
     def neost_val(htx)
-      act = htx[:action_trace][:act]
-      dat = act[:data]
-      qtd = dat[:quantity].to_s
-      str = dat[:memo].inspect
+      # act = htx[:action_trace][:act]
+      # dat = act[:data]
+      # qtd = dat[:quantity].to_s
+      # str = dat[:memo].inspect
       vls = [
         fin(htx[:global_action_seq]),
         fin(htx[:account_action_seq]),
         fin(htx[:block_num]),
         fts(htx[:block_time]),
-        fqt(act[:account]),
-        fqt(act[:name]),
-        fqt(dat[:from]),
-        fqt(dat[:to]),
+        fqt(htx[:account]),
+        fqt(htx[:name]),
+        fqt(htx[:from]),
+        fqt(htx[:to]),
         fqt(htx[:iax]),
-        fnm(qtd),
-        fqt(qtd[/[[:upper:]]+/]),
-        fqt(str),
+        fnm(htx[:quantity]),
+        fqt(htx[:moe]),
+        fqt(htx[:memo]),
         fin(ops.dig(:h, htx[:itx]))
       ]
       "(#{vls.join(',')})"
@@ -403,15 +404,13 @@ module Cns
     # @param [Hash] hlx ledger (deposits + withdrawals) bitcoinde
     # @return [String] valores formatados del (ledger)
     def cdel_val(htx)
-      tip = htx[:tp]
-      qtd = htx[:qt]
       vls = [
         fin(htx[:txid]),
-        fts(htx[:time].iso8601),
-        fqt(tip),
+        fts(htx[:time]),
+        fqt(htx[:tp]),
         fqt(htx[:add]),
         fqt(htx[:moe]),
-        fnm(tip == 'withdrawal' ? "-#{qtd}" : "#{qtd}"),
+        fnm(htx[:tp] == 'withdrawal' ? "-#{htx[:qt]}" : "#{htx[:qt]}"),
         fnm(htx[:fee])
       ]
       "(#{vls.join(',')})"
@@ -421,12 +420,13 @@ module Cns
     # @param [Hash] htx trade kraken
     # @return [String] valores formatados ust (trades parte1)
     def cust_val(idx, htx)
+      # gets ledgers related to this trade
       ldg = apius.exd[:kl].select { |_, obj| obj[:refid] == idx.to_s }.keys.join(',')
       vls = [
         fqt(idx),
         fqt(htx[:ordertxid]),
         fqt(htx[:pair]),
-        ftm(htx[:time]),
+        fts(htx[:time]),
         fqt(htx[:type]),
         fqt(htx[:ordertype]),
         fnm(htx[:price]),
@@ -445,7 +445,7 @@ module Cns
     # @param [Hash] hlx ledger kraken
     # @return [String] valores formatados usl (ledger)
     def cusl_val(idx, hlx)
-      vls = [fqt(idx), fqt(hlx[:refid]), ftm(hlx[:time]), fqt(hlx[:type]), fqt(hlx[:aclass]), fqt(hlx[:asset]), fnm(hlx[:amount]), fnm(hlx[:fee])]
+      vls = [fqt(idx), fqt(hlx[:refid]), fts(hlx[:time]), fqt(hlx[:type]), fqt(hlx[:aclass]), fqt(hlx[:asset]), fnm(hlx[:amount]), fnm(hlx[:fee])]
       "(#{vls.join(',')})"
     end
   end

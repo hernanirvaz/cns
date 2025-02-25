@@ -38,7 +38,7 @@ module Cns
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
-      exd[:sl].sort { |ant, prx| ant <=> prx }.each { |key, val| puts(formata_saldos(key, val)) }
+      exd[:sl].sort.each { |key, val| puts(formata_saldos(key, val)) }
       mtotais
 
       mtrades
@@ -50,7 +50,7 @@ module Cns
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
     def exd
-      @exd ||= { sl: api.account_de, tt: api.trades_de, tl: api.deposits_de + api.withdrawals_de }
+      @exd ||= { sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de) }
     end
 
     # @return [Array<String>] lista txid dos trades novos
@@ -67,8 +67,8 @@ module Cns
     # @param [Hash] hsx saldo bitcoinde da moeda
     # @return [String] texto formatado saldos
     def formata_saldos(moe, hsx)
-      vbq = bqd[:sl][moe.downcase.to_sym].to_d.round(9)
-      vex = hsx[:total_amount].to_d.round(9)
+      vbq = bqd[:sl][moe.downcase.to_sym].to_d
+      vex = hsx[:total_amount]
       format(
         '%<mo>-5.5s %<ex>21.9f %<bq>21.9f %<ok>3.3s',
         mo: moe.upcase,
@@ -84,12 +84,12 @@ module Cns
       format(
         '%<ky>-6.6s %<dt>19.19s %<dp>10.10s %<ty>-5.5s %<mo>-8.8s %<vl>18.8f %<co>8.2f',
         ky: htx[:trade_id],
-        dt: Time.parse(htx[:successfully_finished_at]),
-        dp: Time.parse(htx[:trade_marked_as_paid_at]),
+        dt: htx[:successfully_finished_at].strftime('%F %T'),
+        dp: htx[:trade_marked_as_paid_at].strftime('%F'),
         ty: htx[:type],
-        mo: htx[:trading_pair].upcase,
-        vl: htx[:amount_currency_to_trade].to_d,
-        co: htx[:volume_currency_to_pay].to_d
+        mo: htx[:trading_pair],
+        vl: htx[:amount_currency_to_trade],
+        co: htx[:volume_currency_to_pay]
       )
     end
 
@@ -99,11 +99,11 @@ module Cns
       format(
         '%<ky>6i %<dt>19.19s %<ty>-10.10s %<mo>-3.3s %<pr>19.8f %<vl>18.8f',
         ky: hlx[:txid],
-        dt: hlx[:time],
+        dt: hlx[:time].strftime('%F %T'),
         ty: hlx[:tp],
-        mo: hlx[:moe].upcase,
-        pr: hlx[:qt].to_d,
-        vl: hlx[:fee].to_d
+        mo: hlx[:moe],
+        pr: hlx[:qt],
+        vl: hlx[:fee]
       )
     end
 
@@ -123,7 +123,7 @@ module Cns
       return unless ops[:v] && !novcdet.empty?
 
       puts("\ntrades data       hora     dt criacao tipo  par                     qtd      eur")
-      novcdet.sort { |ant, prx| Time.parse(prx[:successfully_finished_at]) <=> Time.parse(ant[:successfully_finished_at]) }.each { |obj| puts(formata_trades(obj)) }
+      novcdet.sort_by { |itm| -itm[:srx] }.each { |obj| puts(formata_trades(obj)) }
     end
 
     # @return [String] texto transacoes ledger
@@ -131,7 +131,38 @@ module Cns
       return unless ops[:v] && !novcdel.empty?
 
       puts("\nledger data       hora     tipo       moe          quantidade              custo")
-      novcdel.sort { |ant, prx| prx[:time] <=> ant[:time] }.each { |obj| puts(formata_ledger(obj)) }
+      novcdel.sort_by { |itm| -itm[:srx] }.each { |obj| puts(formata_ledger(obj)) }
+    end
+
+    private
+
+    # Processa os trades para garantir que as datas estejam no formato correto
+    def pdea(itm)
+      itm.select { |ky1, _| EM.include?(ky1) }.transform_values { |o| o.merge(total_amount: o[:total_amount].to_d) }
+    end
+
+    # Processa os trades para garantir que as datas estejam no formato correto
+    def pdet(itm)
+      itm.map do |t|
+        t.merge(
+          successfully_finished_at: srx = ptm(t[:successfully_finished_at]),
+          srx: Integer(srx),
+          trade_marked_as_paid_at: ptm(t[:trade_marked_as_paid_at]),
+          amount_currency_to_trade: t[:amount_currency_to_trade].to_d,
+          volume_currency_to_pay: t[:volume_currency_to_pay].to_d,
+          trading_pair: t[:trading_pair].upcase
+        )
+      end
+    end
+
+    # Processa os ledger entries para garantir que as datas estejam no formato correto
+    def pdel(itm)
+      itm.map { |t| t.merge(time: srx = ptm(t[:time]), srx: Integer(srx), qt: t[:qt].to_d, fee: t[:fee].to_d, moe: t[:moe].upcase) }
+    end
+
+    # Processa time field somtimes is string
+    def ptm(itm)
+      itm.is_a?(String) ? Time.parse(itm) : itm
     end
   end
 end
