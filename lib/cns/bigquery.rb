@@ -45,8 +45,8 @@ module Cns
     def mtudo
       apius.mresumo
       apide.mresumo
-      # apies.mresumo
-      # apigm.mresumo
+      apies.mresumo
+      apigm.mresumo
     end
 
     # mostra situacao completa entre kraken/etherscan & bigquery
@@ -183,26 +183,12 @@ module Cns
 
     # @return [Kraken] API exchange kraken
     def apius
-      @apius ||= Kraken.new(
-        {
-          sl: sql("select * from #{BD}.cuss").first,
-          nt: sql("select * from #{BD}.cust order by time,txid"),
-          nl: sql("select * from #{BD}.cusl order by time,txid")
-        },
-        ops
-      )
+      @apius ||= Kraken.new({ sl: sql("select * from #{BD}.cuss").first, nt: sql("select * from #{BD}.cust"), nl: sql("select * from #{BD}.cusl") }, ops)
     end
 
     # @return [Bitcoinde] API exchange bitcoinde
     def apide
-      @apide ||= Bitcoinde.new(
-        {
-          sl: sql("select * from #{BD}.cdes").first,
-          nt: sql("select * from #{BD}.cdet order by time,txid"),
-          nl: sql("select * from #{BD}.cdel order by time,txid")
-        },
-        ops
-      )
+      @apide ||= Bitcoinde.new({ sl: sql("select * from #{BD}.cdes").first, nt: sql("select * from #{BD}.cdet"), nl: sql("select * from #{BD}.cdel") }, ops)
     end
 
     def tabelas_cus(src, str, ltb, prx = '')

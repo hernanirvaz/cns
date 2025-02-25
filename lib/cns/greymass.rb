@@ -25,63 +25,17 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # @return [Array<Hash>] lista transacoes novas
-    def novneost
-      @novneost ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
-    end
-
-    # @return [Array<String>] lista dos meus enderecos
-    def lax
-      @lax ||= bqd[:wb].map { |obj| obj[:ax] }
-    end
-
-    # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
-    def bcd
-      @bcd ||= bqd[:wb].map { |obj| base_bc(obj) }
-    end
-
-    # @return [Array<Hash>] todos os dados juntos bigquery & greymass
-    def dados
-      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obj| obq[:ax] == obj[:ax] }.first) }
-    end
-
-    # @return [Array<Integer>] lista indices transacoes novas
-    def idt
-      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
-    end
-
-    # @example (see Apibc#account_gm)
-    # @param [Hash] wbq wallet bigquery
-    # @return [Hash] dados greymass - address, saldo & transacoes
-    def base_bc(wbq)
-      xbq = wbq[:ax]
-      { ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq)) }
-    end
-
-    # @param wbq (see base_bc)
-    # @param [Hash] hbc dados greymass - address, saldo & transacoes
-    # @return [Hash] dados juntos bigquery & greymass
-    def bq_bc(wbq, hbc)
-      xbq = wbq[:ax]
-      {
-        id: wbq[:id],
-        ax: xbq,
-        bs: wbq[:sl],
-        bt: bqd[:nt].select { |obj| obj[:iax] == xbq },
-        es: hbc[:sl],
-        et: hbc[:tx]
-      }
-    end
-
     # @return [String] texto carteiras & transacoes & ajuste dias
     def mresumo
-      return unless dados.count.positive?
+      return unless dados.any?
 
       puts("\naddress            greymass  ntx       bigquery  ntx")
       dados.each { |obj| puts(formata_carteira(obj)) }
       mtransacoes_novas
       mconfiguracao_ajuste_dias
     end
+
+    private
 
     # @param [Hash] hjn dados juntos bigquery & greymass
     # @return [String] texto formatado duma carteira
@@ -121,7 +75,7 @@ module Cns
 
     # @return [String] texto transacoes
     def mtransacoes_novas
-      return unless ops[:v] && novneost.count.positive?
+      return unless ops[:v] && novneost.any?
 
       puts("\nsequence num from         to           accao      data              valor moeda")
       soreost.each { |obj| puts(formata_ledger(obj)) }
@@ -129,16 +83,65 @@ module Cns
 
     # @return [String] texto configuracao ajuste dias das transacoes
     def mconfiguracao_ajuste_dias
-      return unless novneost.count.positive?
+      return unless novneost.any?
 
       puts("\nstring ajuste dias\n-h=#{soreost.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")
     end
 
-    private
+    # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
+    def bcd
+      @bcd ||= bqd[:wb].map { |obj| base_bc(obj) }
+    end
+
+    # @return [Array<Hash>] todos os dados juntos bigquery & greymass
+    def dados
+      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obj| obq[:ax] == obj[:ax] }.first) }
+    end
+
+    def show_all?
+      ops[:t] || false
+    end
+
+    def bqidt
+      @bqidt ||= show_all? ? [] : (bqd[:nt]&.map { |i| i[:itx] } || [])
+    end
+
+    # @return [Array<Integer>] lista indices transacoes novas
+    def idt
+      @idt ||= bcd.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+    end
+
+    # @example (see Apibc#account_gm)
+    # @param [Hash] wbq wallet bigquery
+    # @return [Hash] dados greymass - address, saldo & transacoes
+    def base_bc(wbq)
+      xbq = wbq[:ax]
+      { ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq)) }
+    end
+
+    # @param wbq (see base_bc)
+    # @param [Hash] hbc dados greymass - address, saldo & transacoes
+    # @return [Hash] dados juntos bigquery & greymass
+    def bq_bc(wbq, hbc)
+      xbq = wbq[:ax]
+      {
+        id: wbq[:id],
+        ax: xbq,
+        bs: wbq[:sl],
+        bt: bqd[:nt].select { |obj| obj[:iax] == xbq },
+        es: hbc[:sl],
+        et: hbc[:tx]
+      }
+    end
+
+    # @return [Array<Hash>] lista transacoes novas
+    def novneost
+      @novneost ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
+    end
 
     # @return [Array<Hash>] lista ordenada transacoes
     def soreost
-      novneost.sort_by { |itm| -itm[:itx] }
+      novneost.sort_by { |i| -i[:itx] }
     end
 
     # @return [Array<BigDecimal>] lista recursos - liquido, net, spu

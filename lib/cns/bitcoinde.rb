@@ -30,16 +30,6 @@ module Cns
       @exd ||= { sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de) }
     end
 
-    # @return [Array<Hash>] lista trades bitcoinde novos
-    def novcdet
-      @novcdet ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
-    end
-
-    # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
-    def novcdel
-      @novcdel ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
-    end
-
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
@@ -60,11 +50,11 @@ module Cns
     end
 
     def bqkyt
-      show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid] } || [])
+      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid] } || [])
     end
 
     def bqkyl
-      show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid] } || [])
+      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid] } || [])
     end
 
     # @return [Array<String>] lista txid dos trades novos
@@ -75,6 +65,16 @@ module Cns
     # @return [Array<Integer>] lista txid dos ledger novos
     def kyl
       @kyl ||= exd[:tl].map { |oex| oex[:txid] } - bqkyl
+    end
+
+    # @return [Array<Hash>] lista trades bitcoinde novos
+    def novcdet
+      @novcdet ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
+    end
+
+    # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
+    def novcdel
+      @novcdel ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
     end
 
     # @param [String] moe codigo bitcoinde da moeda
@@ -134,31 +134,39 @@ module Cns
 
     # @return [String] texto transacoes trades
     def mtrades
-      return unless ops[:v] && !novcdet.empty?
+      return unless ops[:v] && novcdet.any?
 
       puts("\ntrades data       hora     dt criacao tipo  par                     qtd      eur")
-      novcdet.sort_by { |itm| -itm[:srx] }.each { |obj| puts(formata_trades(obj)) }
+      novcdet.sort_by { |i| -i[:srx] }.each { |o| puts(formata_trades(o)) }
     end
 
     # @return [String] texto transacoes ledger
     def mledger
-      return unless ops[:v] && !novcdel.empty?
+      return unless ops[:v] && novcdel.any?
 
       puts("\nledger data       hora     tipo       moe          quantidade              custo")
-      novcdel.sort_by { |itm| -itm[:srx] }.each { |obj| puts(formata_ledger(obj)) }
+      novcdel.sort_by { |i| -i[:srx] }.each { |o| puts(formata_ledger(o)) }
     end
 
     # Processa os trades para garantir que as datas estejam no formato correto
     def pdea(itm)
-      itm.select { |ky1, _| EM.include?(ky1) }.transform_values { |o| o.merge(total_amount: o[:total_amount].to_d) }
+      itm.select { |k, _| EM.include?(k) }.transform_values { |o| o.merge(total_amount: o[:total_amount].to_d) }
+    end
+
+    # Processa time field somtimes is string
+    def ptm(itm)
+      itm.is_a?(String) ? Time.parse(itm) : itm
+    end
+
+    def pdes(key, itm)
+      tym = ptm(itm[key])
+      itm.merge(srx: Integer(tym), key => tym)
     end
 
     # Processa os trades para garantir que as datas estejam no formato correto
     def pdet(itm)
       itm.map do |t|
-        t.merge(
-          successfully_finished_at: srx = ptm(t[:successfully_finished_at]),
-          srx: Integer(srx),
+        pdes(:successfully_finished_at, t).merge(
           trade_marked_as_paid_at: ptm(t[:trade_marked_as_paid_at]),
           amount_currency_to_trade: t[:amount_currency_to_trade].to_d,
           volume_currency_to_pay: t[:volume_currency_to_pay].to_d,
@@ -169,12 +177,7 @@ module Cns
 
     # Processa os ledger entries para garantir que as datas estejam no formato correto
     def pdel(itm)
-      itm.map { |t| t.merge(time: srx = ptm(t[:time]), srx: Integer(srx), qt: t[:qt].to_d, fee: t[:fee].to_d, moe: t[:moe].upcase) }
-    end
-
-    # Processa time field somtimes is string
-    def ptm(itm)
-      itm.is_a?(String) ? Time.parse(itm) : itm
+      itm.map { |t| pdes(:time, t).merge(qt: t[:qt].to_d, fee: t[:fee].to_d, moe: t[:moe].upcase) }
     end
   end
 end

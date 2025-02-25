@@ -30,16 +30,6 @@ module Cns
       @exd ||= { sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us) }
     end
 
-    # @return [Hash] trades kraken novos
-    def novcust
-      @novcust ||= exd[:kt].slice(*kyt)
-    end
-
-    # @return [Hash] ledger kraken novos
-    def novcusl
-      @novcusl ||= exd[:kl].slice(*kyl)
-    end
-
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
@@ -60,11 +50,11 @@ module Cns
     end
 
     def bqkyt
-      show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid].to_sym } || [])
+      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid].to_sym } || [])
     end
 
     def bqkyl
-      show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid].to_sym } || [])
+      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid].to_sym } || [])
     end
 
     # @return [Array<String>] lista txid dos trades novos
@@ -75,6 +65,16 @@ module Cns
     # @return [Array<String>] lista txid dos ledger novos
     def kyl
       @kyl ||= exd[:kl].keys - bqkyl
+    end
+
+    # @return [Hash] trades kraken novos
+    def novcust
+      @novcust ||= exd[:kt].slice(*kyt)
+    end
+
+    # @return [Hash] ledger kraken novos
+    def novcusl
+      @novcusl ||= exd[:kl].slice(*kyl)
     end
 
     # @example (see Apice#account_us)
@@ -136,33 +136,38 @@ module Cns
 
     # @return [String] texto transacoes trades
     def mtrades
-      return unless ops[:v] && novcust.count.positive?
+      return unless ops[:v] && novcust.any?
 
       puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
-      novcust.sort_by { |itm| -itm[1][:srx] }.each { |key, val| puts(formata_trades(key, val)) }
+      novcust.sort_by { |_, v| -v[:srx] }.each { |i, t| puts(formata_trades(i, t)) }
     end
 
     # @return [String] texto transacoes ledger
     def mledger
-      return unless ops[:v] && novcusl.count.positive?
+      return unless ops[:v] && novcusl.any?
 
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")
-      novcusl.sort_by { |itm| -itm[1][:srx] }.each { |key, val| puts(formata_ledger(key, val)) }
+      novcusl.sort_by { |_, v| -v[:srx] }.each { |i, t| puts(formata_ledger(i, t)) }
     end
 
     # Processa os trades para garantir que as datas estejam no formato correto
     def pusa(itm)
-      itm.select { |key, _| EM.include?(key) }.transform_values { |val| val.to_d }
+      itm.select { |k, _| EM.include?(k) }.transform_values { |v| v.to_d }
+    end
+
+    def puss(itm)
+      tym = Integer(itm[:time])
+      itm.merge(srx: tym, time: Time.at(tym))
     end
 
     # Processa os trades para garantir que as datas estejam no formato correto
     def pust(itm)
-      itm.transform_values { |t| t.merge(srx: (tym = Integer(t[:time])), time: Time.at(tym), pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
+      itm.transform_values { |t| puss(t).merge(pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
     end
 
     # Processa os ledger entries para garantir que as datas estejam no formato correto
     def pusl(itm)
-      itm.transform_values { |t| t.merge(srx: (tym = Integer(t[:time])), time: Time.at(tym), asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
+      itm.transform_values { |t| puss(t).merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
     end
   end
 end

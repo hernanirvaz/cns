@@ -27,137 +27,9 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # @return [Array<Hash>] lista transacoes normais novas
-    def novnetht
-      @novnetht ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
-    end
-
-    # @return [Array<Hash>] lista transacoes internas novas
-    def novnethi
-      @novnethi ||= bcd.map { |obc| obc[:ix].select { |obj| idi.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
-    end
-
-    # @return [Array<Hash>] lista transacoes block novas
-    def novnethp
-      @novnethp ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
-    end
-
-    # @return [Array<Hash>] lista transacoes withdrawals novas
-    def novnethw
-      @novnethw ||= bcd.map { |obc| obc[:wx].select { |obj| idw.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
-    end
-
-    # @return [Array<Hash>] lista transacoes token novas
-    def novnethk
-      @novnethk ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
-    end
-
-    # @return [Array<String>] lista dos meus enderecos
-    def lax
-      @lax ||= bqd[:wb].map { |obj| obj[:ax] }
-    end
-
-    # @return [Array<Hash>] todos os dados etherscan - saldos & transacoes
-    def bcd
-      @bcd ||= api.account_es(lax).map { |obj| base_bc(obj) }
-    end
-
-    # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
-    def dados
-      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obc| obq[:ax] == obc[:ax] }.first) }
-    end
-
-    # @return [Array<Integer>] lista indices transacoes normais novas
-    def idt
-      @idt ||= bcd.map { |obc| obc[:tx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nt].map { |obq| obq[:itx] })
-    end
-
-    # @return [Array<Integer>] lista indices transacoes internas novas
-    def idi
-      @idi ||= bcd.map { |obc| obc[:ix].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:ni].map { |obq| obq[:itx] })
-    end
-
-    # @return [Array<Integer>] lista indices transacoes block novas
-    def idp
-      @idp ||= bcd.map { |obc| obc[:px].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:np].map { |obq| obq[:itx] })
-    end
-
-    # @return [Array<Integer>] lista indices transacoes withdrawals novas
-    def idw
-      @idw ||= bcd.map { |obc| obc[:wx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nw].map { |obq| obq[:itx] })
-    end
-
-    # @return [Array<Integer>] lista indices transacoes token novas
-    def idk
-      @idk ||= bcd.map { |obc| obc[:kx].map { |obj| obj[:itx] } }.flatten - (ops[:t] ? [] : bqd[:nk].map { |obq| obq[:itx] })
-    end
-
-    # @example (see Apibc#account_es)
-    # @param [Hash] abc account etherscan
-    # @return [Hash] dados etherscan - address, saldo & transacoes
-    def base_bc(abc)
-      acc = abc[:account].downcase
-      {
-        ax: acc,
-        sl: abc[:balance].to_d / (10**18),
-        tx: ftik(acc, api.norml_es(acc)),
-        ix: ftik(acc, api.inter_es(acc)),
-        px: fppp(acc, api.block_es(acc)),
-        wx: fwww(acc, api.withw_es(acc)),
-        kx: ftik(acc, api.token_es(acc))
-      }
-    end
-
-    # @param [Hash] wbq wallet bigquery
-    # @param [Hash] hbc dados etherscan - address, saldo & transacoes
-    # @return [Hash] dados juntos bigquery & etherscan
-    def bq_bc(wbq, hbc)
-      {
-        id: wbq[:id],
-        ax: xbq = wbq[:ax],
-        bs: wbq[:sl],
-        bt: bqd[:nt].select { |ont| ont[:iax].casecmp?(xbq) },
-        bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
-        bp: bqd[:np].select { |onp| onp[:iax].casecmp?(xbq) },
-        bw: bqd[:nw].select { |onw| onw[:iax].casecmp?(xbq) },
-        bk: bqd[:nk].select { |onk| onk[:iax].casecmp?(xbq) },
-        es: hbc[:sl],
-        et: hbc[:tx],
-        ei: hbc[:ix],
-        ep: hbc[:px],
-        ew: hbc[:wx],
-        ek: hbc[:kx]
-      }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes normais novas
-    def sortx
-      novnetht.sort_by { |itm| -itm[:srx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes internas novas
-    def sorix
-      novnethi.sort_by { |itm| -itm[:srx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes block novas
-    def sorpx
-      novnethp.sort_by { |itm| -itm[:itx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes withdrawals novas
-    def sorwx
-      novnethw.sort_by { |itm| -itm[:itx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes token novas
-    def sorkx
-      novnethk.sort_by { |itm| -itm[:srx] }
-    end
-
     # @return [String] texto carteiras & transacoes & ajuste dias
     def mresumo_simples
-      return unless dados.count.positive?
+      return unless dados.any?
 
       puts("\nid     address                                        etherscan      bigquery")
       dados.each { |obj| puts(formata_carteira_simples(obj)) }
@@ -171,7 +43,7 @@ module Cns
 
     # @return [String] texto carteiras & transacoes & ajuste dias
     def mresumo
-      return unless dados.count.positive?
+      return unless dados.any?
 
       puts("\nid     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw")
       dados.each { |obj| puts(formata_carteira(obj)) }
@@ -182,6 +54,8 @@ module Cns
       mtx_withw
       mconfiguracao_ajuste_dias
     end
+
+    private
 
     # @param [Hash] hjn dados juntos bigquery & etherscan
     # @return [String] texto formatado duma carteira
@@ -224,7 +98,16 @@ module Cns
 
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:es].round(6) == hjn[:bs].round(6) && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bw].count == hjn[:ew].count
+      oks?(hjn) && okipw?(hjn) && hjn[:bt].count == hjn[:et].count && hjn[:bk].count == hjn[:ek].count
+    end
+
+    def okipw?(hjn)
+      oks?(hjn) && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bw].count == hjn[:ew].count
+    end
+
+    # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
+    def oks?(hjn)
+      hjn[:es].round(6) == hjn[:bs].round(6)
     end
 
     # @example ether address inicio..fim
@@ -274,8 +157,8 @@ module Cns
     # @return [String] texto formatado transacao token etherscan
     def formata_tx_token(hkx)
       format(
-        '%<hx>-23.23s %<fr>-15.15s %<to>-15.15s %<dt>10.10s %<vl>7.3f %<sy>-5.5s',
-        hx: formata_enderec1(hkx[:hash], 23),
+        '%<hx>-20.20s %<fr>-15.15s %<to>-15.15s %<dt>10.10s %<vl>10.3f %<sy>-5.5s',
+        hx: formata_enderec1(hkx[:hash], 20),
         fr: formata_enderec2(hkx[:from], 15),
         to: formata_enderec2(hkx[:to], 15),
         dt: hkx[:timeStamp].strftime('%F'),
@@ -306,7 +189,7 @@ module Cns
 
     # @return [String] texto transacoes normais
     def mtx_norml
-      return unless ops[:v] && novnetht.count.positive?
+      return unless ops[:v] && novnetht.any?
 
       puts("\ntx normal                     from            to              data         valor")
       sortx.each { |obj| puts(formata_tx_ti(obj)) }
@@ -314,7 +197,7 @@ module Cns
 
     # @return [String] texto transacoes internas
     def mtx_inter
-      return unless ops[:v] && novnethi.count.positive?
+      return unless ops[:v] && novnethi.any?
 
       puts("\ntx intern                     from            to              data         valor")
       sorix.each { |obj| puts(formata_tx_ti(obj)) }
@@ -322,7 +205,7 @@ module Cns
 
     # @return [String] texto transacoes block
     def mtx_block
-      return unless ops[:v] && novnethp.count.positive?
+      return unless ops[:v] && novnethp.any?
 
       puts("\ntx block  address                                   data                   valor")
       sorpx.each { |obj| puts(formata_tx_block(obj)) }
@@ -330,15 +213,15 @@ module Cns
 
     # @return [String] texto transacoes token
     def mtx_token
-      return unless ops[:v] && novnethk.count.positive?
+      return unless ops[:v] && novnethk.any?
 
-      puts("\ntx token                from            to              data         valor moeda")
+      puts("\ntx token             from            to              data            valor moeda")
       sorkx.each { |obj| puts(formata_tx_token(obj)) }
     end
 
     # @return [String] texto transacoes withdrawals
     def mtx_withw
-      return unless ops[:v] && novnethw.count.positive?
+      return unless ops[:v] && novnethw.any?
 
       puts("\nwithdrawal validator data            valor")
       sorwx.each { |obj| puts(formata_tx_withw(obj)) }
@@ -346,20 +229,175 @@ module Cns
 
     # @return [String] texto configuracao ajuste dias das transacoes (normais & token)
     def mconfiguracao_ajuste_dias
-      puts("\najuste dias transacoes normais    \n-h=#{sortx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnetht.count.positive?
-      puts("\najuste dias transacoes internas   \n-h=#{sorix.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethi.count.positive?
-      puts("\najuste dias transacoes block      \n-h=#{sorpx.map { |obj| "#{obj[:blockNumber]}:0"     }.join(' ')}") if novnethp.count.positive?
-      puts("\najuste dias transacoes token      \n-h=#{sorkx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethk.count.positive?
-      puts("\najuste dias transacoes withdrawals\n-h=#{sorwx.map { |obj| "#{obj[:withdrawalIndex]}:0" }.join(' ')}") if novnethw.count.positive?
+      puts("\najuste dias transacoes normais    \n-h=#{sortx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnetht.any?
+      puts("\najuste dias transacoes internas   \n-h=#{sorix.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethi.any?
+      puts("\najuste dias transacoes block      \n-h=#{sorpx.map { |obj| "#{obj[:blockNumber]}:0"     }.join(' ')}") if novnethp.any?
+      puts("\najuste dias transacoes token      \n-h=#{sorkx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethk.any?
+      puts("\najuste dias transacoes withdrawals\n-h=#{sorwx.map { |obj| "#{obj[:withdrawalIndex]}:0" }.join(' ')}") if novnethw.any?
     end
 
-    private
+    # @return [Array<String>] lista dos meus enderecos
+    def lax
+      @lax ||= bqd[:wb].map { |obj| obj[:ax] }
+    end
+
+    # @return [Array<Hash>] todos os dados etherscan - saldos & transacoes
+    def bcd
+      @bcd ||= api.account_es(lax).map { |obj| base_bc(obj) }
+    end
+
+    # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
+    def dados
+      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obc| obq[:ax] == obc[:ax] }.first) }
+    end
+
+    def show_all?
+      ops[:t] || false
+    end
+
+    def bqidt
+      @bqidt ||= show_all? ? [] : (bqd[:nt]&.map { |i| i[:itx] } || [])
+    end
+
+    # @return [Array<Integer>] lista indices transacoes novas
+    def idt
+      @idt ||= bcd.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+    end
+
+    def bqidi
+      @bqidi ||= show_all? ? [] : (bqd[:ni]&.map { |i| i[:itx] } || [])
+    end
+
+    # @return [Array<Integer>] lista indices transacoes novas
+    def idi
+      @idi ||= bcd.map { |o| o[:ix].map { |i| i[:itx] } }.flatten - bqidi
+    end
+
+    def bqidp
+      @bqidp ||= show_all? ? [] : (bqd[:np]&.map { |i| i[:itx] } || [])
+    end
+
+    # @return [Array<Integer>] lista indices transacoes novas
+    def idp
+      @idp ||= bcd.map { |o| o[:px].map { |i| i[:itx] } }.flatten - bqidp
+    end
+
+    def bqidw
+      @bqidw ||= show_all? ? [] : (bqd[:nw]&.map { |i| i[:itx] } || [])
+    end
+
+    # @return [Array<Integer>] lista indices transacoes novas
+    def idw
+      @idw ||= bcd.map { |o| o[:wx].map { |i| i[:itx] } }.flatten - bqidw
+    end
+
+    def bqidk
+      @bqidk ||= show_all? ? [] : (bqd[:nk]&.map { |i| i[:itx] } || [])
+    end
+
+    # @return [Array<Integer>] lista indices transacoes novas
+    def idk
+      @idk ||= bcd.map { |o| o[:kx].map { |i| i[:itx] } }.flatten - bqidk
+    end
+
+    # @example (see Apibc#account_es)
+    # @param [Hash] abc account etherscan
+    # @return [Hash] dados etherscan - address, saldo & transacoes
+    def base_bc(abc)
+      acc = abc[:account].downcase
+      {
+        ax: acc,
+        sl: abc[:balance].to_d / (10**18),
+        tx: ftik(acc, api.norml_es(acc)),
+        ix: ftik(acc, api.inter_es(acc)),
+        px: fppp(acc, api.block_es(acc)),
+        wx: fwww(acc, api.withw_es(acc)),
+        kx: ftik(acc, api.token_es(acc))
+      }
+    end
+
+    # @param [Hash] wbq wallet bigquery
+    # @param [Hash] hbc dados etherscan - address, saldo & transacoes
+    # @return [Hash] dados juntos bigquery & etherscan
+    def bq_bc(wbq, hbc)
+      {
+        id: wbq[:id],
+        ax: xbq = wbq[:ax],
+        bs: wbq[:sl],
+        bt: bqd[:nt].select { |ont| ont[:iax].casecmp?(xbq) },
+        bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
+        bp: bqd[:np].select { |onp| onp[:iax].casecmp?(xbq) },
+        bw: bqd[:nw].select { |onw| onw[:iax].casecmp?(xbq) },
+        bk: bqd[:nk].select { |onk| onk[:iax].casecmp?(xbq) },
+        es: hbc[:sl],
+        et: hbc[:tx],
+        ei: hbc[:ix],
+        ep: hbc[:px],
+        ew: hbc[:wx],
+        ek: hbc[:kx]
+      }
+    end
+
+    # @return [Array<Hash>] lista transacoes normais novas
+    def novnetht
+      @novnetht ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    end
+
+    # @return [Array<Hash>] lista transacoes internas novas
+    def novnethi
+      @novnethi ||= bcd.map { |obc| obc[:ix].select { |obj| idi.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    end
+
+    # @return [Array<Hash>] lista transacoes block novas
+    def novnethp
+      @novnethp ||= bcd.map { |obc| obc[:px].select { |obj| idp.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    end
+
+    # @return [Array<Hash>] lista transacoes withdrawals novas
+    def novnethw
+      @novnethw ||= bcd.map { |obc| obc[:wx].select { |obj| idw.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    end
+
+    # @return [Array<Hash>] lista transacoes token novas
+    def novnethk
+      @novnethk ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes normais novas
+    def sortx
+      novnetht.sort_by { |i| -i[:srx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes internas novas
+    def sorix
+      novnethi.sort_by { |i| -i[:srx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes block novas
+    def sorpx
+      novnethp.sort_by { |i| -i[:itx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes withdrawals novas
+    def sorwx
+      novnethw.sort_by { |i| -i[:itx] }
+    end
+
+    # @return [Array<Hash>] lista ordenada transacoes token novas
+    def sorkx
+      novnethk.sort_by { |i| -i[:srx] }
+    end
+
+    def pess(itm)
+      tym = Integer(itm[:timeStamp])
+      itm.merge(srx: tym, timeStamp: Time.at(tym))
+    end
 
     # @param add (see Apibc#norml_es)
     # @param [Array<Hash>] ary lista transacoes/token events
     # @return [Array<Hash>] lista transacoes/token events filtrada
     def ftik(add, ary)
-      ary.map { |o| o.merge(itx: String(o[:hash]), iax: add, value: o[:value].to_d, srx: (tym = Integer(o[:timeStamp])), timeStamp: Time.at(tym)) }
+      ary.map { |o| pess(o).merge(itx: String(o[:hash]), iax: add, value: o[:value].to_d) }
     end
 
     # @param add (see Apibc#norml_es)
