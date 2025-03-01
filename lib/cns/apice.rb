@@ -11,68 +11,129 @@ module Cns
 
   # classe para acesso dados centralized exchanges
   class Apice
+    def initialize
+      @curl = Curl::Easy.new
+      @curl.timeout = 30
+      @curl.connect_timeout = 10
+      @curl.follow_location = true
+      @curl.ssl_verify_peer = true
+    end
+
     # @return [Hash] saldos no bitcoinde
     def account_de
       uri = "#{API[:de]}/account"
-      parse_json(Curl.get(uri) { |obj| obj.headers = hde(uri) }).dig(:data, :balances) || {}
+      run_curl(@curl, uri, headers: hde(uri))
+      parse_json(@curl).dig(:data, :balances) || {}
     rescue Curl::Err::CurlError
       {}
     end
 
     # @return [Array<Hash>] trades bitcoinde
     def trades_de
-      pag = 1
-      ary = []
-      loop do
-        url = "#{API[:de]}/trades?#{URI.encode_www_form(state: 1, page: pag)}"
-        data = parse_json(Curl.get(url) { |obj| obj.headers = hde(url) })
-        ary += data.fetch(:trades, [])
-        break if data[:page][:current] >= data[:page][:last]
-
-        pag += 1
-      end
-      ary
+      pag_de_req("#{API[:de]}/trades", { state: 1 }, :trades)
     rescue Curl::Err::CurlError
-      ary
+      []
     end
 
     # @return [Array<Hash>] depositos uniformizados bitcoinde
     def deposits_de
-      pag = 1
-      ary = []
+      pag_de_req("#{API[:de]}/btc/deposits", { state: 2 }, :deposits) { |i| i.map { |h| deposit_unif(h) } }
+    rescue Curl::Err::CurlError
+      []
+    end
+
+    # @return [Array<Hash>] withdrawals uniformizadas bitcoinde
+    def withdrawals_de
+      pag_de_req("#{API[:de]}/btc/withdrawals", { state: 1 }, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
+    rescue Curl::Err::CurlError
+      []
+    end
+
+    # @return [Hash] saldos kraken
+    def account_us
+      uri = 'Balance'
+      ops = { nonce: nnc }
+      run_curl(@curl, "#{API[:us]}/#{uri}", method: :post, post_data: ops, headers: hus(uri, ops))
+      parse_json(@curl).fetch(:result, {})
+    rescue Curl::Err::CurlError
+      {}
+    end
+
+    # @return [Hash] trades kraken
+    def trades_us
+      pag_us_req('TradesHistory', :trades)
+    rescue Curl::Err::CurlError
+      {}
+    end
+
+    # @return [Hash] ledger kraken
+    def ledger_us
+      pag_us_req('Ledgers', :ledger)
+    rescue Curl::Err::CurlError
+      {}
+    end
+
+    private
+
+    # Generic paginated request handler for Kraken
+    def pag_us_req(uri, key)
+      has = {}
+      ofs = 0
       loop do
-        url = "#{API[:de]}/btc/deposits?#{URI.encode_www_form(state: 2, page: pag)}"
-        data = parse_json(Curl.get(url) { |obj| obj.headers = hde(url) })
-        ary += data.fetch(:deposits, []).map { |has| deposit_unif(has) }
-        break if data[:page][:current] >= data[:page][:last]
+        sleep(ofs.zero? ? 0 : 2)
+        ops = { nonce: nnc, ofs: ofs }
+        run_curl(@curl, "#{API[:us]}/#{uri}", method: :post, post_data: ops, headers: hus(uri, ops))
+        batch = parse_json(@curl).fetch(:result, {}).fetch(key, [])
+        break if batch.empty?
+
+        has.merge!(batch)
+        ofs += batch.size
+      end
+      has
+    end
+
+    # Generic paginated request handler for Bitcoin.de
+    def pag_de_req(base_url, params, key)
+      ary = []
+      pag = 1
+      loop do
+        url = "#{base_url}?#{URI.encode_www_form(params.merge(page: pag))}"
+        run_curl(@curl, url, headers: hde(url))
+        result = parse_json(@curl)
+        batch = result.fetch(key, [])
+        ary.concat(block_given? ? yield(batch) : batch)
+        break if result[:page]&.[](:current)&.>= result[:page]&.[](:last)
 
         pag += 1
       end
       ary
-    rescue Curl::Err::CurlError
-      ary
+    end
+
+    # Configure Curl object for request
+    def run_curl(curl, url, method: :get, post_data: nil, headers: {})
+      curl.reset
+      curl.url = url
+      curl.http(method == :post ? 'POST' : 'GET')
+      curl.headers = headers
+      curl.post_body = URI.encode_www_form(post_data) if post_data
+      curl.perform
+    end
+
+    # Safe JSON parsing with error handling
+    def parse_json(res)
+      JSON.parse(res.body_str, symbolize_names: true)
+    rescue JSON::ParserError
+      {}
+    end
+
+    # @return [Integer] continually-increasing unsigned integer nonce from the current Unix Time
+    def nnc
+      Integer(Float(Time.now) * 1e6)
     end
 
     # @return [Hash] deposito uniformizado bitcoinde
     def deposit_unif(has)
       { add: has[:address], time: Time.parse(has[:created_at]), qt: has[:amount], txid: Integer(has[:deposit_id]) }.merge(tp: 'deposit', moe: 'btc', fee: '0')
-    end
-
-    # @return [Array<Hash>] withdrawals uniformizadas bitcoinde
-    def withdrawals_de
-      ary = []
-      pag = 1
-      loop do
-        url = "#{API[:de]}/btc/withdrawals?#{URI.encode_www_form(state: 1, page: pag)}"
-        data = parse_json(Curl.get(url) { |obj| obj.headers = hde(url) })
-        ary += data.fetch(:withdrawals, []).map { |has| withdrawal_unif(has) }
-        break if data[:page][:current] >= data[:page][:last]
-
-        pag += 1
-      end
-      ary
-    rescue Curl::Err::CurlError
-      ary
     end
 
     # @return [Hash] withdrawal uniformizada bitcoinde
@@ -82,69 +143,10 @@ module Cns
         time: Time.parse(has[:transferred_at]),
         qt: has[:amount],
         fee: has[:network_fee],
-        txid: Integer(has[:withdrawal_id])
-      }.merge(tp: 'withdrawal', moe: 'btc')
-    end
-
-    # @return [Hash] saldos kraken
-    def account_us
-      uri = 'Balance'
-      ops = { nonce: nnc }
-      parse_json(Curl.post("#{API[:us]}/#{uri}", ops) { |hed| hed.headers = hus(uri, ops) }).fetch(:result, {})
-    rescue Curl::Err::CurlError
-      {}
-    end
-
-    # @return [Hash] trades kraken
-    def trades_us
-      uri = 'TradesHistory'
-      has = {}
-      ofs = 0
-      loop do
-        sleep(1)
-        ops = { nonce: nnc, ofs: ofs }
-        result = parse_json(Curl.post("#{API[:us]}/#{uri}", ops) { |hed| hed.headers = hus(uri, ops) }).fetch(:result, {})
-        break if result.fetch(:trades, []).empty?
-
-        has.merge!(result[:trades])
-        ofs += result[:trades].size
-      end
-      has
-    rescue Curl::Err::CurlError
-      has
-    end
-
-    # @return [Hash] ledger kraken
-    def ledger_us
-      uri = 'Ledgers'
-      has = {}
-      ofs = 0
-      loop do
-        sleep(2)
-        ops = { nonce: nnc, ofs: ofs }
-        result = parse_json(Curl.post("#{API[:us]}/#{uri}", ops) { |hed| hed.headers = hus(uri, ops) }).fetch(:result, {})
-        break if result.fetch(:ledger, []).empty?
-
-        has.merge!(result[:ledger])
-        ofs += result[:ledger].size
-      end
-      has
-    rescue Curl::Err::CurlError
-      has
-    end
-
-    private
-
-    # Safe JSON parsing with error handling
-    def parse_json(res)
-      JSON.parse(res.body, symbolize_names: true) || {}
-    rescue JSON::ParserError
-      {}
-    end
-
-    # @return [Integer] continually-increasing unsigned integer nonce from the current Unix Time
-    def nnc
-      Integer(Float(Time.now) * 1e6)
+        txid: Integer(has[:withdrawal_id]),
+        tp: 'withdrawal',
+        moe: 'btc'
+      }
     end
 
     # @param [String] qde query a incluir no pedido HTTP
