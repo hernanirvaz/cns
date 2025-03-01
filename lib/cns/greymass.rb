@@ -25,6 +25,14 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
+    TT = {
+      new: :novneost,
+      sort_key: :itx,
+      format: :formata_ledger,
+      header: "\nsequence num from         to           accao      data              valor moeda",
+      adjustment_key: :itx
+    }
+
     # @return [String] texto carteiras & transacoes & ajuste dias
     def mresumo
       return unless dados.any?
@@ -73,19 +81,21 @@ module Cns
       )
     end
 
-    # @return [String] texto transacoes
+    # @return [String] Display new transactions based on verbose option
     def mtransacoes_novas
-      return unless ops[:v] && novneost.any?
+      ntx = send(TT[:new])
+      return unless ops[:v] && ntx.any?
 
-      puts("\nsequence num from         to           accao      data              valor moeda")
-      soreost.each { |obj| puts(formata_ledger(obj)) }
+      puts(TT[:header])
+      ntx.sort_by { |s| -s[TT[:sort_key]] }.each { |t| puts(send(TT[:format], t)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes
     def mconfiguracao_ajuste_dias
-      return unless novneost.any?
+      ntx = send(TT[:new])
+      return unless ntx.any?
 
-      puts("\nstring ajuste dias\n-h=#{soreost.map { |obj| "#{obj[:itx]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{ntx.map { |t| "#{t[TT[:adjustment_key]]}:0" }.join(' ')}")
     end
 
     # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
@@ -95,7 +105,7 @@ module Cns
 
     # @return [Array<Hash>] todos os dados juntos bigquery & greymass
     def dados
-      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obj| obq[:ax] == obj[:ax] }.first) }
+      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.find { |g| b[:ax] == g[:ax] }) }
     end
 
     def show_all?
@@ -156,10 +166,13 @@ module Cns
     # @return [Array<Hash>] lista transacoes filtrada
     def peost(add, ary)
       ary.map do |omp|
+        act = omp[:action_trace][:act]
+        adt = act[:data]
+        qtd = adt[:quantity].to_s
         omp.merge(
-          name: (act = omp[:action_trace][:act])[:name],
-          from: (adt = act[:data])[:from],
-          quantity: (qtd = adt[:quantity].to_s).to_d,
+          name: act[:name],
+          from: adt[:from],
+          quantity: qtd.to_d,
           account: act[:account],
           to: adt[:to],
           memo: String(adt[:memo]).gsub(/\p{C}/, ''), # remove Non-Printable Characters

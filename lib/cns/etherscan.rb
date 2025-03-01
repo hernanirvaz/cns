@@ -16,6 +16,44 @@ module Cns
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :ops
 
+    TT = {
+      normal: {
+        new: :novnetht,
+        sort_key: :srx,
+        format: :formata_tx_ti,
+        header: "\ntx normal                     from            to              data         valor",
+        adjustment_key: :hash
+      },
+      internal: {
+        new: :novnethi,
+        sort_key: :srx,
+        format: :formata_tx_ti,
+        header: "\ntx intern                     from            to              data         valor",
+        adjustment_key: :hash
+      },
+      block: {
+        new: :novnethp,
+        sort_key: :itx,
+        format: :formata_tx_block,
+        header: "\ntx block  address                                   data                   valor",
+        adjustment_key: :blockNumber
+      },
+      token: {
+        new: :novnethk,
+        sort_key: :srx,
+        format: :formata_tx_token,
+        header: "\ntx token             from            to              data            valor moeda",
+        adjustment_key: :hash
+      },
+      withdrawal: {
+        new: :novnethw,
+        sort_key: :itx,
+        format: :formata_tx_withw,
+        header: "\nwithdrawal validator data            valor",
+        adjustment_key: :withdrawalIndex
+      }
+    }
+
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
     # @option pop [Hash] :h ({}) configuracao dias ajuste reposicionamento temporal
@@ -33,11 +71,7 @@ module Cns
 
       puts("\nid     address                                        etherscan      bigquery")
       dados.each { |obj| puts(formata_carteira_simples(obj)) }
-      mtx_norml
-      mtx_inter
-      mtx_block
-      mtx_token
-      mtx_withw
+      mtransacoes_novas
       mconfiguracao_ajuste_dias
     end
 
@@ -47,11 +81,7 @@ module Cns
 
       puts("\nid     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw")
       dados.each { |obj| puts(formata_carteira(obj)) }
-      mtx_norml
-      mtx_inter
-      mtx_block
-      mtx_token
-      mtx_withw
+      mtransacoes_novas
       mconfiguracao_ajuste_dias
     end
 
@@ -133,7 +163,7 @@ module Cns
       max -= 2
       ini = Integer(max / 2)
       inf = max % 2
-      hid = bqd[:wb].select { |obj| obj[:ax] == add }.first
+      hid = bqd[:wb].find { |obj| obj[:ax] == add }
       ndd = hid ? "#{hid[:id]}-#{add}" : add
       "#{ndd[0, ini]}..#{ndd[-inf - ini..]}"
     end
@@ -187,53 +217,25 @@ module Cns
       format('%<bn>10i %<vi>9i %<dt>10.10s %<vl>10.6f', bn: htx[:withdrawalIndex], vi: htx[:validatorIndex], dt: htx[:timeStamp].strftime('%F'), vl: htx[:amount] / (10**9))
     end
 
-    # @return [String] texto transacoes normais
-    def mtx_norml
-      return unless ops[:v] && novnetht.any?
+    # @return [String] Display all new transactions based on verbose option
+    def mtransacoes_novas
+      TT.each do |_, cfg|
+        ntx = send(cfg[:new])
+        next unless ops[:v] && ntx.any?
 
-      puts("\ntx normal                     from            to              data         valor")
-      sortx.each { |obj| puts(formata_tx_ti(obj)) }
+        puts(cfg[:header])
+        ntx.sort_by { |s| -s[cfg[:sort_key]] }.each { |t| puts(send(cfg[:format], t)) }
+      end
     end
 
-    # @return [String] texto transacoes internas
-    def mtx_inter
-      return unless ops[:v] && novnethi.any?
-
-      puts("\ntx intern                     from            to              data         valor")
-      sorix.each { |obj| puts(formata_tx_ti(obj)) }
-    end
-
-    # @return [String] texto transacoes block
-    def mtx_block
-      return unless ops[:v] && novnethp.any?
-
-      puts("\ntx block  address                                   data                   valor")
-      sorpx.each { |obj| puts(formata_tx_block(obj)) }
-    end
-
-    # @return [String] texto transacoes token
-    def mtx_token
-      return unless ops[:v] && novnethk.any?
-
-      puts("\ntx token             from            to              data            valor moeda")
-      sorkx.each { |obj| puts(formata_tx_token(obj)) }
-    end
-
-    # @return [String] texto transacoes withdrawals
-    def mtx_withw
-      return unless ops[:v] && novnethw.any?
-
-      puts("\nwithdrawal validator data            valor")
-      sorwx.each { |obj| puts(formata_tx_withw(obj)) }
-    end
-
-    # @return [String] texto configuracao ajuste dias das transacoes (normais & token)
+    # @return [String] Configuration text for adjusting transaction days
     def mconfiguracao_ajuste_dias
-      puts("\najuste dias transacoes normais    \n-h=#{sortx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnetht.any?
-      puts("\najuste dias transacoes internas   \n-h=#{sorix.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethi.any?
-      puts("\najuste dias transacoes block      \n-h=#{sorpx.map { |obj| "#{obj[:blockNumber]}:0"     }.join(' ')}") if novnethp.any?
-      puts("\najuste dias transacoes token      \n-h=#{sorkx.map { |obj| "#{obj[:hash]}:0"            }.join(' ')}") if novnethk.any?
-      puts("\najuste dias transacoes withdrawals\n-h=#{sorwx.map { |obj| "#{obj[:withdrawalIndex]}:0" }.join(' ')}") if novnethw.any?
+      TT.each do |typ, cfg|
+        ntx = send(cfg[:new])
+        next unless ntx.any?
+
+        puts("\najuste dias transacoes #{typ}\n-h=#{ntx.map { |t| "#{t[cfg[:adjustment_key]]}:0" }.join(' ')}")
+      end
     end
 
     # @return [Array<String>] lista dos meus enderecos
@@ -248,7 +250,7 @@ module Cns
 
     # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
     def dados
-      @dados ||= bqd[:wb].map { |obq| bq_bc(obq, bcd.select { |obc| obq[:ax] == obc[:ax] }.first) }
+      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.find { |e| b[:ax] == e[:ax] }) }
     end
 
     def show_all?
@@ -320,9 +322,10 @@ module Cns
     # @param [Hash] hbc dados etherscan - address, saldo & transacoes
     # @return [Hash] dados juntos bigquery & etherscan
     def bq_bc(wbq, hbc)
+      xbq = wbq[:ax]
       {
         id: wbq[:id],
-        ax: xbq = wbq[:ax],
+        ax: xbq,
         bs: wbq[:sl],
         bt: bqd[:nt].select { |ont| ont[:iax].casecmp?(xbq) },
         bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
