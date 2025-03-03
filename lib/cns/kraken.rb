@@ -27,7 +27,7 @@ module Cns
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
     def exd
-      @exd ||= { sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us) }
+      @exd ||= {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
@@ -40,7 +40,7 @@ module Cns
       mledger
       return if novcust.empty?
 
-      puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
+      puts("\nstring ajuste dias dos trades\n-h=#{novcust.sort_by { |_, v| -v[:srx] }.map { |k, _v| "#{k}:0" }.join(' ')}")
     end
 
     private
@@ -139,7 +139,7 @@ module Cns
       return unless ops[:v] && novcust.any?
 
       puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
-      novcust.sort_by { |_, v| -v[:srx] }.each { |i, t| puts(formata_trades(i, t)) }
+      novcust.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(formata_trades(k, t)) }
     end
 
     # @return [String] texto transacoes ledger
@@ -147,27 +147,30 @@ module Cns
       return unless ops[:v] && novcusl.any?
 
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")
-      novcusl.sort_by { |_, v| -v[:srx] }.each { |i, t| puts(formata_ledger(i, t)) }
+      novcusl.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(formata_ledger(k, t)) }
     end
 
-    # Processa os trades para garantir que as datas estejam no formato correto
+    # Processa accounts para garantir formato correto
     def pusa(itm)
       itm.select { |k, _| EM.include?(k) }.transform_values { |v| v.to_d }
     end
 
-    def puss(itm)
-      tym = Integer(itm[:time])
-      itm.merge(srx: tym, time: Time.at(tym))
+    # Processa campos comuns para garantir formato correto
+    def pusk(itm)
+      itm.map do |k, v|
+        t = Integer(v[:time])
+        [k, v.merge(txid: k.to_s, srx: t, time: Time.at(t))]
+      end.to_h
     end
 
-    # Processa os trades para garantir que as datas estejam no formato correto
+    # Processa trades para garantir formato correto
     def pust(itm)
-      itm.transform_values { |t| puss(t).merge(pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
+      pusk(itm).transform_values { |t| t.merge(pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
     end
 
-    # Processa os ledger entries para garantir que as datas estejam no formato correto
+    # Processa ledgers para garantir formato correto
     def pusl(itm)
-      itm.transform_values { |t| puss(t).merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
+      pusk(itm).transform_values { |t| t.merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
     end
   end
 end

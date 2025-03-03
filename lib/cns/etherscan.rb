@@ -19,38 +19,38 @@ module Cns
     TT = {
       normal: {
         new: :novnetht,
-        sort_key: :srx,
         format: :formata_tx_ti,
         header: "\ntx normal                     from            to              data         valor",
-        adjustment_key: :hash
+        sork: :srx,
+        adjk: :hash
       },
       internal: {
         new: :novnethi,
-        sort_key: :srx,
         format: :formata_tx_ti,
         header: "\ntx intern                     from            to              data         valor",
-        adjustment_key: :hash
+        sork: :srx,
+        adjk: :hash
       },
       block: {
         new: :novnethp,
-        sort_key: :itx,
         format: :formata_tx_block,
         header: "\ntx block  address                                   data                   valor",
-        adjustment_key: :blockNumber
+        sork: :itx,
+        adjk: :blockNumber
       },
       token: {
         new: :novnethk,
-        sort_key: :srx,
         format: :formata_tx_token,
         header: "\ntx token             from            to              data            valor moeda",
-        adjustment_key: :hash
+        sork: :srx,
+        adjk: :hash
       },
       withdrawal: {
         new: :novnethw,
-        sort_key: :itx,
         format: :formata_tx_withw,
         header: "\nwithdrawal validator data            valor",
-        adjustment_key: :withdrawalIndex
+        sork: :itx,
+        adjk: :withdrawalIndex
       }
     }
 
@@ -224,7 +224,7 @@ module Cns
         next unless ops[:v] && ntx.any?
 
         puts(cfg[:header])
-        ntx.sort_by { |s| -s[cfg[:sort_key]] }.each { |t| puts(send(cfg[:format], t)) }
+        ntx.sort_by { |s| -s[cfg[:sork]] }.each { |t| puts(send(cfg[:format], t)) }
       end
     end
 
@@ -234,7 +234,7 @@ module Cns
         ntx = send(cfg[:new])
         next unless ntx.any?
 
-        puts("\najuste dias transacoes #{typ}\n-h=#{ntx.map { |t| "#{t[cfg[:adjustment_key]]}:0" }.join(' ')}")
+        puts("\najuste dias transacoes #{typ}\n-h=#{ntx.sort_by { |s| -s[cfg[:sork]] }.map { |t| "#{t[cfg[:adjk]]}:0" }.join(' ')}")
       end
     end
 
@@ -364,31 +364,6 @@ module Cns
     # @return [Array<Hash>] lista transacoes token novas
     def novnethk
       @novnethk ||= bcd.map { |obc| obc[:kx].select { |obj| idk.include?(obj[:itx]) } }.flatten.uniq { |itm| itm[:itx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes normais novas
-    def sortx
-      novnetht.sort_by { |i| -i[:srx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes internas novas
-    def sorix
-      novnethi.sort_by { |i| -i[:srx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes block novas
-    def sorpx
-      novnethp.sort_by { |i| -i[:itx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes withdrawals novas
-    def sorwx
-      novnethw.sort_by { |i| -i[:itx] }
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes token novas
-    def sorkx
-      novnethk.sort_by { |i| -i[:srx] }
     end
 
     def pess(itm)

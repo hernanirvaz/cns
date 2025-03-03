@@ -89,7 +89,7 @@ module Cns
     def connection(base_url)
       Faraday.new(base_url) do |conn|
         conn.request(:json) # Automatically encodes body as JSON
-        conn.headers = { content_type: 'application/json', accept: 'application/json', user_agent: 'blockchain-api-client' }
+        conn.headers = {content_type: 'application/json', accept: 'application/json', user_agent: 'blockchain-api-client'}
         conn.options.timeout = 30
         conn.options.open_timeout = 10
         conn.adapter(Faraday.default_adapter)
@@ -98,10 +98,10 @@ module Cns
 
     # Generic Etherscan API request handler
     def etherscan_req(action, address, page = 1, params = {})
-      params = { module: 'account', action: action, address: address, page: page, apikey: ENV.fetch('ETHERSCAN_API_KEY') }.merge(params)
+      params = {module: 'account', action: action, address: address, page: page, apikey: ENV.fetch('ETHERSCAN_API_KEY')}.merge(params)
       parse_json(@etherscan_conn.get('/api', params))
     rescue Faraday::Error
-      { status: '0' }
+      {status: '0'}
     end
 
     # Generic method for paginated Etherscan requests
@@ -127,7 +127,7 @@ module Cns
 
     # Generic Greymass API error
     def gm_erro
-      { core_liquid_balance: 0, total_resources: { net_weight: 0, cpu_weight: 0 } }
+      {core_liquid_balance: 0, total_resources: {net_weight: 0, cpu_weight: 0}}
     end
 
     # Generic Greymass API request handler

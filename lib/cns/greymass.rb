@@ -27,10 +27,10 @@ module Cns
 
     TT = {
       new: :novneost,
-      sort_key: :itx,
       format: :formata_ledger,
       header: "\nsequence num from         to           accao      data              valor moeda",
-      adjustment_key: :itx
+      sork: :itx,
+      adjk: :itx
     }
 
     # @return [String] texto carteiras & transacoes & ajuste dias
@@ -87,7 +87,7 @@ module Cns
       return unless ops[:v] && ntx.any?
 
       puts(TT[:header])
-      ntx.sort_by { |s| -s[TT[:sort_key]] }.each { |t| puts(send(TT[:format], t)) }
+      ntx.sort_by { |s| -s[TT[:sork]] }.each { |t| puts(send(TT[:format], t)) }
     end
 
     # @return [String] texto configuracao ajuste dias das transacoes
@@ -95,7 +95,7 @@ module Cns
       ntx = send(TT[:new])
       return unless ntx.any?
 
-      puts("\nstring ajuste dias\n-h=#{ntx.map { |t| "#{t[TT[:adjustment_key]]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{ntx.sort_by { |s| -s[TT[:sork]] }.map { |t| "#{t[TT[:adjk]]}:0" }.join(' ')}")
     end
 
     # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
@@ -126,7 +126,7 @@ module Cns
     # @return [Hash] dados greymass - address, saldo & transacoes
     def base_bc(wbq)
       xbq = wbq[:ax]
-      { ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq)) }
+      {ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq))}
     end
 
     # @param wbq (see base_bc)
@@ -147,11 +147,6 @@ module Cns
     # @return [Array<Hash>] lista transacoes novas
     def novneost
       @novneost ||= bcd.map { |obc| obc[:tx].select { |obj| idt.include?(obj[:itx]) } }.flatten
-    end
-
-    # @return [Array<Hash>] lista ordenada transacoes
-    def soreost
-      novneost.sort_by { |i| -i[:itx] }
     end
 
     # @return [Array<BigDecimal>] lista recursos - liquido, net, spu

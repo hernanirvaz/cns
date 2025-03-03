@@ -27,7 +27,7 @@ module Cns
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
     def exd
-      @exd ||= { sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de) }
+      @exd ||= {sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de)}
     end
 
     # @return [String] texto saldos & transacoes & ajuste dias
@@ -40,7 +40,7 @@ module Cns
       mledger
       return if novcdet.empty?
 
-      puts("\nstring ajuste dias dos trades\n-h=#{kyt.map { |obj| "#{obj}:0" }.join(' ')}")
+      puts("\nstring ajuste dias dos trades\n-h=#{novcdet.sort_by { |i| -i[:srx] }.map { |o| "#{o[:trade_id]}:0" }.join(' ')}")
     end
 
     private
@@ -102,8 +102,8 @@ module Cns
         dp: htx[:trade_marked_as_paid_at].strftime('%F'),
         ty: htx[:type],
         mo: htx[:trading_pair],
-        vl: htx[:amount_currency_to_trade],
-        co: htx[:volume_currency_to_pay]
+        vl: htx[:btc],
+        co: htx[:eur]
       )
     end
 
@@ -116,7 +116,7 @@ module Cns
         dt: hlx[:time].strftime('%F %T'),
         ty: hlx[:tp],
         mo: hlx[:moe],
-        pr: hlx[:qt],
+        pr: hlx[:qtd],
         vl: hlx[:fee]
       )
     end
@@ -136,7 +136,7 @@ module Cns
     def mtrades
       return unless ops[:v] && novcdet.any?
 
-      puts("\ntrades data       hora     dt criacao tipo  par                     qtd      eur")
+      puts("\ntrades data       hora     dt criacao tipo  par                     btc      eur")
       novcdet.sort_by { |i| -i[:srx] }.each { |o| puts(formata_trades(o)) }
     end
 
@@ -168,16 +168,18 @@ module Cns
       itm.map do |t|
         pdes(:successfully_finished_at, t).merge(
           trade_marked_as_paid_at: ptm(t[:trade_marked_as_paid_at]),
-          amount_currency_to_trade: t[:amount_currency_to_trade].to_d,
-          volume_currency_to_pay: t[:volume_currency_to_pay].to_d,
+          username: t[:trading_partner_information][:username],
+          btc: t[:type] == 'buy' ? t[:amount_currency_to_trade_after_fee].to_d : -1 * t[:amount_currency_to_trade].to_d,
+          eur: t[:volume_currency_to_pay_after_fee].to_d,
           trading_pair: t[:trading_pair].upcase
         )
       end
     end
 
     # Processa os ledger entries para garantir que as datas estejam no formato correto
+
     def pdel(itm)
-      itm.map { |t| pdes(:time, t).merge(qt: t[:qt].to_d, fee: t[:fee].to_d, moe: t[:moe].upcase) }
+      itm.map { |t| pdes(:time, t).merge(qtd: (t[:tp] == 'withdrawal' ? -1 : 1) * t[:qt].to_d, nxid: t[:txid], fee: t[:fee].to_d, moe: t[:moe].upcase) }
     end
   end
 end
