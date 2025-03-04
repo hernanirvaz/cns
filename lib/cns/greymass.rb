@@ -95,28 +95,7 @@ module Cns
       )
     end
 
-    # @param [Hash] wbq wallet bigquery
-    # @return [Hash] dados greymass - address, saldo & transacoes
-    def base_bc(wbq)
-      xbq = wbq[:ax]
-      {ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq))}
-    end
-
-    # @param wbq (see base_bc)
-    # @param [Hash] hbc dados greymass - address, saldo & transacoes
-    # @return [Hash] dados juntos bigquery & greymass
-    def bq_bc(wbq, hbc)
-      xbq = wbq[:ax]
-      {
-        id: wbq[:id],
-        ax: xbq,
-        bs: wbq[:sl],
-        bt: bqd[:nt].select { |o| o[:iax] == xbq },
-        es: hbc[:sl],
-        et: hbc[:tx]
-      }
-    end
-
+    # @return [Boolean] mostra todas/novas transacoes
     def show_all?
       ops[:t] || false
     end
@@ -133,11 +112,11 @@ module Cns
     # @param [Array<Hash>] ary lista transacoes
     # @return [Array<Hash>] lista transacoes filtrada
     def peost(add, ary)
-      ary.map do |omp|
-        act = omp[:action_trace][:act]
+      ary.map do |t|
+        act = t[:action_trace][:act]
         adt = act[:data]
         qtd = adt[:quantity].to_s
-        omp.merge(
+        t.merge(
           name: act[:name],
           from: adt[:from],
           quantity: qtd.to_d,
@@ -145,36 +124,58 @@ module Cns
           to: adt[:to],
           memo: String(adt[:memo]).gsub(/\p{C}/, ''), # remove Non-Printable Characters
           moe: qtd[/[[:upper:]]+/],
-          itx: omp[:global_action_seq],
+          itx: t[:global_action_seq],
           iax: add,
-          block_time: Time.parse(omp[:block_time])
+          block_time: Time.parse(t[:block_time])
         )
       end
     end
 
+    # @param [Hash] wbq wallet bigquery
+    # @return [Hash] dados greymass - address, saldo & transacoes
+    def bsgm(wbq)
+      xbq = wbq[:ax]
+      {ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq))}
+    end
+
+    # @param wbq (see bsgm)
+    # @param [Hash] hgm dados greymass - address, saldo & transacoes
+    # @return [Hash] dados juntos bigquery & greymass
+    def bqgm(wbq, hgm)
+      xbq = wbq[:ax]
+      {
+        id: wbq[:id],
+        ax: xbq,
+        bs: wbq[:sl],
+        bt: bqd[:nt].select { |o| o[:iax] == xbq },
+        es: hgm[:sl],
+        et: hgm[:tx]
+      }
+    end
+
     # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
-    def bcd
-      @bcd ||= bqd[:wb].map { |o| base_bc(o) }
+    def gmd
+      @gmd ||= bqd[:wb].map { |o| bsgm(o) }
     end
 
     # @return [Array<Hash>] todos os dados juntos bigquery & greymass
     def dados
-      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.find { |g| b[:ax] == g[:ax] }) }
+      @dados ||= bqd[:wb].map { |b| bqgm(b, gmd.find { |g| b[:ax] == g[:ax] }) }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
     def bqidt
-      @bqidt ||= show_all? ? [] : (bqd[:nt]&.map { |i| i[:itx] } || [])
+      @bqidt ||= show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes novas (greymass - bigquery)
     def idt
-      @idt ||= bcd.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+      @idt ||= gmd.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
     end
 
     # @return [Array<Hash>] lista transacoes novas
     def novneost
-      @novneost ||= bcd.map { |obc| obc[:tx].select { |o| idt.include?(o[:itx]) } }.flatten
+      @novneost ||= gmd.map { |t| t[:tx].select { |o| idt.include?(o[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
   end
 end

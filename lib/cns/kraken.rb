@@ -23,15 +23,10 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
-    def exd
-      @exd ||= {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
-    end
-
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
-      exd[:sl].sort.each { |key, val| puts(fos(key, val)) }
+      usd[:sl].sort.each { |key, val| puts(fos(key, val)) }
       mtotais
 
       mtrades
@@ -41,13 +36,18 @@ module Cns
       puts("\nstring ajuste dias dos trades\n-h=#{novcust.sort_by { |_, v| -v[:srx] }.map { |k, _v| "#{k}:0" }.join(' ')}")
     end
 
+    # @return [Hash] ledgers exchange kraken
+    def uskl
+      usd[:kl]
+    end
+
     private
 
     # mosta contadores transacoes
     def mtotais
-      vkt = exd[:kt].count
+      vkt = usd[:kt].count
       vnt = bqd[:nt].count
-      vkl = exd[:kl].count
+      vkl = usd[:kl].count
       vnl = bqd[:nl].count
 
       puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vkt, b: vnt, o: vkt == vnt ? 'OK' : 'NOK')}")
@@ -115,6 +115,7 @@ module Cns
       )
     end
 
+    # @return [Boolean] mostra todas/novas transacoes
     def show_all?
       ops[:t] || false
     end
@@ -146,34 +147,39 @@ module Cns
       pusk(hlx).transform_values { |t| t.merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
     end
 
+    # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
+    def usd
+      @usd ||= {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
+    end
+
     # @return [Array<Symbol>] indices trades bigquery
     def bqkyt
-      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid].to_sym } || [])
+      @bqkyt ||= show_all? ? [] : bqd[:nt].map { |t| t[:txid].to_sym }
     end
 
     # @return [Array<Symbol>] indices ledger bigquery
     def bqkyl
-      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid].to_sym } || [])
+      @bqkyl ||= show_all? ? [] : bqd[:nl].map { |l| l[:txid].to_sym }
     end
 
     # @return [Array<Symbol>] lista txid trades novos
     def kyt
-      @kyt ||= exd[:kt].keys - bqkyt
+      @kyt ||= usd[:kt].keys - bqkyt
     end
 
     # @return [Array<Symbol>] lista txid ledger novos
     def kyl
-      @kyl ||= exd[:kl].keys - bqkyl
+      @kyl ||= usd[:kl].keys - bqkyl
     end
 
     # @return [Hash] trades kraken novos
     def novcust
-      @novcust ||= exd[:kt].slice(*kyt)
+      @novcust ||= usd[:kt].slice(*kyt)
     end
 
     # @return [Hash] ledger kraken novos
     def novcusl
-      @novcusl ||= exd[:kl].slice(*kyl)
+      @novcusl ||= usd[:kl].slice(*kyl)
     end
   end
 end

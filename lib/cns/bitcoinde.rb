@@ -23,15 +23,10 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
-    def exd
-      @exd ||= {sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de)}
-    end
-
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
-      exd[:sl].sort.each { |k, v| puts(fos(k, v)) }
+      ded[:sl].sort.each { |k, v| puts(fos(k, v)) }
       mtotais
 
       mtrades
@@ -45,9 +40,9 @@ module Cns
 
     # mosta contadores transacoes
     def mtotais
-      vtt = exd[:tt].count
+      vtt = ded[:tt].count
       vnt = bqd[:nt].count
-      vtl = exd[:tl].count
+      vtl = ded[:tl].count
       vnl = bqd[:nl].count
 
       puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
@@ -114,6 +109,7 @@ module Cns
       )
     end
 
+    # @return [Boolean] mostra todas/novas transacoes
     def show_all?
       ops[:t] || false
     end
@@ -157,34 +153,39 @@ module Cns
       hlx.map { |t| pdes(:time, t).merge(qtd: (t[:tp] == 'withdrawal' ? -1 : 1) * t[:qt].to_d, nxid: t[:txid], fee: t[:fee].to_d, moe: t[:moe].upcase) }
     end
 
+    # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
+    def ded
+      @ded ||= {sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de)}
+    end
+
     # @return [Array<String>] indices trades bigquery
     def bqkyt
-      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid] } || [])
+      @bqkyt ||= show_all? ? [] : bqd[:nt].map { |t| t[:txid] }
     end
 
     # @return [Array<Integer>] indices ledger bigquery
     def bqkyl
-      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid] } || [])
+      @bqkyl ||= show_all? ? [] : bqd[:nl].map { |l| l[:txid] }
     end
 
     # @return [Array<String>] lista txid trades novos
     def kyt
-      @kyt ||= exd[:tt].map { |t| t[:trade_id] } - bqkyt
+      @kyt ||= ded[:tt].map { |t| t[:trade_id] } - bqkyt
     end
 
     # @return [Array<Integer>] lista txid ledger novos
     def kyl
-      @kyl ||= exd[:tl].map { |t| t[:txid] } - bqkyl
+      @kyl ||= ded[:tl].map { |t| t[:txid] } - bqkyl
     end
 
     # @return [Array<Hash>] lista trades bitcoinde novos
     def novcdet
-      @novcdet ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
+      @novcdet ||= ded[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
     end
 
     # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
     def novcdel
-      @novcdel ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
+      @novcdel ||= ded[:tl].select { |obj| kyl.include?(obj[:txid]) }
     end
   end
 end

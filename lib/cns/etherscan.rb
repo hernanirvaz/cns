@@ -84,22 +84,22 @@ module Cns
 
     # mosta transacoes novas
     def mtransacoes_novas
-      TT.each do |_, cfg|
-        ntx = send(cfg[:new])
+      TT.each do |_, c|
+        ntx = send(c[:new])
         next unless ops[:v] && ntx.any?
 
-        puts(cfg[:header])
-        ntx.sort_by { |s| -s[cfg[:sork]] }.each { |t| puts(send(cfg[:format], t)) }
+        puts(c[:header])
+        ntx.sort_by { |s| -s[c[:sork]] }.each { |t| puts(send(c[:format], t)) }
       end
     end
 
     # mostra configuration text for adjusting days
     def mconfiguracao_ajuste_dias
-      TT.each do |typ, cfg|
-        ntx = send(cfg[:new])
+      TT.each do |p, c|
+        ntx = send(c[:new])
         next unless ntx.any?
 
-        puts("\najuste dias transacoes #{typ}\n-h=#{ntx.sort_by { |s| -s[cfg[:sork]] }.map { |t| "#{t[cfg[:adjk]]}:0" }.join(' ')}")
+        puts("\najuste dias transacoes #{p}\n-h=#{ntx.sort_by { |s| -s[c[:sork]] }.map { |t| "#{t[c[:adjk]]}:0" }.join(' ')}")
       end
     end
 
@@ -226,44 +226,7 @@ module Cns
       format('%<bn>10i %<vi>9i %<dt>10.10s %<vl>10.6f', bn: hwx[:withdrawalIndex], vi: hwx[:validatorIndex], dt: hwx[:timeStamp].strftime('%F'), vl: hwx[:amount] / (10**9))
     end
 
-    # @param [Hash] abc account etherscan
-    # @return [Hash] dados etherscan - address, saldo & transacoes
-    def base_bc(abc)
-      acc = abc[:account].downcase
-      {
-        ax: acc,
-        sl: abc[:balance].to_d / (10**18),
-        tx: ftik(acc, api.norml_es(acc)),
-        ix: ftik(acc, api.inter_es(acc)),
-        px: fppp(acc, api.block_es(acc)),
-        wx: fwww(acc, api.withw_es(acc)),
-        kx: ftik(acc, api.token_es(acc))
-      }
-    end
-
-    # @param [Hash] wbq wallet bigquery
-    # @param [Hash] hbc dados etherscan - address, saldo & transacoes
-    # @return [Hash] dados juntos bigquery & etherscan
-    def bq_bc(wbq, hbc)
-      xbq = wbq[:ax]
-      {
-        id: wbq[:id],
-        ax: xbq,
-        bs: wbq[:sl],
-        bt: bqd[:nt].select { |ont| ont[:iax].casecmp?(xbq) },
-        bi: bqd[:ni].select { |oni| oni[:iax].casecmp?(xbq) },
-        bp: bqd[:np].select { |onp| onp[:iax].casecmp?(xbq) },
-        bw: bqd[:nw].select { |onw| onw[:iax].casecmp?(xbq) },
-        bk: bqd[:nk].select { |onk| onk[:iax].casecmp?(xbq) },
-        es: hbc[:sl],
-        et: hbc[:tx],
-        ei: hbc[:ix],
-        ep: hbc[:px],
-        ew: hbc[:wx],
-        ek: hbc[:kx]
-      }
-    end
-
+    # @return [Boolean] mostra todas/novas transacoes
     def show_all?
       ops[:t] || false
     end
@@ -296,94 +259,132 @@ module Cns
       ary.map { |o| o.merge(itx: Integer(o[:withdrawalIndex]), iax: add, amount: o[:amount].to_d, timeStamp: Time.at(Integer(o[:timestamp]))) }
     end
 
+    # @param [Hash] aes account etherscan
+    # @return [Hash] dados etherscan - address, saldo & transacoes
+    def bses(aes)
+      acc = aes[:account].downcase
+      {
+        ax: acc,
+        sl: aes[:balance].to_d / (10**18),
+        tx: ftik(acc, api.norml_es(acc)),
+        ix: ftik(acc, api.inter_es(acc)),
+        px: fppp(acc, api.block_es(acc)),
+        wx: fwww(acc, api.withw_es(acc)),
+        kx: ftik(acc, api.token_es(acc))
+      }
+    end
+
+    # @param [Hash] wbq wallet bigquery
+    # @param [Hash] hes dados etherscan - address, saldo & transacoes
+    # @return [Hash] dados juntos bigquery & etherscan
+    def bqes(wbq, hes)
+      xbq = wbq[:ax]
+      {
+        id: wbq[:id],
+        ax: xbq,
+        bs: wbq[:sl],
+        bt: bqd[:nt].select { |t| t[:iax].casecmp?(xbq) },
+        bi: bqd[:ni].select { |i| i[:iax].casecmp?(xbq) },
+        bp: bqd[:np].select { |p| p[:iax].casecmp?(xbq) },
+        bw: bqd[:nw].select { |w| w[:iax].casecmp?(xbq) },
+        bk: bqd[:nk].select { |k| k[:iax].casecmp?(xbq) },
+        es: hes[:sl],
+        et: hes[:tx],
+        ei: hes[:ix],
+        ep: hes[:px],
+        ew: hes[:wx],
+        ek: hes[:kx]
+      }
+    end
+
     # @return [Array<String>] lista enderecos
     def lax
       @lax ||= bqd[:wb].map { |o| o[:ax] }
     end
 
     # @return [Array<Hash>] todos os dados etherscan - saldos & transacoes
-    def bcd
-      @bcd ||= api.account_es(lax).map { |o| base_bc(o) }
+    def esd
+      @esd ||= api.account_es(lax).map { |o| bses(o) }
     end
 
     # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
     def dados
-      @dados ||= bqd[:wb].map { |b| bq_bc(b, bcd.find { |e| b[:ax] == e[:ax] }) }
+      @dados ||= bqd[:wb].map { |b| bqes(b, esd.find { |e| b[:ax] == e[:ax] }) }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
     def bqidt
-      @bqidt ||= show_all? ? [] : (bqd[:nt]&.map { |i| i[:itx] } || [])
+      @bqidt ||= show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
     def bqidi
-      @bqidi ||= show_all? ? [] : (bqd[:ni]&.map { |i| i[:itx] } || [])
+      @bqidi ||= show_all? ? [] : bqd[:ni].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
     def bqidp
-      @bqidp ||= show_all? ? [] : (bqd[:np]&.map { |i| i[:itx] } || [])
+      @bqidp ||= show_all? ? [] : bqd[:np].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
     def bqidw
-      @bqidw ||= show_all? ? [] : (bqd[:nw]&.map { |i| i[:itx] } || [])
+      @bqidw ||= show_all? ? [] : bqd[:nw].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
     def bqidk
-      @bqidk ||= show_all? ? [] : (bqd[:nk]&.map { |i| i[:itx] } || [])
+      @bqidk ||= show_all? ? [] : bqd[:nk].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
     def idt
-      @idt ||= bcd.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+      @idt ||= esd.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
     def idi
-      @idi ||= bcd.map { |o| o[:ix].map { |i| i[:itx] } }.flatten - bqidi
+      @idi ||= esd.map { |o| o[:ix].map { |i| i[:itx] } }.flatten - bqidi
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
     def idp
-      @idp ||= bcd.map { |o| o[:px].map { |i| i[:itx] } }.flatten - bqidp
+      @idp ||= esd.map { |o| o[:px].map { |i| i[:itx] } }.flatten - bqidp
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
     def idw
-      @idw ||= bcd.map { |o| o[:wx].map { |i| i[:itx] } }.flatten - bqidw
+      @idw ||= esd.map { |o| o[:wx].map { |i| i[:itx] } }.flatten - bqidw
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
     def idk
-      @idk ||= bcd.map { |o| o[:kx].map { |i| i[:itx] } }.flatten - bqidk
+      @idk ||= esd.map { |o| o[:kx].map { |i| i[:itx] } }.flatten - bqidk
     end
 
     # @return [Array<Hash>] lista transacoes normais novas
     def novnetht
-      @novnetht ||= bcd.map { |o| o[:tx].select { |t| idt.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      @novnetht ||= esd.map { |o| o[:tx].select { |t| idt.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes internas novas
     def novnethi
-      @novnethi ||= bcd.map { |o| o[:ix].select { |t| idi.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      @novnethi ||= esd.map { |o| o[:ix].select { |t| idi.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes block novas
     def novnethp
-      @novnethp ||= bcd.map { |o| o[:px].select { |t| idp.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      @novnethp ||= esd.map { |o| o[:px].select { |t| idp.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes withdrawals novas
     def novnethw
-      @novnethw ||= bcd.map { |o| o[:wx].select { |t| idw.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      @novnethw ||= esd.map { |o| o[:wx].select { |t| idw.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # @return [Array<Hash>] lista transacoes token novas
     def novnethk
-      @novnethk ||= bcd.map { |o| o[:kx].select { |t| idk.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      @novnethk ||= esd.map { |o| o[:kx].select { |t| idk.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
   end
 end

@@ -9,16 +9,16 @@ module Cns
   FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
   EM = %i[EOS XETH ZEUR btc eth]
   TB = {
-    netht: %w[blocknumber timestamp txhash nonce blockhash transactionindex axfrom axto iax value gas gasprice gasused iserror txreceipt_status input contractaddress dias],
-    hetht: %i[blockNumber timeStamp hash nonce blockHash transactionIndex from to iax value gas gasPrice gasUsed isError txreceipt_status input contractAddress],
-    nethi: %w[blocknumber timestamp txhash axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode dias],
-    hethi: %i[blockNumber timeStamp hash from to iax value contractAddress input type gas gasUsed traceId isError errCode],
+    netht: %w[txhash blocknumber timestamp nonce blockhash transactionindex axfrom axto iax value gas gasprice gasused iserror txreceipt_status input contractaddress dias],
+    hetht: %i[hash blockNumber timeStamp nonce blockHash transactionIndex from to iax value gas gasPrice gasUsed isError txreceipt_status input contractAddress],
+    nethi: %w[txhash blocknumber timestamp axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode dias],
+    hethi: %i[hash blockNumber timeStamp from to iax value contractAddress input type gas gasUsed traceId isError errCode],
     nethp: %w[blocknumber timestamp blockreward iax dias],
     hethp: %i[blockNumber timeStamp blockReward iax],
     nethw: %w[withdrawalindex validatorindex address amount blocknumber timestamp dias],
     hethw: %i[withdrawalIndex validatorIndex address amount blockNumber timeStamp],
-    nethk: %w[blocknumber timestamp txhash nonce blockhash transactionindex axfrom axto iax value tokenname tokensymbol tokendecimal gas gasprice gasused input contractaddress dias],
-    hethk: %i[blockNumber timeStamp hash nonce blockHash transactionIndex from to iax value tokenName tokenSymbol tokenDecimal gas gasPrice gasUsed input contractAddress],
+    nethk: %w[txhash blocknumber timestamp nonce blockhash transactionindex axfrom axto iax value tokenname tokensymbol tokendecimal gas gasprice gasused input contractaddress dias],
+    hethk: %i[hash blockNumber timeStamp nonce blockHash transactionIndex from to iax value tokenName tokenSymbol tokenDecimal gas gasPrice gasUsed input contractAddress],
     neost: %w[gseq aseq bnum time contract action acfrom acto iax amount moeda memo dias],
     heost: %i[global_action_seq account_action_seq block_num block_time account name from to iax quantity moe memo],
     cdet: %w[txid time tp user btc eur dtc dias],
@@ -29,6 +29,21 @@ module Cns
     hust: %i[txid ordertxid pair time type ordertype price cost fee vol margin misc ledgers],
     cusl: %w[txid refid time type aclass asset amount fee],
     husl: %i[txid refid time type aclass asset amount fee]
+  }
+  # para testes bigquery
+  TL = {
+    ins: 'INSERT',
+    exo: false,
+    est: '', # ' limit 226',
+    esi: '', # ' limit 22',
+    esp: '', # ' limit 72',
+    esw: '', # ' limit 2299',
+    esk: '', # ' limit 20',
+    gmt: '', # ' limit 1091',
+    ust: '', # ' limit 182',
+    usl: '', # ' limit 448',
+    det: '', # ' limit 27',
+    del: '' # ' limit 16'
   }
 
   # classe para processar bigquery
@@ -154,11 +169,11 @@ module Cns
       Etherscan.new(
         {
           wb: sql("SELECT * FROM #{BD}.wet#{prx[-1]} ORDER BY ax"),
-          ni: sql("SELECT * FROM #{BD}.#{prx}i"),
-          nk: sql("SELECT * FROM #{BD}.#{prx}k"),
-          np: sql("SELECT * FROM #{BD}.#{prx}p"),
-          nt: sql("SELECT * FROM #{BD}.#{prx}t"),
-          nw: sql("SELECT * FROM #{BD}.#{prx}w")
+          nt: sql("SELECT * FROM #{BD}.#{prx}t#{TL[:est]}"),
+          ni: sql("SELECT * FROM #{BD}.#{prx}i#{TL[:esi]}"),
+          np: sql("SELECT * FROM #{BD}.#{prx}p#{TL[:esp]}"),
+          nw: sql("SELECT * FROM #{BD}.#{prx}w#{TL[:esw]}"),
+          nk: sql("SELECT * FROM #{BD}.#{prx}k#{TL[:esk]}")
         },
         ops
       )
@@ -176,32 +191,39 @@ module Cns
 
     # @return [Greymass] API blockchain EOS
     def apigm
-      @apigm ||= Greymass.new({wb: sql("select * from #{BD}.weos ORDER BY ax"), nt: sql("select * from #{BD}.neosx")}, ops)
+      @apigm ||= Greymass.new({wb: sql("select * from #{BD}.weos ORDER BY ax"), nt: sql("select * from #{BD}.neosx#{TL[:gmt]}")}, ops)
     end
 
     # @return [Kraken] API exchange kraken
     def apius
-      @apius ||= Kraken.new({sl: sql("select * from #{BD}.cuss").first, nt: sql("select * from #{BD}.cust"), nl: sql("select * from #{BD}.cusl")}, ops)
+      @apius ||= Kraken.new({sl: sql("select * from #{BD}.cuss").first, nt: sql("select * from #{BD}.cust#{TL[:ust]}"), nl: sql("select * from #{BD}.cusl#{TL[:usl]}")}, ops)
     end
 
     # @return [Bitcoinde] API exchange bitcoinde
     def apide
-      @apide ||= Bitcoinde.new({sl: sql("select * from #{BD}.cdes").first, nt: sql("select * from #{BD}.cdet"), nl: sql("select * from #{BD}.cdel")}, ops)
+      @apide ||= Bitcoinde.new({sl: sql("select * from #{BD}.cdes").first, nt: sql("select * from #{BD}.cdet#{TL[:det]}"), nl: sql("select * from #{BD}.cdel#{TL[:del]}")}, ops)
     end
 
     # @return [String] comando insert SQL formatado
     def ins_sql(tbl, lin)
-      "INSERT #{BD}.#{tbl} (#{TB[tbl].join(',')}) VALUES #{lin.map { |i| send("#{tbl}_val", i) }.join(',')}"
+      # para testes bigquery
+      if TL[:exo]
+        exl = lin.map { |i| send("#{tbl}_val", i)[1..-2] }
+        exi = exl.map { |f| f.split(',').first }.join(',')
+        exo = "SELECT #{TB[tbl].join(',')} FROM #{BD}.#{tbl} WHERE #{TB[tbl].first} IN (#{exi}) union all select "
+        puts(exo + exl.join(' union all select ') + ' order by 1')
+      end
+      "#{TL[:ins]} #{BD}.#{tbl} (#{TB[tbl].join(',')}) VALUES #{lin.map { |i| send("#{tbl}_val", i) }.join(',')}"
     end
 
     # @return [String] relatorio execucao dml
     def dml_out(src, str, ltb)
       str.concat(
-        ltb.filter_map do |itm|
-          novx = src.send("nov#{itm}")
+        ltb.filter_map do |i|
+          novx = src.send("nov#{i}")
           next if novx.empty?
 
-          format(' %<n>i %<t>s', n: dml(ins_sql(itm, %i[cust cusl].include?(itm) ? novx.values : novx)), t: "#{itm}")
+          format(' %<n>i %<t>s', n: dml(ins_sql(i, %i[cust cusl].include?(i) ? novx.values : novx)), t: "#{i}")
         end
       )
       str.join
@@ -290,7 +312,7 @@ module Cns
     # @param [Hash] htx ledger greymass
     # @return [String] valores formatados neost
     def neost_val(htx)
-      fvals(htx, TB[:heost], :itx)
+      fvals(htx, TB[:heost], :global_action_seq)
     end
 
     # @param [Hash] htx trades bitcoinde
@@ -308,7 +330,7 @@ module Cns
     # @param [Hash] htx trades kraken
     # @return [String] valores formatados cust
     def cust_val(htx)
-      fvals(htx.merge(ledgers: apius.exd[:kl].select { |_, o| o[:refid] == htx[:txid] }.keys.join(',')), TB[:hust], :txid)
+      fvals(htx.merge(ledgers: apius.uskl.select { |_, o| o[:refid] == htx[:txid] }.keys.join(',')), TB[:hust], :txid)
     end
 
     # @param [Hash] htx ledger kraken
