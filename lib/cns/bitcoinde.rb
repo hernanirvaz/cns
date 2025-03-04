@@ -7,11 +7,9 @@ module Cns
   # classe para processar transacoes trades/ledger do bitcoinde
   class Bitcoinde
     # @return [Apius] API bitcoinde
-    attr_reader :api
     # @return [Array<Hash>] todos os dados bigquery
-    attr_reader :bqd
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
-    attr_reader :ops
+    attr_reader :api, :bqd, :ops
 
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
@@ -33,7 +31,7 @@ module Cns
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
-      exd[:sl].sort.each { |key, val| puts(formata_saldos(key, val)) }
+      exd[:sl].sort.each { |k, v| puts(fos(k, v)) }
       mtotais
 
       mtrades
@@ -45,42 +43,37 @@ module Cns
 
     private
 
-    def show_all?
-      ops[:t] || false
+    # mosta contadores transacoes
+    def mtotais
+      vtt = exd[:tt].count
+      vnt = bqd[:nt].count
+      vtl = exd[:tl].count
+      vnl = bqd[:nl].count
+
+      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
+      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vtl, d: vnl, o: vtl == vnl ? 'OK' : 'NOK')}")
     end
 
-    def bqkyt
-      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid] } || [])
+    # mosta transacoes trades
+    def mtrades
+      return unless ops[:v] && novcdet.any?
+
+      puts("\ntrades data       hora     dt criacao tipo  par                     btc      eur")
+      novcdet.sort_by { |i| -i[:srx] }.each { |o| puts(fot(o)) }
     end
 
-    def bqkyl
-      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid] } || [])
-    end
+    # mosta transacoes ledger
+    def mledger
+      return unless ops[:v] && novcdel.any?
 
-    # @return [Array<String>] lista txid dos trades novos
-    def kyt
-      @kyt ||= exd[:tt].map { |oex| oex[:trade_id] } - bqkyt
-    end
-
-    # @return [Array<Integer>] lista txid dos ledger novos
-    def kyl
-      @kyl ||= exd[:tl].map { |oex| oex[:txid] } - bqkyl
-    end
-
-    # @return [Array<Hash>] lista trades bitcoinde novos
-    def novcdet
-      @novcdet ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
-    end
-
-    # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
-    def novcdel
-      @novcdel ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
+      puts("\nledger data       hora     tipo       moe          quantidade              custo")
+      novcdel.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
     end
 
     # @param [String] moe codigo bitcoinde da moeda
     # @param [Hash] hsx saldo bitcoinde da moeda
     # @return [String] texto formatado saldos
-    def formata_saldos(moe, hsx)
+    def fos(moe, hsx)
       vbq = bqd[:sl][moe.downcase.to_sym].to_d
       vex = hsx[:total_amount]
       format(
@@ -92,9 +85,9 @@ module Cns
       )
     end
 
-    # @param (see Bigquery#det_val1)
+    # @param [Hash] htn trades bitcoinde
     # @return [String] texto formatado trade
-    def formata_trades(htx)
+    def fot(htx)
       format(
         '%<ky>-6.6s %<dt>19.19s %<dp>10.10s %<ty>-5.5s %<mo>-8.8s %<vl>18.8f %<co>8.2f',
         ky: htx[:trade_id],
@@ -107,9 +100,9 @@ module Cns
       )
     end
 
-    # @param (see Bigquery#del_val)
+    # @param [Hash] htn ledger bitcoinde
     # @return [String] texto formatado ledger
-    def formata_ledger(hlx)
+    def fol(hlx)
       format(
         '%<ky>6i %<dt>19.19s %<ty>-10.10s %<mo>-3.3s %<pr>19.8f %<vl>18.8f',
         ky: hlx[:txid],
@@ -121,51 +114,33 @@ module Cns
       )
     end
 
-    # @return [String] texto numero de transacoes
-    def mtotais
-      vtt = exd[:tt].count
-      vnt = bqd[:nt].count
-      vtl = exd[:tl].count
-      vnl = bqd[:nl].count
-
-      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
-      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vtl, d: vnl, o: vtl == vnl ? 'OK' : 'NOK')}")
+    def show_all?
+      ops[:t] || false
     end
 
-    # @return [String] texto transacoes trades
-    def mtrades
-      return unless ops[:v] && novcdet.any?
-
-      puts("\ntrades data       hora     dt criacao tipo  par                     btc      eur")
-      novcdet.sort_by { |i| -i[:srx] }.each { |o| puts(formata_trades(o)) }
-    end
-
-    # @return [String] texto transacoes ledger
-    def mledger
-      return unless ops[:v] && novcdel.any?
-
-      puts("\nledger data       hora     tipo       moe          quantidade              custo")
-      novcdel.sort_by { |i| -i[:srx] }.each { |o| puts(formata_ledger(o)) }
-    end
-
-    # Processa os trades para garantir que as datas estejam no formato correto
+    # @param [Hash] itm recursos bitcoinde
+    # @return [Hash<BigDecimal>] moedas & sados
     def pdea(itm)
       itm.select { |k, _| EM.include?(k) }.transform_values { |o| o.merge(total_amount: o[:total_amount].to_d) }
     end
 
-    # Processa time field somtimes is string
-    def ptm(itm)
-      itm.is_a?(String) ? Time.parse(itm) : itm
+    # @param [Object] val time bitcoinde
+    # @return [Time] processa time (somtimes is string)
+    def ptm(val)
+      val.is_a?(String) ? Time.parse(val) : val
     end
 
+    # @param [Hash] itm transacao bitcoinde
+    # @return [Hash] transaccao filtrada
     def pdes(key, itm)
       tym = ptm(itm[key])
       itm.merge(srx: Integer(tym), key => tym)
     end
 
-    # Processa os trades para garantir que as datas estejam no formato correto
-    def pdet(itm)
-      itm.map do |t|
+    # @param [Array<Hash>] htx trade bitcoinde
+    # @return [Array<Hash>] transaccao filtrada
+    def pdet(htx)
+      htx.map do |t|
         pdes(:successfully_finished_at, t).merge(
           trade_marked_as_paid_at: ptm(t[:trade_marked_as_paid_at]),
           username: t[:trading_partner_information][:username],
@@ -176,10 +151,40 @@ module Cns
       end
     end
 
-    # Processa os ledger entries para garantir que as datas estejam no formato correto
+    # @param [Array<Hash>] hlx ledger bitcoinde
+    # @return [Array<Hash>] transaccao filtrada
+    def pdel(hlx)
+      hlx.map { |t| pdes(:time, t).merge(qtd: (t[:tp] == 'withdrawal' ? -1 : 1) * t[:qt].to_d, nxid: t[:txid], fee: t[:fee].to_d, moe: t[:moe].upcase) }
+    end
 
-    def pdel(itm)
-      itm.map { |t| pdes(:time, t).merge(qtd: (t[:tp] == 'withdrawal' ? -1 : 1) * t[:qt].to_d, nxid: t[:txid], fee: t[:fee].to_d, moe: t[:moe].upcase) }
+    # @return [Array<String>] indices trades bigquery
+    def bqkyt
+      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid] } || [])
+    end
+
+    # @return [Array<Integer>] indices ledger bigquery
+    def bqkyl
+      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid] } || [])
+    end
+
+    # @return [Array<String>] lista txid trades novos
+    def kyt
+      @kyt ||= exd[:tt].map { |t| t[:trade_id] } - bqkyt
+    end
+
+    # @return [Array<Integer>] lista txid ledger novos
+    def kyl
+      @kyl ||= exd[:tl].map { |t| t[:txid] } - bqkyl
+    end
+
+    # @return [Array<Hash>] lista trades bitcoinde novos
+    def novcdet
+      @novcdet ||= exd[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
+    end
+
+    # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
+    def novcdel
+      @novcdel ||= exd[:tl].select { |obj| kyl.include?(obj[:txid]) }
     end
   end
 end

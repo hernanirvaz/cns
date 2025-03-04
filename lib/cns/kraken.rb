@@ -7,11 +7,9 @@ module Cns
   # classe para processar transacoes trades/ledger do kraken
   class Kraken
     # @return [Apius] API kraken
-    attr_reader :api
     # @return [Array<Hash>] todos os dados bigquery
-    attr_reader :bqd
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
-    attr_reader :ops
+    attr_reader :api, :bqd, :ops
 
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
@@ -33,7 +31,7 @@ module Cns
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
-      exd[:sl].sort.each { |key, val| puts(formata_saldos(key, val)) }
+      exd[:sl].sort.each { |key, val| puts(fos(key, val)) }
       mtotais
 
       mtrades
@@ -45,43 +43,37 @@ module Cns
 
     private
 
-    def show_all?
-      ops[:t] || false
+    # mosta contadores transacoes
+    def mtotais
+      vkt = exd[:kt].count
+      vnt = bqd[:nt].count
+      vkl = exd[:kl].count
+      vnl = bqd[:nl].count
+
+      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vkt, b: vnt, o: vkt == vnt ? 'OK' : 'NOK')}")
+      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vkl, d: vnl, o: vkl == vnl ? 'OK' : 'NOK')}")
     end
 
-    def bqkyt
-      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid].to_sym } || [])
+    # mosta transacoes trades
+    def mtrades
+      return unless ops[:v] && novcust.any?
+
+      puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
+      novcust.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(fot(k, t)) }
     end
 
-    def bqkyl
-      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid].to_sym } || [])
+    # mosta transacoes ledger
+    def mledger
+      return unless ops[:v] && novcusl.any?
+
+      puts("\nledger data       hora     tipo       moeda        quantidade              custo")
+      novcusl.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(fol(k, t)) }
     end
 
-    # @return [Array<String>] lista txid dos trades novos
-    def kyt
-      @kyt ||= exd[:kt].keys - bqkyt
-    end
-
-    # @return [Array<String>] lista txid dos ledger novos
-    def kyl
-      @kyl ||= exd[:kl].keys - bqkyl
-    end
-
-    # @return [Hash] trades kraken novos
-    def novcust
-      @novcust ||= exd[:kt].slice(*kyt)
-    end
-
-    # @return [Hash] ledger kraken novos
-    def novcusl
-      @novcusl ||= exd[:kl].slice(*kyl)
-    end
-
-    # @example (see Apice#account_us)
     # @param [String] moe codigo kraken da moeda
     # @param [BigDecimal] sal saldo kraken da moeda
     # @return [String] texto formatado saldos
-    def formata_saldos(moe, sal)
+    def fos(moe, sal)
       vbq = bqd[:sl][moe.downcase.to_sym].to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
@@ -92,10 +84,10 @@ module Cns
       )
     end
 
-    # @example (see Apice#trades_us)
-    # @param (see Bigquery#ust_val1)
+    # @param [Symbol] idx id da transacao
+    # @param [Hash] htn trades kraken
     # @return [String] texto formatado trade
-    def formata_trades(idx, htx)
+    def fot(idx, htx)
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-8.8s %<pr>8.2f %<vl>10.4f %<co>13.2f',
         ky: idx,
@@ -108,10 +100,10 @@ module Cns
       )
     end
 
-    # @example (see Apice#ledger_us)
-    # @param (see Bigquery#usl_val)
+    # @param idx (see fot)
+    # @param [Hash] hln ledger kraken
     # @return [String] texto formatado ledger
-    def formata_ledger(idx, hlx)
+    def fol(idx, hlx)
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-4.4s %<pr>18.7f %<vl>18.7f',
         ky: idx,
@@ -123,39 +115,18 @@ module Cns
       )
     end
 
-    # @return [String] texto totais numero de transacoes
-    def mtotais
-      vkt = exd[:kt].count
-      vnt = bqd[:nt].count
-      vkl = exd[:kl].count
-      vnl = bqd[:nl].count
-
-      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vkt, b: vnt, o: vkt == vnt ? 'OK' : 'NOK')}")
-      puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vkl, d: vnl, o: vkl == vnl ? 'OK' : 'NOK')}")
+    def show_all?
+      ops[:t] || false
     end
 
-    # @return [String] texto transacoes trades
-    def mtrades
-      return unless ops[:v] && novcust.any?
-
-      puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
-      novcust.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(formata_trades(k, t)) }
-    end
-
-    # @return [String] texto transacoes ledger
-    def mledger
-      return unless ops[:v] && novcusl.any?
-
-      puts("\nledger data       hora     tipo       moeda        quantidade              custo")
-      novcusl.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(formata_ledger(k, t)) }
-    end
-
-    # Processa accounts para garantir formato correto
+    # @param [Hash] itm recursos kraken
+    # @return [Hash<BigDecimal>] moedas & sados
     def pusa(itm)
       itm.select { |k, _| EM.include?(k) }.transform_values { |v| v.to_d }
     end
 
-    # Processa campos comuns para garantir formato correto
+    # @param [Hash] itm transacao kraken
+    # @return [Hash] transaccao filtrada
     def pusk(itm)
       itm.map do |k, v|
         t = Integer(v[:time])
@@ -163,14 +134,46 @@ module Cns
       end.to_h
     end
 
-    # Processa trades para garantir formato correto
-    def pust(itm)
-      pusk(itm).transform_values { |t| t.merge(pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
+    # @param [Hash] htx trade kraken
+    # @return [Hash] transaccao filtrada
+    def pust(htx)
+      pusk(htx).transform_values { |t| t.merge(pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
     end
 
-    # Processa ledgers para garantir formato correto
-    def pusl(itm)
-      pusk(itm).transform_values { |t| t.merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
+    # @param [Hash] hlx ledger kraken
+    # @return [Hash] transaccao filtrada
+    def pusl(hlx)
+      pusk(hlx).transform_values { |t| t.merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
+    end
+
+    # @return [Array<Symbol>] indices trades bigquery
+    def bqkyt
+      @bqkyt ||= show_all? ? [] : (bqd[:nt]&.map { |t| t[:txid].to_sym } || [])
+    end
+
+    # @return [Array<Symbol>] indices ledger bigquery
+    def bqkyl
+      @bqkyl ||= show_all? ? [] : (bqd[:nl]&.map { |l| l[:txid].to_sym } || [])
+    end
+
+    # @return [Array<Symbol>] lista txid trades novos
+    def kyt
+      @kyt ||= exd[:kt].keys - bqkyt
+    end
+
+    # @return [Array<Symbol>] lista txid ledger novos
+    def kyl
+      @kyl ||= exd[:kl].keys - bqkyl
+    end
+
+    # @return [Hash] trades kraken novos
+    def novcust
+      @novcust ||= exd[:kt].slice(*kyt)
+    end
+
+    # @return [Hash] ledger kraken novos
+    def novcusl
+      @novcusl ||= exd[:kl].slice(*kyl)
     end
   end
 end
