@@ -130,7 +130,7 @@ module Cns
     # @return [Hash] transaccao filtrada
     def pdes(key, itm)
       tym = ptm(itm[key])
-      itm.merge(srx: Integer(tym), key => tym)
+      itm.merge(srx: tym.to_i, key => tym)
     end
 
     # @param [Array<Hash>] htx trade bitcoinde

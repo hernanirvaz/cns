@@ -17,7 +17,7 @@ module Cns
       header: "\nsequence num from         to           accao      data              valor moeda",
       sork: :itx,
       adjk: :itx
-    }
+    }.freeze
 
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
@@ -77,7 +77,7 @@ module Cns
     # @param (see foct)
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
-      hjn[:bs] == hjn[:es] && hjn[:bt].count == hjn[:et].count
+      hjn[:bs].round(6) == hjn[:es].round(6) && hjn[:bt].count == hjn[:et].count
     end
 
     # @param [Hash] hlx ledger greymass
@@ -104,8 +104,8 @@ module Cns
     # @return [Array<BigDecimal>] lista recursos - liquido, net, spu
     def peosa(add)
       hac = api.account_gm(add)
-      htr = hac[:total_resources]
-      [hac[:core_liquid_balance].to_d, htr[:net_weight].to_d, htr[:cpu_weight].to_d]
+      htr = hac.fetch(:total_resources, {})
+      [hac[:core_liquid_balance]&.to_d || 0.to_d, htr[:net_weight]&.to_d || 0.to_d, htr[:cpu_weight]&.to_d || 0.to_d]
     end
 
     # @param add (see peosa)
@@ -122,7 +122,7 @@ module Cns
           quantity: qtd.to_d,
           account: act[:account],
           to: adt[:to],
-          memo: String(adt[:memo]).gsub(/\p{C}/, ''), # remove Non-Printable Characters
+          memo: adt[:memo].to_s.gsub(/\p{C}/, ''), # remove Non-Printable Characters
           moe: qtd[/[[:upper:]]+/],
           itx: t[:global_action_seq],
           iax: add,

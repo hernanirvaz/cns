@@ -29,7 +29,7 @@ module Cns
     hust: %i[txid ordertxid pair time type ordertype price cost fee vol margin misc ledgers],
     cusl: %w[txid refid time type aclass asset amount fee],
     husl: %i[txid refid time type aclass asset amount fee]
-  }
+  }.freeze
   # para testes bigquery
   TL = {
     ins: 'INSERT',
@@ -37,15 +37,14 @@ module Cns
     est: '', # ' limit 226',
     esi: '', # ' limit 22',
     esp: '', # ' limit 72',
-    esw: '', # ' limit 2299',
+    esw: '', # ' limit 2320',
     esk: '', # ' limit 20',
     gmt: '', # ' limit 1091',
     ust: '', # ' limit 182',
     usl: '', # ' limit 448',
     det: '', # ' limit 27',
     del: '' # ' limit 16'
-
-  }
+  }.freeze
 
   # classe para processar bigquery
   class Bigquery
@@ -254,9 +253,7 @@ module Cns
 
     # @return [String] SQL integer formatting
     def fin(value)
-      Integer(value || 0).to_s
-    rescue StandardError
-      '0'
+      value.to_i.to_s
     end
 
     # @return [String] SQL timestamp formatting

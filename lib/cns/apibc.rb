@@ -20,6 +20,8 @@ module Cns
     # @param [Array<String>] addresses List of ETH addresses (max 20)
     # @return [Array<Hash>] List of addresses with balances
     def account_es(addresses)
+      return [] if addresses.empty?
+
       res = es_req('balancemulti', addresses.join(','), 1, tag: 'latest')
       res[:status] == '1' ? res[:result] || [] : []
     end
@@ -93,8 +95,7 @@ module Cns
     # @param [Hash] prm Additional request parameters
     # @return [Hash] Parsed API response
     def es_req(act, add, pag = 1, prm = {})
-      prm = {module: 'account', action: act, address: add, page: pag, apikey: @esky}.merge(prm)
-      parse_json(@escn.get('/api', prm))
+      parse_json(@escn.get('/api', prm.merge(module: 'account', action: act, address: add, page: pag, apikey: @esky)))
     rescue Faraday::Error
       {status: '0'}
     end
@@ -141,6 +142,8 @@ module Cns
     # @param [Faraday::Response] res API response
     # @return [Hash] Parsed JSON or empty hash on error
     def parse_json(res)
+      return {} if res.body.to_s.empty?
+
       JSON.parse(res.body, symbolize_names: true) || {}
     rescue JSON::ParserError
       {}
@@ -150,12 +153,12 @@ module Cns
     # @param [String] url Base URL for the API
     # @return [Faraday::Connection] Configured Faraday connection
     def connection(url)
-      Faraday.new(url) do |conn|
-        conn.request(:json)
-        conn.headers = {accept: 'application/json', user_agent: 'blockchain-api-client'}
-        conn.options.timeout = 30
-        conn.options.open_timeout = 10
-        conn.adapter(Faraday.default_adapter)
+      Faraday.new(url) do |c|
+        c.request(:json)
+        c.headers = {accept: 'application/json', user_agent: 'blockchain-api-client'}
+        c.options.timeout = 30
+        c.options.open_timeout = 10
+        c.adapter(Faraday.default_adapter)
       end
     end
   end

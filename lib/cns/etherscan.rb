@@ -18,36 +18,36 @@ module Cns
         header: "\ntx normal                     from            to              data         valor",
         sork: :srx,
         adjk: :hash
-      },
+      }.freeze,
       internal: {
         new: :novnethi,
         format: :foti,
         header: "\ntx intern                     from            to              data         valor",
         sork: :srx,
         adjk: :hash
-      },
+      }.freeze,
       block: {
         new: :novnethp,
         format: :fop,
         header: "\ntx block  address                                   data                   valor",
         sork: :itx,
         adjk: :blockNumber
-      },
+      }.freeze,
       token: {
         new: :novnethk,
         format: :fok,
         header: "\ntx token             from            to              data            valor moeda",
         sork: :srx,
         adjk: :hash
-      },
+      }.freeze,
       withdrawal: {
         new: :novnethw,
         format: :fow,
         header: "\nwithdrawal validator data            valor",
         sork: :itx,
         adjk: :withdrawalIndex
-      }
-    }
+      }.freeze
+    }.freeze
 
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
@@ -166,7 +166,7 @@ module Cns
       return 'erro' if max < 7
 
       max -= 2
-      ini = Integer(max / 2) + 4
+      ini = (max / 2).to_i + 4
       inf = max % 2
       "#{add[0, ini - 3]}..#{add[-inf - ini + 5..]}"
     end
@@ -180,7 +180,7 @@ module Cns
       return 'erro' if max < 7
 
       max -= 2
-      ini = Integer(max / 2)
+      ini = (max / 2).to_i
       inf = max % 2
       hid = bqd[:wb].find { |o| o[:ax] == add }
       ndd = hid ? "#{hid[:id]}-#{add}" : add
@@ -234,29 +234,31 @@ module Cns
     # @param [Hash] htx transacao
     # @return [Hash] transaccao filtrada
     def pess(htx)
-      tym = Integer(htx[:timeStamp])
+      tym = htx[:timeStamp].to_i
       htx.merge(srx: tym, timeStamp: Time.at(tym))
+    rescue ArgumentError
+      htx.merge(srx: 0, timeStamp: Time.at(0))
     end
 
     # @param add (see foe1)
     # @param [Array<Hash>] ary lista transacoes normal(t)/(i)nternal/to(k)en
     # @return [Array<Hash>] lista transacoes filtrada
     def ftik(add, ary)
-      ary.map { |o| pess(o).merge(itx: String(o[:hash]), iax: add, value: o[:value].to_d) }
+      ary.map { |o| pess(o).merge(itx: o[:hash].to_s, iax: add, value: o[:value].to_d) }
     end
 
     # @param add (see foe1)
     # @param [Array<Hash>] ary lista transacoes (p)roduced blocks
     # @return [Array<Hash>] lista transacoes filtrada
     def fppp(add, ary)
-      ary.map { |o| o.merge(itx: Integer(o[:blockNumber]), iax: add, blockReward: o[:blockReward].to_d, timeStamp: Time.at(Integer(o[:timeStamp]))) }
+      ary.map { |o| o.merge(itx: o[:blockNumber].to_i, iax: add, blockReward: o[:blockReward].to_d, timeStamp: Time.at(o[:timeStamp].to_i)) }
     end
 
     # @param add (see foe1)
     # @param [Array<Hash>] ary lista transacoes (w)ithdrawals
     # @return [Array<Hash>] lista transacoes filtrada
     def fwww(add, ary)
-      ary.map { |o| o.merge(itx: Integer(o[:withdrawalIndex]), iax: add, amount: o[:amount].to_d, timeStamp: Time.at(Integer(o[:timestamp]))) }
+      ary.map { |o| o.merge(itx: o[:withdrawalIndex].to_i, iax: add, amount: o[:amount].to_d, timeStamp: Time.at(o[:timestamp].to_i)) }
     end
 
     # @param [Hash] aes account etherscan

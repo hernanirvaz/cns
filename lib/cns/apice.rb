@@ -91,10 +91,10 @@ module Cns
     # @param [Hash] trx transacao
     # @return [Hash] transacao uniformizada
     def us_unif(key, trx)
-      t = Integer(trx[:time])
+      t = trx[:time].to_i
       trx.merge(txid: key.to_s, srx: t, time: Time.at(t))
-    rescue StandardError
-      {}
+    rescue ArgumentError
+      trx.merge(txid: key.to_s, srx: 0, time: Time.at(0))
     end
 
     # Generic paginated request handler for Kraken
@@ -167,14 +167,14 @@ module Cns
     # Generate a continually-increasing unsigned integer nonce from the current Unix Time
     # @return [Integer] Nonce value
     def nnc
-      Integer(Float(Time.now) * 1e6)
+      Process.clock_gettime(Process::CLOCK_REALTIME, :nanosecond).to_i
     end
 
     # Uniformly format a deposit from Bitcoin.de
     # @param [Hash] has Deposit data from Bitcoin.de
     # @return [Hash] deposito uniformizado bitcoinde
     def deposit_unif(has)
-      {add: has[:address], time: Time.parse(has[:created_at]), qtd: has[:amount].to_d, nxid: Integer(has[:deposit_id])}.merge(tp: 'deposit', moe: 'BTC', fee: 0.to_d)
+      {add: has[:address], time: Time.parse(has[:created_at]), qtd: has[:amount].to_d, nxid: has[:deposit_id].to_i}.merge(tp: 'deposit', moe: 'BTC', fee: 0.to_d)
     end
 
     # Uniformly format a withdrawal from Bitcoin.de
@@ -186,7 +186,7 @@ module Cns
         time: Time.parse(has[:transferred_at]),
         qtd: -1 * has[:amount].to_d,
         fee: has[:network_fee].to_d,
-        nxid: Integer(has[:withdrawal_id]),
+        nxid: has[:withdrawal_id].to_i,
         tp: 'withdrawal',
         moe: 'BTC'
       }
