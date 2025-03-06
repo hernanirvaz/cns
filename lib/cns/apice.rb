@@ -106,7 +106,8 @@ module Cns
       ary = []
       ofs = 0
       loop do
-        sleep(ofs.zero? ? 0 : 2)
+        # Rate limiting for page requests (2s in Kraken)
+        sleep(@lpag - Time.now + 2) if @lpag && Time.now - @lpag < 2
         ops = {nonce: nnc, ofs: ofs}
         run_curl(@curl, "#{API[:us]}/#{uri}", method: 'POST', post_data: ops, headers: hus(uri, ops))
         bth = parse_json(@curl).fetch(:result, {}).fetch(key, []).map { |k, v| us_unif(k, v) }
@@ -114,6 +115,7 @@ module Cns
 
         ary.concat(bth)
         ofs += bth.size
+        @lpag = Time.now
       end
       ary
     end
@@ -200,6 +202,8 @@ module Cns
       md5 = ['GET', qde, @deky, non, Digest::MD5.hexdigest('')].join('#')
       mac = OpenSSL::HMAC.hexdigest('sha256', @desc, md5)
       {'X-API-KEY' => @deky, 'X-API-NONCE' => non.to_s, 'X-API-SIGNATURE' => mac}
+    rescue OpenSSL::HMACError => e
+      raise("HMAC generation failed: #{e.message}")
     end
 
     # Generate headers for Kraken HTTP requests
@@ -211,6 +215,8 @@ module Cns
       sha = ['/0/private/', qus, Digest::SHA256.digest("#{ops[:nonce]}#{URI.encode_www_form(ops)}")].join
       mac = OpenSSL::HMAC.digest('sha512', Base64.decode64(@ussc), sha)
       {'api-key' => @usky, 'api-sign' => Base64.strict_encode64(mac)}
+    rescue OpenSSL::HMACError => e
+      raise("HMAC generation failed: #{e.message}")
     end
   end
 end

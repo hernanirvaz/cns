@@ -16,9 +16,7 @@ module Cns
     # @option pop [Hash] :h ({}) configuracao dias ajuste reposicionamento temporal
     # @option pop [Boolean] :v (false) mostra dados transacoes trades & ledger?
     # @option pop [Boolean] :t (false) mostra transacoes todas ou somente novas?
-    # @return [Bitcoinde] API bitcoinde - obter saldos & transacoes trades e ledger
     def initialize(dad, pop)
-      @api = Apice.new
       @bqd = dad
       @ops = pop.transform_keys(&:to_sym)
     end
@@ -151,6 +149,12 @@ module Cns
     # @return [Array<Hash>] transaccao filtrada
     def pdel(hlx)
       hlx.map { |t| pdes(:time, t) }
+    end
+
+    # Lazy Bitcoinde API Initialization
+    # @return [Bitcoinde] API - obter saldos & transacoes trades e ledger
+    def api
+      @api ||= Apice.new
     end
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals

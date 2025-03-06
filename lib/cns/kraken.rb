@@ -16,9 +16,7 @@ module Cns
     # @option pop [Hash] :h ({}) configuracao dias ajuste reposicionamento temporal
     # @option pop [Boolean] :v (false) mostra dados transacoes trades & ledger?
     # @option pop [Boolean] :t (false) mostra transacoes todas ou somente novas?
-    # @return [Kraken] API kraken - obter saldos & transacoes trades e ledger
     def initialize(dad, pop)
-      @api = Apice.new
       @bqd = dad
       @ops = pop.transform_keys(&:to_sym)
     end
@@ -134,6 +132,22 @@ module Cns
     # @return [Array<Hash>] transaccoes filtradas
     def pusl(hlx)
       hlx.map { |t| t.merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
+    end
+
+    # Lazy kraken API Initialization decorated with rate limiting logic
+    # @return [Kraken] API - obter saldos & transacoes trades e ledger
+    def api
+      @api ||=
+        begin
+          t = Apice.new
+          # Rate limiting to this specific instance (0.5s in Kraken)
+          t.define_singleton_method(:run_curl) do |curl, url, **options|
+            sleep(@lapi - Time.now + 0.5) if @lapi && Time.now - @lapi < 0.5
+            super(curl, url, **options)
+            @lapi = Time.now
+          end
+          t
+        end
     end
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger

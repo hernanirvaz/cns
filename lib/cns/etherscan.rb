@@ -53,9 +53,7 @@ module Cns
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
     # @option pop [Hash] :h ({}) configuracao dias ajuste reposicionamento temporal
     # @option pop [Boolean] :v (false) mostra dados transacoes
-    # @return [Etherscan] API etherscan - processar transacoes
     def initialize(dad, pop)
-      @api = Apibc.new
       @bqd = dad
       @ops = pop.transform_keys(&:to_sym)
     end
@@ -297,6 +295,12 @@ module Cns
         ew: hes[:wx],
         ek: hes[:kx]
       }
+    end
+
+    # Lazy Etherscan API Initialization
+    # @return [Etherscan] API - processar transacoes
+    def api
+      @api ||= Apibc.new
     end
 
     # @return [Array<String>] lista enderecos

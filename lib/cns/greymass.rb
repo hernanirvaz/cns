@@ -11,22 +11,14 @@ module Cns
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :api, :bqd, :ops
 
-    TT = {
-      new: :novneost,
-      format: :fol,
-      header: "\nsequence num from         to           accao      data              valor moeda",
-      sork: :itx,
-      adjk: :itx
-    }.freeze
+    TT = {sork: :itx, adjk: :itx}.freeze
 
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
     # @option pop [Hash] :h ({}) configuracao dias ajuste reposicionamento temporal
     # @option pop [Boolean] :v (false) mostra dados transacoes?
     # @option pop [Boolean] :t (false) mostra transacoes todas ou somente novas?
-    # @return [Greymass] API greymass - processar transacoes
     def initialize(dad, pop)
-      @api = Apibc.new
       @bqd = dad
       @ops = pop.transform_keys(&:to_sym)
     end
@@ -45,19 +37,17 @@ module Cns
 
     # mosta transacoes novas
     def mtransacoes_novas
-      ntx = send(TT[:new])
-      return unless ops[:v] && ntx.any?
+      return unless ops[:v] && novneost.any?
 
-      puts(TT[:header])
-      ntx.sort_by { |s| -s[TT[:sork]] }.each { |t| puts(send(TT[:format], t)) }
+      puts("\nsequence num from         to           accao      data              valor moeda")
+      novneost.sort_by { |s| -s[TT[:sork]] }.each { |t| puts(fol(t)) }
     end
 
     # mostra configuration text for adjusting days
     def mconfiguracao_ajuste_dias
-      ntx = send(TT[:new])
-      return unless ntx.any?
+      return unless novneost.any?
 
-      puts("\nstring ajuste dias\n-h=#{ntx.sort_by { |s| -s[TT[:sork]] }.map { |t| "#{t[TT[:adjk]]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{novneost.sort_by { |s| -s[TT[:sork]] }.map { |t| "#{t[TT[:adjk]]}:0" }.join(' ')}")
     end
 
     # @param [Hash] hjn dados juntos bigquery & greymass
@@ -151,6 +141,12 @@ module Cns
         es: hgm[:sl],
         et: hgm[:tx]
       }
+    end
+
+    # Lazy Greymass API Initialization
+    # @return [Greymass] API - processar transacoes
+    def api
+      @api ||= Apibc.new
     end
 
     # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
