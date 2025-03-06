@@ -23,7 +23,7 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # @return [String] texto saldos & transacoes & ajuste dias
+    # mosta resumo saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
       usd[:sl].sort.each { |key, val| puts(fos(key, val)) }
@@ -33,7 +33,7 @@ module Cns
       mledger
       return if novcust.empty?
 
-      puts("\nstring ajuste dias dos trades\n-h=#{novcust.sort_by { |_, v| -v[:srx] }.map { |k, _v| "#{k}:0" }.join(' ')}")
+      puts("\nstring ajuste dias dos trades\n-h=#{novcust.sort_by { |i| -i[:srx] }.map { |o| "#{o[:txid]}:0" }.join(' ')}")
     end
 
     # @return [Hash] ledgers exchange kraken
@@ -59,7 +59,7 @@ module Cns
       return unless ops[:v] && novcust.any?
 
       puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
-      novcust.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(fot(k, t)) }
+      novcust.sort_by { |i| -i[:srx] }.each { |o| puts(fot(o)) }
     end
 
     # mosta transacoes ledger
@@ -67,14 +67,14 @@ module Cns
       return unless ops[:v] && novcusl.any?
 
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")
-      novcusl.sort_by { |_, v| -v[:srx] }.each { |k, t| puts(fol(k, t)) }
+      novcusl.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
     end
 
     # @param [String] moe codigo kraken da moeda
     # @param [BigDecimal] sal saldo kraken da moeda
     # @return [String] texto formatado saldos
     def fos(moe, sal)
-      vbq = bqd[:sl][moe.downcase.to_sym].to_d
+      vbq = (bqd[:sl]&.fetch(moe.downcase.to_sym, nil) || 0).to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
         mo: moe.upcase,
@@ -84,13 +84,12 @@ module Cns
       )
     end
 
-    # @param [Symbol] idx id da transacao
     # @param [Hash] htn trades kraken
     # @return [String] texto formatado trade
-    def fot(idx, htx)
+    def fot(htx)
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-8.8s %<pr>8.2f %<vl>10.4f %<co>13.2f',
-        ky: idx,
+        ky: htx[:txid],
         dt: htx[:time].strftime('%F %T'),
         ty: "#{htx[:type]}/#{htx[:ordertype]}",
         mo: htx[:pair],
@@ -100,13 +99,12 @@ module Cns
       )
     end
 
-    # @param idx (see fot)
     # @param [Hash] hln ledger kraken
     # @return [String] texto formatado ledger
-    def fol(idx, hlx)
+    def fol(hlx)
       format(
         '%<ky>-6.6s %<dt>19.19s %<ty>-10.10s %<mo>-4.4s %<pr>18.7f %<vl>18.7f',
-        ky: idx,
+        ky: hlx[:txid],
         dt: hlx[:time].strftime('%F %T'),
         ty: hlx[:type],
         mo: hlx[:asset],
@@ -126,25 +124,16 @@ module Cns
       itm.select { |k, _| EM.include?(k) }.transform_values { |v| v.to_d }
     end
 
-    # @param [Hash] itm transacao kraken
-    # @return [Hash] transaccao filtrada
-    def pusk(itm)
-      itm.map do |k, v|
-        t = Integer(v[:time])
-        [k, v.merge(txid: k.to_s, srx: t, time: Time.at(t))]
-      end.to_h
-    end
-
-    # @param [Hash] htx trade kraken
-    # @return [Hash] transaccao filtrada
+    # @param [Array<Hash>] htx trades kraken
+    # @return [Array<Hash>] transaccoes filtradas
     def pust(htx)
-      pusk(htx).transform_values { |t| t.merge(pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
+      htx.map { |t| t.merge(pair: t[:pair].upcase, price: t[:price].to_d, vol: t[:vol].to_d, cost: t[:cost].to_d) }
     end
 
-    # @param [Hash] hlx ledger kraken
-    # @return [Hash] transaccao filtrada
+    # @param [Array<Hash>] hlx ledgers kraken
+    # @return [Array<Hash>] transaccoes filtradas
     def pusl(hlx)
-      pusk(hlx).transform_values { |t| t.merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
+      hlx.map { |t| t.merge(asset: t[:asset].upcase, amount: t[:amount].to_d, fee: t[:fee].to_d) }
     end
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
@@ -152,34 +141,34 @@ module Cns
       @usd ||= {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
     end
 
-    # @return [Array<Symbol>] indices trades bigquery
+    # @return [Array<String>] indices trades bigquery
     def bqkyt
-      @bqkyt ||= show_all? ? [] : bqd[:nt].map { |t| t[:txid].to_sym }
+      @bqkyt ||= show_all? ? [] : bqd[:nt].map { |t| t[:txid] }
     end
 
-    # @return [Array<Symbol>] indices ledger bigquery
+    # @return [Array<String>] indices ledger bigquery
     def bqkyl
-      @bqkyl ||= show_all? ? [] : bqd[:nl].map { |l| l[:txid].to_sym }
+      @bqkyl ||= show_all? ? [] : bqd[:nl].map { |l| l[:txid] }
     end
 
-    # @return [Array<Symbol>] lista txid trades novos
+    # @return [Array<String>] lista txid trades novos
     def kyt
-      @kyt ||= usd[:kt].keys - bqkyt
+      @kyt ||= usd[:kt].map { |t| t[:txid] } - bqkyt
     end
 
-    # @return [Array<Symbol>] lista txid ledger novos
+    # @return [Array<String>] lista txid ledger novos
     def kyl
-      @kyl ||= usd[:kl].keys - bqkyl
+      @kyl ||= usd[:kl].map { |t| t[:txid] } - bqkyl
     end
 
-    # @return [Hash] trades kraken novos
+    # @return [Array<Hash>] trades novos kraken
     def novcust
-      @novcust ||= usd[:kt].slice(*kyt)
+      @novcust ||= usd[:kt].select { |o| kyt.include?(o[:txid]) }
     end
 
-    # @return [Hash] ledger kraken novos
+    # @return [Array<Hash>] ledgers novos kraken
     def novcusl
-      @novcusl ||= usd[:kl].slice(*kyl)
+      @novcusl ||= usd[:kl].select { |o| kyl.include?(o[:txid]) }
     end
   end
 end

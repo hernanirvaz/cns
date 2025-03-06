@@ -44,6 +44,7 @@ module Cns
     usl: '', # ' limit 448',
     det: '', # ' limit 27',
     del: '' # ' limit 16'
+
   }
 
   # classe para processar bigquery
@@ -223,7 +224,7 @@ module Cns
           novx = src.send("nov#{i}")
           next if novx.empty?
 
-          format(' %<n>i %<t>s', n: dml(ins_sql(i, %i[cust cusl].include?(i) ? novx.values : novx)), t: "#{i}")
+          format(' %<n>i %<t>s', n: dml(ins_sql(i, novx)), t: "#{i}")
         end
       )
       str.join
@@ -330,7 +331,7 @@ module Cns
     # @param [Hash] htx trades kraken
     # @return [String] valores formatados cust
     def cust_val(htx)
-      fvals(htx.merge(ledgers: apius.uskl.select { |_, o| o[:refid] == htx[:txid] }.keys.join(',')), TB[:hust], :txid)
+      fvals(htx.merge(ledgers: apius.uskl.select { |o| o[:refid] == htx[:txid] }.map { |t| t[:txid] }.join(',')), TB[:hust], :txid)
     end
 
     # @param [Hash] htx ledger kraken

@@ -100,7 +100,7 @@ module Cns
     def fol(hlx)
       format(
         '%<ky>6i %<dt>19.19s %<ty>-10.10s %<mo>-3.3s %<pr>19.8f %<vl>18.8f',
-        ky: hlx[:txid],
+        ky: hlx[:nxid],
         dt: hlx[:time].strftime('%F %T'),
         ty: hlx[:tp],
         mo: hlx[:moe],
@@ -150,7 +150,7 @@ module Cns
     # @param [Array<Hash>] hlx ledger bitcoinde
     # @return [Array<Hash>] transaccao filtrada
     def pdel(hlx)
-      hlx.map { |t| pdes(:time, t).merge(qtd: (t[:tp] == 'withdrawal' ? -1 : 1) * t[:qt].to_d, nxid: t[:txid], fee: t[:fee].to_d, moe: t[:moe].upcase) }
+      hlx.map { |t| pdes(:time, t) }
     end
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
@@ -173,19 +173,19 @@ module Cns
       @kyt ||= ded[:tt].map { |t| t[:trade_id] } - bqkyt
     end
 
-    # @return [Array<Integer>] lista txid ledger novos
+    # @return [Array<Integer>] lista nxid ledger novos
     def kyl
-      @kyl ||= ded[:tl].map { |t| t[:txid] } - bqkyl
+      @kyl ||= ded[:tl].map { |t| t[:nxid] } - bqkyl
     end
 
-    # @return [Array<Hash>] lista trades bitcoinde novos
+    # @return [Array<Hash>] lista trades novos bitcoinde
     def novcdet
-      @novcdet ||= ded[:tt].select { |obj| kyt.include?(obj[:trade_id]) }
+      @novcdet ||= ded[:tt].select { |o| kyt.include?(o[:trade_id]) }
     end
 
-    # @return [Array<Hash>] lista ledger (deposits + withdrawals) bitcoinde novos
+    # @return [Array<Hash>] lista ledgers (deposits + withdrawals) novos bitcoinde
     def novcdel
-      @novcdel ||= ded[:tl].select { |obj| kyl.include?(obj[:txid]) }
+      @novcdel ||= ded[:tl].select { |o| kyl.include?(o[:nxid]) }
     end
   end
 end
