@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (0.9.4)
+    cns (0.9.5)
       curb
       faraday
       google-cloud-bigquery
