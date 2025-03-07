@@ -23,12 +23,12 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # @return [String] texto carteiras & transacoes & ajuste dias
+    # Display summary of wallets, transactions, and adjustment days configuration
     def mresumo
       return unless dados.any?
 
       puts("\naddress            greymass  ntx       bigquery  ntx")
-      dados.each { |o| puts(foct(o)) }
+      dados.each { |e| puts(foct(e)) }
       mtransacoes_novas
       mconfiguracao_ajuste_dias
     end
@@ -50,46 +50,51 @@ module Cns
       puts("\nstring ajuste dias\n-h=#{novneost.sort_by { |s| -s[TT[:sork]] }.map { |t| "#{t[TT[:adjk]]}:0" }.join(' ')}")
     end
 
+    # Format wallet summary text
     # @param [Hash] hjn dados juntos bigquery & greymass
     # @return [String] texto formatado duma carteira
     def foct(hjn)
       format(
-        '%<s1>-12.12s %<v1>14.4f %<n1>4i %<v2>14.4f %<n2>4i %<ok>-3s',
-        s1: hjn[:ax],
-        v1: hjn[:es],
-        n1: hjn[:et].count,
-        v2: hjn[:bs],
-        n2: hjn[:bt].count,
-        ok: ok?(hjn) ? 'OK' : 'NOK'
+        '%<address>-12.12s %<greymass_value>14.4f %<greymass_tx_count>4i %<bigquery_value>14.4f %<bigquery_tx_count>4i %<status>-3s',
+        address: hjn[:ax],
+        greymass_value: hjn[:es],
+        greymass_tx_count: hjn[:et].count,
+        bigquery_value: hjn[:bs],
+        bigquery_tx_count: hjn[:bt].count,
+        status: ok?(hjn) ? 'OK' : 'NOK'
       )
     end
 
+    # Check if wallet has new transactions
     # @param (see foct)
     # @return [Boolean] carteira tem transacoes novas(sim=NOK, nao=OK)?
     def ok?(hjn)
       hjn[:bs].round(6) == hjn[:es].round(6) && hjn[:bt].count == hjn[:et].count
     end
 
+    # Format transaction text
     # @param [Hash] hlx ledger greymass
     # @return [String] texto formatado
     def fol(hlx)
       format(
-        '%<bn>12i %<fr>-12.12s %<to>-12.12s %<ac>-10.10s %<dt>10.10s %<vl>12.4f %<sy>-6.6s',
-        ac: hlx[:name],
-        fr: hlx[:from],
-        vl: hlx[:quantity],
-        bn: hlx[:itx],
+        '%<sequence>12i %<from>-12.12s %<to>-12.12s %<action>-10.10s %<date>10.10s %<value>12.4f %<symbol>-6.6s',
+        sequence: hlx[:itx],
+        from: hlx[:from],
         to: hlx[:to],
-        dt: hlx[:block_time].strftime('%F'),
-        sy: hlx[:moe]
+        action: hlx[:name],
+        date: hlx[:block_time].strftime('%F'),
+        value: hlx[:quantity],
+        symbol: hlx[:moe]
       )
     end
 
+    # Determine if all transactions should be shown
     # @return [Boolean] mostra todas/novas transacoes
     def show_all?
       ops[:t] || false
     end
 
+    # Fetch EOS account resources
     # @param [String] add EOS account name
     # @return [Array<BigDecimal>] lista recursos - liquido, net, spu
     def peosa(add)
@@ -98,6 +103,7 @@ module Cns
       [hac[:core_liquid_balance]&.to_d || 0.to_d, htr[:net_weight]&.to_d || 0.to_d, htr[:cpu_weight]&.to_d || 0.to_d]
     end
 
+    # Process and filter EOS transactions
     # @param add (see peosa)
     # @param [Array<Hash>] ary lista transacoes
     # @return [Array<Hash>] lista transacoes filtrada
@@ -121,6 +127,7 @@ module Cns
       end
     end
 
+    # Fetch Greymass data for a wallet
     # @param [Hash] wbq wallet bigquery
     # @return [Hash] dados greymass - address, saldo & transacoes
     def bsgm(wbq)
@@ -128,6 +135,7 @@ module Cns
       {ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq))}
     end
 
+    # Combine BigQuery and Greymass data
     # @param wbq (see bsgm)
     # @param [Hash] hgm dados greymass - address, saldo & transacoes
     # @return [Hash] dados juntos bigquery & greymass
@@ -144,19 +152,21 @@ module Cns
     end
 
     # Lazy Greymass API Initialization
-    # @return [Greymass] API - processar transacoes
+    # @return [Apibc] API instance
     def api
       @api ||= Apibc.new
     end
 
-    # @return [Array<Hash>] todos os dados greymass - saldos & transacoes
+    # Fetch all Greymass data
+    # @return [Hash] Hash of Greymass data indexed by address
     def gmd
-      @gmd ||= bqd[:wb].map { |o| bsgm(o) }
+      @gmd ||= bqd[:wb].map { |o| bsgm(o) }.each_with_object({}) { |h, a| a[h[:ax]] = h }
     end
 
-    # @return [Array<Hash>] todos os dados juntos bigquery & greymass
+    # Fetch combined BigQuery and Greymass data
+    # @return [Array<Hash>] Combined data list
     def dados
-      @dados ||= bqd[:wb].map { |b| bqgm(b, gmd.find { |g| b[:ax] == g[:ax] }) }
+      @dados ||= bqd[:wb].map { |b| bqgm(b, gmd[b[:ax]]) }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
@@ -166,12 +176,13 @@ module Cns
 
     # @return [Array<Integer>] indices transacoes novas (greymass - bigquery)
     def idt
-      @idt ||= gmd.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+      @idt ||= gmd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
     end
 
-    # @return [Array<Hash>] lista transacoes novas
+    # Get new transactions
+    # @return [Array<Hash>] List of new transactions
     def novneost
-      @novneost ||= gmd.map { |t| t[:tx].select { |o| idt.include?(o[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      @novneost ||= gmd.values.map { |t| t[:tx].select { |o| idt.include?(o[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
   end
 end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require('faraday')
+require 'faraday/retry'
 require('json')
 
 # @author Hernani Rodrigues Vaz
@@ -22,8 +23,11 @@ module Cns
     def account_es(addresses)
       return [] if addresses.empty?
 
-      res = es_req('balancemulti', addresses.join(','), 1, tag: 'latest')
-      res[:status] == '1' ? res[:result] || [] : []
+      # Batch addresses into groups of 20 (Etherscan limit) and fetch balances
+      addresses.each_slice(20).flat_map do |b|
+        res = es_req('balancemulti', b.join(','), 1, tag: 'latest')
+        res[:status] == '1' ? res[:result] || [] : []
+      end
     end
 
     # Get normal transactions for ETH address
@@ -149,7 +153,7 @@ module Cns
       {}
     end
 
-    # Create a Faraday connection with JSON configuration
+    # Create a Faraday connection with JSON configuration and retry logic
     # @param [String] url Base URL for the API
     # @return [Faraday::Connection] Configured Faraday connection
     def connection(url)
@@ -158,6 +162,7 @@ module Cns
         c.headers = {accept: 'application/json', user_agent: 'blockchain-api-client'}
         c.options.timeout = 30
         c.options.open_timeout = 10
+        c.use(Faraday::Retry::Middleware, max: 3, interval: 1)
         c.adapter(Faraday.default_adapter)
       end
     end

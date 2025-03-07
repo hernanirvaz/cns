@@ -203,7 +203,7 @@ module Cns
       mac = OpenSSL::HMAC.hexdigest('sha256', @desc, md5)
       {'X-API-KEY' => @deky, 'X-API-NONCE' => non.to_s, 'X-API-SIGNATURE' => mac}
     rescue OpenSSL::HMACError => e
-      raise("HMAC generation failed: #{e.message}")
+      raise("HMAC bitcoinde generation failed: #{e.message}")
     end
 
     # Generate headers for Kraken HTTP requests
@@ -216,7 +216,7 @@ module Cns
       mac = OpenSSL::HMAC.digest('sha512', Base64.decode64(@ussc), sha)
       {'api-key' => @usky, 'api-sign' => Base64.strict_encode64(mac)}
     rescue OpenSSL::HMACError => e
-      raise("HMAC generation failed: #{e.message}")
+      raise("HMAC kraken generation failed: #{e.message}")
     end
   end
 end
