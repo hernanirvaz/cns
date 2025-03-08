@@ -115,7 +115,7 @@ module Cns
     # @param [Hash] itm recursos bitcoinde
     # @return [Hash<BigDecimal>] moedas & sados
     def pdea(itm)
-      itm.select { |k, _| EM.include?(k) }.transform_values { |o| o.merge(total_amount: o[:total_amount].to_d) }
+      itm.select { |k, _| %i[btc eth].include?(k) }.transform_values { |o| o.merge(total_amount: o[:total_amount].to_d) }
     end
 
     # @param [Object] val time bitcoinde

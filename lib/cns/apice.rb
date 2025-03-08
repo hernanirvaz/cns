@@ -7,10 +7,10 @@ require('json')
 
 # @author Hernani Rodrigues Vaz
 module Cns
-  API = {de: 'https://api.bitcoin.de/v4', us: 'https://api.kraken.com/0/private'}.freeze
-
   # classe para acesso dados centralized exchanges
   class Apice
+    API = {de: 'https://api.bitcoin.de/v4', us: 'https://api.kraken.com/0/private'}.freeze
+
     def initialize
       @curl = Curl::Easy.new
       @curl.timeout = 30

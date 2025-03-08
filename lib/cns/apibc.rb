@@ -21,7 +21,7 @@ module Cns
     # @param [Array<String>] addresses List of ETH addresses (max 20)
     # @return [Array<Hash>] List of addresses with balances
     def account_es(addresses)
-      return [] if addresses.empty?
+      return [] if addresses.nil? || addresses.empty?
 
       # Batch addresses into groups of 20 (Etherscan limit) and fetch balances
       addresses.each_slice(20).flat_map do |b|
@@ -146,7 +146,7 @@ module Cns
     # @param [Faraday::Response] res API response
     # @return [Hash] Parsed JSON or empty hash on error
     def parse_json(res)
-      return {} if res.body.to_s.empty?
+      return {} if res.nil? || res.body.to_s.empty?
 
       JSON.parse(res.body, symbolize_names: true) || {}
     rescue JSON::ParserError
@@ -162,7 +162,7 @@ module Cns
         c.headers = {accept: 'application/json', user_agent: 'blockchain-api-client'}
         c.options.timeout = 30
         c.options.open_timeout = 10
-        c.use(Faraday::Retry::Middleware, max: 3, interval: 1)
+        c.use(Faraday::Retry::Middleware, max: 3, interval: 1, backoff_factor: 2)
         c.adapter(Faraday.default_adapter)
       end
     end

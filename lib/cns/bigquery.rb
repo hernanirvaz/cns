@@ -5,49 +5,48 @@ require('bigdecimal/util')
 
 # @author Hernani Rodrigues Vaz
 module Cns
-  BD = 'hernanirvaz.coins'
-  FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
-  EM = %i[EOS XETH ZEUR btc eth]
-  TB = {
-    netht: %w[txhash blocknumber timestamp nonce blockhash transactionindex axfrom axto iax value gas gasprice gasused iserror txreceipt_status input contractaddress dias],
-    hetht: %i[hash blockNumber timeStamp nonce blockHash transactionIndex from to iax value gas gasPrice gasUsed isError txreceipt_status input contractAddress],
-    nethi: %w[txhash blocknumber timestamp axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode dias],
-    hethi: %i[hash blockNumber timeStamp from to iax value contractAddress input type gas gasUsed traceId isError errCode],
-    nethp: %w[blocknumber timestamp blockreward iax dias],
-    hethp: %i[blockNumber timeStamp blockReward iax],
-    nethw: %w[withdrawalindex validatorindex address amount blocknumber timestamp dias],
-    hethw: %i[withdrawalIndex validatorIndex address amount blockNumber timeStamp],
-    nethk: %w[txhash blocknumber timestamp nonce blockhash transactionindex axfrom axto iax value tokenname tokensymbol tokendecimal gas gasprice gasused input contractaddress dias],
-    hethk: %i[hash blockNumber timeStamp nonce blockHash transactionIndex from to iax value tokenName tokenSymbol tokenDecimal gas gasPrice gasUsed input contractAddress],
-    neost: %w[gseq aseq bnum time contract action acfrom acto iax amount moeda memo dias],
-    heost: %i[global_action_seq account_action_seq block_num block_time account name from to iax quantity moe memo],
-    cdet: %w[txid time tp user btc eur dtc dias],
-    hdet: %i[trade_id successfully_finished_at type username btc eur trade_marked_as_paid_at],
-    cdel: %w[txid time tp add moe qt fee],
-    hdel: %i[nxid time tp add moe qtd fee],
-    cust: %w[txid ordertxid pair time type ordertype price cost fee vol margin misc ledgers dias],
-    hust: %i[txid ordertxid pair time type ordertype price cost fee vol margin misc ledgers],
-    cusl: %w[txid refid time type aclass asset amount fee],
-    husl: %i[txid refid time type aclass asset amount fee]
-  }.freeze
-  # para testes bigquery
-  TL = {
-    ins: 'INSERT',
-    exo: false,
-    est: '', # ' limit 226',
-    esi: '', # ' limit 22',
-    esp: '', # ' limit 72',
-    esw: '', # ' limit 2320',
-    esk: '', # ' limit 20',
-    gmt: '', # ' limit 1091',
-    ust: '', # ' limit 182',
-    usl: '', # ' limit 448',
-    det: '', # ' limit 27',
-    del: '' # ' limit 16'
-  }.freeze
-
   # classe para processar bigquery
   class Bigquery
+    BD = 'hernanirvaz.coins'
+    FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
+    TB = {
+      netht: %w[txhash blocknumber timestamp nonce blockhash transactionindex axfrom axto iax value gas gasprice gasused iserror txreceipt_status input contractaddress dias],
+      hetht: %i[hash blockNumber timeStamp nonce blockHash transactionIndex from to iax value gas gasPrice gasUsed isError txreceipt_status input contractAddress],
+      nethi: %w[txhash blocknumber timestamp axfrom axto iax value contractaddress input type gas gasused traceid iserror errcode dias],
+      hethi: %i[hash blockNumber timeStamp from to iax value contractAddress input type gas gasUsed traceId isError errCode],
+      nethp: %w[blocknumber timestamp blockreward iax dias],
+      hethp: %i[blockNumber timeStamp blockReward iax],
+      nethw: %w[withdrawalindex validatorindex address amount blocknumber timestamp dias],
+      hethw: %i[withdrawalIndex validatorIndex address amount blockNumber timeStamp],
+      nethk: %w[txhash blocknumber timestamp nonce blockhash transactionindex axfrom axto iax value tokenname tokensymbol tokendecimal gas gasprice gasused input contractaddress dias],
+      hethk: %i[hash blockNumber timeStamp nonce blockHash transactionIndex from to iax value tokenName tokenSymbol tokenDecimal gas gasPrice gasUsed input contractAddress],
+      neost: %w[gseq aseq bnum time contract action acfrom acto iax amount moeda memo dias],
+      heost: %i[global_action_seq account_action_seq block_num block_time account name from to iax quantity moe memo],
+      cdet: %w[txid time tp user btc eur dtc dias],
+      hdet: %i[trade_id successfully_finished_at type username btc eur trade_marked_as_paid_at],
+      cdel: %w[txid time tp add moe qt fee],
+      hdel: %i[nxid time tp add moe qtd fee],
+      cust: %w[txid ordertxid pair time type ordertype price cost fee vol margin misc ledgers dias],
+      hust: %i[txid ordertxid pair time type ordertype price cost fee vol margin misc ledgers],
+      cusl: %w[txid refid time type aclass asset amount fee],
+      husl: %i[txid refid time type aclass asset amount fee]
+    }.freeze
+    # para testes bigquery
+    TL = {
+      ins: 'INSERT',
+      exo: false,
+      est: '', # ' limit 226',
+      esi: '', # ' limit 22',
+      esp: '', # ' limit 72',
+      esw: '', # ' limit 2320',
+      esk: '', # ' limit 20',
+      gmt: '', # ' limit 1091',
+      ust: '', # ' limit 182',
+      usl: '', # ' limit 448',
+      det: '', # ' limit 27',
+      del: '' # ' limit 16'
+    }.freeze
+
     # @return [Google::Cloud::Bigquery] API bigquery
     # @return [Google::Cloud::Bigquery::QueryJob] job bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho

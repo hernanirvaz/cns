@@ -119,7 +119,7 @@ module Cns
     # @param [Hash] itm recursos kraken
     # @return [Hash<BigDecimal>] moedas & sados
     def pusa(itm)
-      itm.select { |k, _| EM.include?(k) }.transform_values { |v| v.to_d }
+      itm.select { |k, _| %i[EOS XETH ZEUR].include?(k) }.transform_values { |v| v.to_d }
     end
 
     # @param [Array<Hash>] htx trades kraken
