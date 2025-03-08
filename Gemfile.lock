@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (1.0.0)
+    cns (1.0.1)
       curb
       faraday
       faraday-retry
