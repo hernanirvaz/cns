@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (2.0.1)
+    cns (2.0.2)
       curb
       faraday
       faraday-retry
@@ -193,7 +193,7 @@ GEM
     yard (0.9.37)
     yard-solargraph (0.1.0)
       yard (~> 0.9)
-    zeitwerk (2.6.18)
+    zeitwerk (2.7.2)
 
 PLATFORMS
   x86_64-linux
@@ -209,4 +209,4 @@ DEPENDENCIES
   yard
 
 BUNDLED WITH
-   2.6.5
+   2.5.3
