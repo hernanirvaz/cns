@@ -51,7 +51,7 @@ module Cns
     # @return [Google::Cloud::Bigquery::QueryJob] job bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     # @return (see sql)
-    attr_reader :api, :job, :ops, :sqr
+    attr_reader :api, :job, :ops
 
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
     # @option pop [Hash] :h ({}) configuracao ajuste reposicionamento temporal
@@ -113,54 +113,27 @@ module Cns
 
     # @return [String] linhas & tabelas afetadas
     def peth
-      dml_out(apies, %w[ETH], %i[netht nethi nethp nethw nethk])
+      dmo(apies, %w[ETH], %i[netht nethi nethp nethw nethk])
     end
 
     # @return [String] linhas & tabelas afetadas
     def pethc
-      dml_out(apiesc, %w[ETH], %i[netht nethi nethp nethw nethk])
+      dmo(apiesc, %w[ETH], %i[netht nethi nethp nethw nethk])
     end
 
     # @return [String] linhas & tabelas afetadas
     def pus
-      dml_out(apius, %w[KRAKEN], %i[cust cusl])
+      dmo(apius, %w[KRAKEN], %i[cust cusl])
     end
 
     # @return [String] linhas & tabelas afetadas
     def pde
-      dml_out(apide, %w[BITCOINDE], %i[cdet cdel])
+      dmo(apide, %w[BITCOINDE], %i[cdet cdel])
     end
 
     # @return [String] linhas & tabelas afetadas
     def peos
-      dml_out(apigm, %w[EOS], %i[neost])
-    end
-
-    # cria job bigquery & verifica execucao
-    # @param cmd (see sql)
-    # @return [Boolean] job ok?
-    def job?(cmd)
-      @job = api.query_job(cmd, priority: 'BATCH')
-      job.wait_until_done!
-      return true unless job.failed?
-
-      puts("BigQuery Error: #{job.error['message']}")
-      false
-    end
-
-    # cria Structured Query Language (SQL) job bigquery
-    # @param [String] cmd comando SQL a executar
-    # @param [String] res resultado quando SQL tem erro
-    # @return [Google::Cloud::Bigquery::Data] resultado do SQL
-    def sql(cmd, res = [])
-      @sqr = job?(cmd) ? job.data : res
-    end
-
-    # cria Data Manipulation Language (DML) job bigquery
-    # @param cmd (see sql)
-    # @return [Integer] numero linhas afetadas
-    def dml(cmd)
-      job?(cmd) ? job.num_dml_affected_rows : 0
+      dmo(apigm, %w[EOS], %i[neost])
     end
 
     # @return [Etherscan] API blockchain ETH
@@ -203,6 +176,50 @@ module Cns
       @apide ||= Bitcoinde.new({sl: sql("select * from #{BD}.cdes").first, nt: sql("select * from #{BD}.cdet#{TL[:det]}"), nl: sql("select * from #{BD}.cdel#{TL[:del]}")}, ops)
     end
 
+    # cria job bigquery & verifica execucao
+    # @param cmd (see sql)
+    # @param [Hash] prm parâmetros para a query
+    # @return [Boolean] job ok?
+    def job?(cmd, prm = {})
+      @job = api.query_job(cmd, params: prm, priority: 'BATCH')
+      job.wait_until_done!
+      return true unless job.failed?
+
+      puts("BigQuery: #{job.error['message']}\n#{cmd}")
+      false
+    end
+
+    # cria Structured Query Language (SQL) job bigquery
+    # @param [String] cmd comando SQL a executar
+    # @param [String] res resultado quando SQL tem erro
+    # @return [Google::Cloud::Bigquery::Data] resultado do SQL
+    def sql(cmd, prm = {})
+      job?(cmd, prm) ? job.data : []
+    end
+
+    # cria Data Manipulation Language (DML) job bigquery
+    # @param cmd (see sql)
+    # @return [Integer] numero linhas afetadas
+    def dml(cmd, prm = {})
+      job?(cmd, prm) ? job.num_dml_affected_rows : 0
+    end
+
+    # junta resultados inserts no bigquery
+    # @param [API] api blockchains/exchanges
+    # @param [String] ini comando SQL a executar
+    # @return [String] relatorio execucao dmls
+    def dmo(api, ini, ltb)
+      ini.concat(
+        ltb.filter_map do |i|
+          n = api.send("nov#{i}")
+          next if n.empty?
+
+          format(' %<n>i %<t>s', n: dml(ins_sql(i, n)), t: "#{i}")
+        end
+      )
+      ini.join
+    end
+
     # @return [String] comando insert SQL formatado
     def ins_sql(tbl, lin)
       # para testes bigquery
@@ -213,19 +230,6 @@ module Cns
         puts(exo + exl.join(' union all select ') + ' order by 1')
       end
       "#{TL[:ins]} #{BD}.#{tbl} (#{TB[tbl].join(',')}) VALUES #{lin.map { |i| send("#{tbl}_val", i) }.join(',')}"
-    end
-
-    # @return [String] relatorio execucao dml
-    def dml_out(src, str, ltb)
-      str.concat(
-        ltb.filter_map do |i|
-          novx = src.send("nov#{i}")
-          next if novx.empty?
-
-          format(' %<n>i %<t>s', n: dml(ins_sql(i, novx)), t: "#{i}")
-        end
-      )
-      str.join
     end
 
     # @return [String] escapes SQL user input strings
