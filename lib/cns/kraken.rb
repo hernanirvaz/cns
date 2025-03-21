@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
 require('bigdecimal/util')
+require('memoist')
 
 # @author Hernani Rodrigues Vaz
 module Cns
   # classe para processar transacoes trades/ledger do kraken
   class Kraken
-    # @return [Apius] API kraken
+    extend Memoist
     # @return [Array<Hash>] todos os dados bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
-    attr_reader :api, :bqd, :ops
+    attr_reader :bqd, :ops
 
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
@@ -24,29 +25,27 @@ module Cns
     # mosta resumo saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
-      usd[:sl].sort.each { |key, val| puts(fos(key, val)) }
+      ced[:sl].sort.each { |key, val| puts(fos(key, val)) }
       mtotais
 
       mtrades
       mledger
-      return if novcust.empty?
+      return if novxt.empty?
 
-      puts("\nstring ajuste dias dos trades\n-h=#{novcust.sort_by { |i| -i[:srx] }.map { |o| "#{o[:txid]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias dos trades\n-h=#{novxt.sort_by { |i| -i[:srx] }.map { |o| "#{o[:txid]}:0" }.join(' ')}")
     end
 
     # @return [Hash] ledgers exchange kraken
     def uskl
-      usd[:kl]
+      ced[:kl]
     end
 
     private
 
     # mosta contadores transacoes
     def mtotais
-      vkt = usd[:kt].count
-      vnt = bqd[:nt].count
-      vkl = usd[:kl].count
-      vnl = bqd[:nl].count
+      vkt, vnt = ced[:kt].count, bqd[:nt].count
+      vkl, vnl = ced[:kl].count, bqd[:nl].count
 
       puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vkt, b: vnt, o: vkt == vnt ? 'OK' : 'NOK')}")
       puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vkl, d: vnl, o: vkl == vnl ? 'OK' : 'NOK')}")
@@ -54,18 +53,18 @@ module Cns
 
     # mosta transacoes trades
     def mtrades
-      return unless ops[:v] && novcust.any?
+      return unless ops[:v] && novxt.any?
 
       puts("\ntrade  data       hora     tipo       par         preco     volume         custo")
-      novcust.sort_by { |i| -i[:srx] }.each { |o| puts(fot(o)) }
+      novxt.sort_by { |i| -i[:srx] }.each { |o| puts(fot(o)) }
     end
 
     # mosta transacoes ledger
     def mledger
-      return unless ops[:v] && novcusl.any?
+      return unless ops[:v] && novxl.any?
 
       puts("\nledger data       hora     tipo       moeda        quantidade              custo")
-      novcusl.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
+      novxl.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
     end
 
     # @param [String] moe codigo kraken da moeda
@@ -136,53 +135,50 @@ module Cns
 
     # Lazy kraken API Initialization decorated with rate limiting logic
     # @return [Kraken] API - obter saldos & transacoes trades e ledger
-    def api
-      @api ||=
-        begin
-          t = Apice.new
-          # Rate limiting to this specific instance (0.5s in Kraken)
-          t.define_singleton_method(:run_curl) do |curl, url, **options|
-            sleep(@lapi - Time.now + 0.5) if @lapi && Time.now - @lapi < 0.5
-            super(curl, url, **options)
-            @lapi = Time.now
-          end
-          t
+    memoize def api
+      Apice.new.tap do |t|
+        # Rate limiting to this specific instance (0.5s in Kraken)
+        t.define_singleton_method(:rcrl) do |c, u, **o|
+          sleep(@lapi - Time.now + 0.5) if @lapi && Time.now - @lapi < 0.5
+          super(c, u, **o)
+          @lapi = Time.now
         end
+      end
     end
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
-    def usd
-      @usd ||= {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
+    memoize def ced
+      {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
     end
 
     # @return [Array<String>] indices trades bigquery
-    def bqkyt
-      @bqkyt ||= show_all? ? [] : bqd[:nt].map { |t| t[:txid] }
+    memoize def bqkyt
+      show_all? ? [] : bqd[:nt].map { |t| t[:txid] }
     end
 
-    # @return [Array<String>] indices ledger bigquery
-    def bqkyl
-      @bqkyl ||= show_all? ? [] : bqd[:nl].map { |l| l[:txid] }
+    # @return [Array<Integer>] indices ledger bigquery
+    memoize def bqkyl
+      show_all? ? [] : bqd[:nl].map { |l| l[:txid] }
     end
 
     # @return [Array<String>] lista txid trades novos
-    def kyt
-      @kyt ||= usd[:kt].map { |t| t[:txid] } - bqkyt
+    memoize def cekyt
+      ced[:kt].map { |t| t[:txid] } - bqkyt
     end
 
     # @return [Array<String>] lista txid ledger novos
-    def kyl
-      @kyl ||= usd[:kl].map { |t| t[:txid] } - bqkyl
+    memoize def cekyl
+      ced[:kl].map { |t| t[:txid] } - bqkyl
     end
 
     # @return [Array<Hash>] trades novos kraken
-    def novcust
-      @novcust ||= usd[:kt].select { |o| kyt.include?(o[:txid]) }
+    memoize def novxt
+      ced[:kt].select { |o| cekyt.include?(o[:txid]) }
     end
 
     # @return [Array<Hash>] ledgers novos kraken
-    def novcusl
-      @novcusl ||= usd[:kl].select { |o| kyl.include?(o[:txid]) }
+    memoize def novxl
+      ced[:kl].select { |o| cekyl.include?(o[:txid]) }
     end
   end
 end

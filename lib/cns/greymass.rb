@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
 require('bigdecimal/util')
+require('memoist')
 
 # @author Hernani Rodrigues Vaz
 module Cns
   # classe para processar transacoes do greymass
   class Greymass
-    # @return [Apibc] API blockchains
+    extend Memoist
     # @return [Array<Hash>] todos os dados bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
-    attr_reader :api, :bqd, :ops
+    attr_reader :bqd, :ops
 
     TT = {sork: :itx, adjk: :itx}.freeze
 
@@ -37,17 +38,17 @@ module Cns
 
     # mosta transacoes novas
     def mtransacoes_novas
-      return unless ops[:v] && novneost.any?
+      return unless ops[:v] && novxt.any?
 
       puts("\nsequence num from         to           accao      data              valor moeda")
-      novneost.sort_by { |s| -s[TT[:sork]] }.each { |t| puts(fol(t)) }
+      novxt.sort_by { |s| -s[TT[:sork]] }.each { |t| puts(fol(t)) }
     end
 
     # mostra configuration text for adjusting days
     def mconfiguracao_ajuste_dias
-      return unless novneost.any?
+      return unless novxt.any?
 
-      puts("\nstring ajuste dias\n-h=#{novneost.sort_by { |s| -s[TT[:sork]] }.map { |t| "#{t[TT[:adjk]]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias\n-h=#{novxt.sort_by { |s| -s[TT[:sork]] }.map { |t| "#{t[TT[:adjk]]}:0" }.join(' ')}")
     end
 
     # Format wallet summary text
@@ -153,36 +154,36 @@ module Cns
 
     # Lazy Greymass API Initialization
     # @return [Apibc] API instance
-    def api
-      @api ||= Apibc.new
+    memoize def api
+      Apibc.new
     end
 
     # Fetch all Greymass data
     # @return [Hash] Hash of Greymass data indexed by address
-    def gmd
-      @gmd ||= bqd[:wb].map { |o| bsgm(o) }.each_with_object({}) { |h, a| a[h[:ax]] = h }
+    memoize def bcd
+      bqd[:wb].map { |o| bsgm(o) }.to_h { |h| [h[:ax], h] }
     end
 
     # Fetch combined BigQuery and Greymass data
     # @return [Array<Hash>] Combined data list
-    def dados
-      @dados ||= bqd[:wb].map { |b| bqgm(b, gmd[b[:ax]]) }
+    memoize def dados
+      bqd[:wb].map { |b| bqgm(b, bcd[b[:ax]]) }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    def bqidt
-      @bqidt ||= show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
+    memoize def bqidt
+      show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes novas (greymass - bigquery)
-    def idt
-      @idt ||= gmd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+    memoize def bcidt
+      bcd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
     end
 
     # Get new transactions
     # @return [Array<Hash>] List of new transactions
-    def novneost
-      @novneost ||= gmd.values.map { |t| t[:tx].select { |o| idt.include?(o[:itx]) } }.flatten.uniq { |i| i[:itx] }
+    memoize def novxt
+      bcd.values.map { |t| t[:tx].select { |o| bcidt.include?(o[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
   end
 end

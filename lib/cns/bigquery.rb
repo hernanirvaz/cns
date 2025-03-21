@@ -2,11 +2,13 @@
 
 require('google/cloud/bigquery')
 require('bigdecimal/util')
+require('memoist')
 
 # @author Hernani Rodrigues Vaz
 module Cns
   # classe para processar bigquery
   class Bigquery
+    extend Memoist
     BD = 'hernanirvaz.coins'
     FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
     TB = {
@@ -35,16 +37,16 @@ module Cns
     TL = {
       ins: 'INSERT',
       exo: false,
-      est: '', # ' limit 226',
-      esi: '', # ' limit 22',
-      esp: '', # ' limit 72',
-      esw: '', # ' limit 2320',
-      esk: '', # ' limit 20',
-      gmt: '', # ' limit 1091',
-      ust: '', # ' limit 182',
-      usl: '', # ' limit 448',
-      det: '', # ' limit 27',
-      del: '' # ' limit 16'
+      est: '', # limit 228',
+      esi: '', # limit 22',
+      esp: '', # limit 72',
+      esw: '', # limit 2350',
+      esk: '', # limit 20',
+      gmt: '', # limit 1091',
+      ust: '', # limit 182',
+      usl: '', # limit 448',
+      det: '', # limit 27',
+      del: '' # limit 16'
     }.freeze
 
     # @return [Google::Cloud::Bigquery] API bigquery
@@ -67,16 +69,12 @@ module Cns
 
     # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
     def mtudo
-      apius.mresumo
-      apide.mresumo
-      apies.mresumo
-      apigm.mresumo
+      [apius, apide, apies, apigm].each(&:mresumo)
     end
 
     # mostra situacao completa entre kraken/etherscan & bigquery
     def mskrk
-      apius.mresumo
-      apies.mresumo
+      [apius, apies].each(&:mresumo)
     end
 
     # mostra situacao completa entre etherscan & bigquery
@@ -91,34 +89,30 @@ module Cns
 
     # insere dados novos kraken/bitcoinde/etherscan/greymass no bigquery
     def ptudo
-      puts("#{tct} #{pus}, #{pde}, #{peth}, #{peos}")
+      puts("#{tct} #{pus}, #{pde}, #{peth(apies)}, #{peos}")
     end
 
     # insere dados novos kraken/etherscan no bigquery
     def pwkrk
-      puts("#{tct} #{pus}, #{peth}")
+      puts("#{tct} #{pus}, #{peth(apies)}")
     end
 
     # insere dados novos etherscan no bigquery
     def pweth
-      puts("#{tct} #{peth}")
+      puts("#{tct} #{peth(apies)}")
     end
 
     # insere dados novos etherscan no bigquery (output to file)
     def pceth
-      File.open(FO, mode: 'a') { |o| o.puts("#{tct} #{pethc}") }
+      File.open(FO, mode: 'a') { |o| o.puts("#{tct} #{peth(apiec)}") }
     end
 
     private
 
+    # @param [Etherscan] API blockchain ETH
     # @return [String] linhas & tabelas afetadas
-    def peth
-      dmo(apies, %w[ETH], %i[netht nethi nethp nethw nethk])
-    end
-
-    # @return [String] linhas & tabelas afetadas
-    def pethc
-      dmo(apiesc, %w[ETH], %i[netht nethi nethp nethw nethk])
+    def peth(api)
+      dmo(api, %w[ETH], %i[netht nethi nethp nethw nethk])
     end
 
     # @return [String] linhas & tabelas afetadas
@@ -137,7 +131,7 @@ module Cns
     end
 
     # @return [Etherscan] API blockchain ETH
-    def apiesg(prx)
+    def apieg(prx)
       Etherscan.new(
         {
           wb: sql("SELECT * FROM #{BD}.wet#{prx[-1]} ORDER BY ax"),
@@ -152,28 +146,28 @@ module Cns
     end
 
     # @return [Etherscan] API blockchain ETH
-    def apies
-      @apies ||= apiesg('netb')
+    memoize def apies
+      apieg('netb')
     end
 
     # @return [Etherscan] API blockchain ETH (cron)
-    def apiesc
-      @apiesc ||= apiesg('netc')
+    memoize def apiec
+      apieg('netc')
     end
 
     # @return [Greymass] API blockchain EOS
-    def apigm
-      @apigm ||= Greymass.new({wb: sql("select * from #{BD}.weos ORDER BY ax"), nt: sql("select * from #{BD}.neosx#{TL[:gmt]}")}, ops)
+    memoize def apigm
+      Greymass.new({wb: sql("SELECT * FROM #{BD}.weos ORDER BY ax"), nt: sql("SELECT * FROM #{BD}.neosx#{TL[:gmt]}")}, ops)
     end
 
     # @return [Kraken] API exchange kraken
-    def apius
-      @apius ||= Kraken.new({sl: sql("select * from #{BD}.cuss").first, nt: sql("select * from #{BD}.cust#{TL[:ust]}"), nl: sql("select * from #{BD}.cusl#{TL[:usl]}")}, ops)
+    memoize def apius
+      Kraken.new({sl: sql("SELECT * FROM #{BD}.cuss").first, nt: sql("SELECT * FROM #{BD}.cust#{TL[:ust]}"), nl: sql("SELECT * FROM #{BD}.cusl#{TL[:usl]}")}, ops)
     end
 
     # @return [Bitcoinde] API exchange bitcoinde
-    def apide
-      @apide ||= Bitcoinde.new({sl: sql("select * from #{BD}.cdes").first, nt: sql("select * from #{BD}.cdet#{TL[:det]}"), nl: sql("select * from #{BD}.cdel#{TL[:del]}")}, ops)
+    memoize def apide
+      Bitcoinde.new({sl: sql("SELECT * FROM #{BD}.cdes").first, nt: sql("SELECT * FROM #{BD}.cdet#{TL[:det]}"), nl: sql("SELECT * FROM #{BD}.cdel#{TL[:del]}")}, ops)
     end
 
     # cria job bigquery & verifica execucao
@@ -211,7 +205,7 @@ module Cns
     def dmo(api, ini, ltb)
       ini.concat(
         ltb.filter_map do |i|
-          n = api.send("nov#{i}")
+          n = api.send("novx#{i[-1]}")
           next if n.empty?
 
           format(' %<n>i %<t>s', n: dml(ins_sql(i, n)), t: "#{i}")

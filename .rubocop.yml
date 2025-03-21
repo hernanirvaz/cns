@@ -56,6 +56,9 @@ Style/StringLiterals:
 Style/NumericLiterals:
   MinDigits: 5
 
+Style/ParallelAssignment:
+  Enabled: false
+
 # Linting
 Lint/UselessAssignment:
   Enabled: true

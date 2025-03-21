@@ -12,11 +12,13 @@ module Cns
     API = {de: 'https://api.bitcoin.de/v4', us: 'https://api.kraken.com/0/private'}.freeze
 
     def initialize
-      @curl = Curl::Easy.new
-      @curl.timeout = 30
-      @curl.connect_timeout = 10
-      @curl.follow_location = true
-      @curl.ssl_verify_peer = true
+      @curl =
+        Curl::Easy.new.tap do |c|
+          c.timeout = 30
+          c.connect_timeout = 10
+          c.follow_location = true
+          c.ssl_verify_peer = true
+        end
       @deky = ENV.fetch('BITCOINDE_API_KEY', nil)
       @desc = ENV.fetch('BITCOINDE_API_SECRET', nil)
       @usky = ENV.fetch('KRAKEN_API_KEY', nil)
@@ -27,8 +29,8 @@ module Cns
     # @return [Hash] saldos no bitcoinde
     def account_de
       uri = "#{API[:de]}/account"
-      run_curl(@curl, uri, headers: hde(uri))
-      parse_json(@curl).dig(:data, :balances) || {}
+      rcrl(@curl, uri, headers: hde(uri))
+      pjsn(@curl).dig(:data, :balances) || {}
     rescue Curl::Err::CurlError
       {}
     end
@@ -62,8 +64,8 @@ module Cns
     def account_us
       uri = 'Balance'
       ops = {nonce: nnc}
-      run_curl(@curl, "#{API[:us]}/#{uri}", method: 'POST', post_data: ops, headers: hus(uri, ops))
-      parse_json(@curl).fetch(:result, {})
+      rcrl(@curl, "#{API[:us]}/#{uri}", method: 'POST', post_data: ops, headers: hus(uri, ops))
+      pjsn(@curl).fetch(:result, {})
     rescue Curl::Err::CurlError
       {}
     end
@@ -109,8 +111,8 @@ module Cns
         # Rate limiting for page requests (2s in Kraken)
         sleep(@lpag - Time.now + 2) if @lpag && Time.now - @lpag < 2
         ops = {nonce: nnc, ofs: ofs}
-        run_curl(@curl, "#{API[:us]}/#{uri}", method: 'POST', post_data: ops, headers: hus(uri, ops))
-        bth = parse_json(@curl).fetch(:result, {}).fetch(key, []).map { |k, v| us_unif(k, v) }
+        rcrl(@curl, "#{API[:us]}/#{uri}", method: 'POST', post_data: ops, headers: hus(uri, ops))
+        bth = pjsn(@curl).fetch(:result, {}).fetch(key, []).map { |k, v| us_unif(k, v) }
         break if bth.empty?
 
         ary.concat(bth)
@@ -131,11 +133,11 @@ module Cns
       pag = 1
       loop do
         url = "#{uri}?#{URI.encode_www_form(prm.merge(page: pag))}"
-        run_curl(@curl, url, headers: hde(url))
-        res = parse_json(@curl)
+        rcrl(@curl, url, headers: hde(url))
+        res = pjsn(@curl)
         bth = res.fetch(key, [])
         ary.concat(block_given? ? yield(bth) : bth)
-        break if res[:page]&.[](:current)&.>= res[:page]&.[](:last)
+        break if res[:page]&.fetch(:current, 0)&.>= res[:page]&.fetch(:last, 0)
 
         pag += 1
       end
@@ -148,7 +150,7 @@ module Cns
     # @param [String] method HTTP method (GET or POST)
     # @param [Hash] post_data Data to send in POST requests
     # @param [Hash] headers HTTP headers for the request
-    def run_curl(curl, url, method: 'GET', post_data: nil, headers: {})
+    def rcrl(curl, url, method: 'GET', post_data: nil, headers: {})
       curl.reset
       curl.url = url
       curl.http(method)
@@ -160,8 +162,10 @@ module Cns
     # Safe JSON parsing with error handling
     # @param [Curl::Easy] res Curl response object
     # @return [Hash] Parsed JSON or empty hash on error
-    def parse_json(res)
-      JSON.parse(res.body_str, symbolize_names: true)
+    def pjsn(res)
+      return {} if res.nil? || res.body_str.to_s.empty?
+
+      JSON.parse(res.body_str, symbolize_names: true) || {}
     rescue JSON::ParserError
       {}
     end

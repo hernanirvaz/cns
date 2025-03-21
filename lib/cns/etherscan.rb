@@ -1,47 +1,48 @@
 # frozen_string_literal: true
 
 require('bigdecimal/util')
+require('memoist')
 
 # @author Hernani Rodrigues Vaz
 module Cns
   # classe para processar transacoes do etherscan
   class Etherscan
-    # @return [Apibc] API blockchains
+    extend Memoist
     # @return [Array<Hash>] todos os dados bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
-    attr_reader :api, :bqd, :ops
+    attr_reader :bqd, :ops
 
     TT = {
       normal: {
-        new: :novnetht,
+        new: :novxt,
         format: :foti,
         header: "\ntx normal                     from            to              data         valor",
         sork: :srx,
         adjk: :hash
       }.freeze,
       internal: {
-        new: :novnethi,
+        new: :novxi,
         format: :foti,
         header: "\ntx intern                     from            to              data         valor",
         sork: :srx,
         adjk: :hash
       }.freeze,
       block: {
-        new: :novnethp,
+        new: :novxp,
         format: :fop,
         header: "\ntx block  address                                   data                   valor",
         sork: :itx,
         adjk: :blockNumber
       }.freeze,
       token: {
-        new: :novnethk,
+        new: :novxk,
         format: :fok,
         header: "\ntx token             from            to              data            valor moeda",
         sork: :srx,
         adjk: :hash
       }.freeze,
       withdrawal: {
-        new: :novnethw,
+        new: :novxw,
         format: :fow,
         header: "\nwithdrawal validator data            valor",
         sork: :itx,
@@ -82,9 +83,8 @@ module Cns
 
     # mosta transacoes novas
     def mtransacoes_novas
-      TT.each do |_, c|
-        ntx = send(c[:new])
-        next unless ops[:v] && ntx.any?
+      TT.each_value do |c|
+        next unless ops[:v] && (ntx = send(c[:new])).any?
 
         puts(c[:header])
         ntx.sort_by { |s| -s[c[:sork]] }.each { |t| puts(send(c[:format], t)) }
@@ -323,107 +323,107 @@ module Cns
       }
     end
 
+    # Fetch all Etherscan data
+    # @return [Hash] saldos & transacoes, indexed by address
+    memoize def bcd
+      api.account_es(lax).map { |o| bses(o) }.to_h { |h| [h[:ax], h] }
+    end
+
     # Lazy Etherscan API Initialization
     # @return [Apibc] API instance
-    def api
-      @api ||= Apibc.new
+    memoize def api
+      Apibc.new
     end
 
     # @return [Array<String>] lista enderecos
-    def lax
-      @lax ||= bqd[:wb].map { |o| o[:ax] }
-    end
-
-    # Fetch all Etherscan data
-    # @return [Hash] saldos & transacoes, indexed by address
-    def esd
-      @esd ||= api.account_es(lax).map { |o| bses(o) }.each_with_object({}) { |h, a| a[h[:ax]] = h }
+    memoize def lax
+      bqd[:wb].map { |o| o[:ax] }
     end
 
     # Fetch combined data
     # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
-    def dados
-      @dados ||= bqd[:wb].map { |b| bqes(b, esd[b[:ax]]) }
+    memoize def dados
+      bqd[:wb].map { |b| bqes(b, bcd[b[:ax]]) }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    def bqidt
-      @bqidt ||= show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
+    memoize def bqidt
+      show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    def bqidi
-      @bqidi ||= show_all? ? [] : bqd[:ni].map { |i| i[:itx] }
+    memoize def bqidi
+      show_all? ? [] : bqd[:ni].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    def bqidp
-      @bqidp ||= show_all? ? [] : bqd[:np].map { |i| i[:itx] }
+    memoize def bqidp
+      show_all? ? [] : bqd[:np].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    def bqidw
-      @bqidw ||= show_all? ? [] : bqd[:nw].map { |i| i[:itx] }
+    memoize def bqidw
+      show_all? ? [] : bqd[:nw].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    def bqidk
-      @bqidk ||= show_all? ? [] : bqd[:nk].map { |i| i[:itx] }
+    memoize def bqidk
+      show_all? ? [] : bqd[:nk].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    def idt
-      @idt ||= esd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+    memoize def bcidt
+      bcd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    def idi
-      @idi ||= esd.values.map { |o| o[:ix].map { |i| i[:itx] } }.flatten - bqidi
+    memoize def bcidi
+      bcd.values.map { |o| o[:ix].map { |i| i[:itx] } }.flatten - bqidi
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    def idp
-      @idp ||= esd.values.map { |o| o[:px].map { |i| i[:itx] } }.flatten - bqidp
+    memoize def bcidp
+      bcd.values.map { |o| o[:px].map { |i| i[:itx] } }.flatten - bqidp
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    def idw
-      @idw ||= esd.values.map { |o| o[:wx].map { |i| i[:itx] } }.flatten - bqidw
+    memoize def bcidw
+      bcd.values.map { |o| o[:wx].map { |i| i[:itx] } }.flatten - bqidw
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    def idk
-      @idk ||= esd.values.map { |o| o[:kx].map { |i| i[:itx] } }.flatten - bqidk
+    memoize def bcidk
+      bcd.values.map { |o| o[:kx].map { |i| i[:itx] } }.flatten - bqidk
     end
 
     # Get new normal transactions
     # @return [Array<Hash>] List of new transactions
-    def novnetht
-      @novnetht ||= esd.values.map { |o| o[:tx].select { |t| idt.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+    memoize def novxt
+      bcd.values.map { |o| o[:tx].select { |t| bcidt.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new internal transactions
     # @return [Array<Hash>] List of new transactions
-    def novnethi
-      @novnethi ||= esd.values.map { |o| o[:ix].select { |t| idi.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+    memoize def novxi
+      bcd.values.map { |o| o[:ix].select { |t| bcidi.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new produced block transactions
     # @return [Array<Hash>] List of new transactions
-    def novnethp
-      @novnethp ||= esd.values.map { |o| o[:px].select { |t| idp.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+    memoize def novxp
+      bcd.values.map { |o| o[:px].select { |t| bcidp.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new withdrawal transactions
     # @return [Array<Hash>] List of new transactions
-    def novnethw
-      @novnethw ||= esd.values.map { |o| o[:wx].select { |t| idw.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+    memoize def novxw
+      bcd.values.map { |o| o[:wx].select { |t| bcidw.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new token transactions
     # @return [Array<Hash>] List of new transactions
-    def novnethk
-      @novnethk ||= esd.values.map { |o| o[:kx].select { |t| idk.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+    memoize def novxk
+      bcd.values.map { |o| o[:kx].select { |t| bcidk.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
   end
 end

@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
 require('bigdecimal/util')
+require('memoist')
 
 # @author Hernani Rodrigues Vaz
 module Cns
   # classe para processar transacoes trades/ledger do bitcoinde
   class Bitcoinde
-    # @return [Apius] API bitcoinde
+    extend Memoist
     # @return [Array<Hash>] todos os dados bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
-    attr_reader :api, :bqd, :ops
+    attr_reader :bqd, :ops
 
     # @param [Hash] dad todos os dados bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] pop opcoes trabalho
@@ -24,24 +25,22 @@ module Cns
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
-      ded[:sl].sort.each { |k, v| puts(fos(k, v)) }
+      ced[:sl].sort.each { |k, v| puts(fos(k, v)) }
       mtotais
 
       mtrades
       mledger
-      return if novcdet.empty?
+      return if novxt.empty?
 
-      puts("\nstring ajuste dias dos trades\n-h=#{novcdet.sort_by { |i| -i[:srx] }.map { |o| "#{o[:trade_id]}:0" }.join(' ')}")
+      puts("\nstring ajuste dias dos trades\n-h=#{novxt.sort_by { |i| -i[:srx] }.map { |o| "#{o[:trade_id]}:0" }.join(' ')}")
     end
 
     private
 
     # mosta contadores transacoes
     def mtotais
-      vtt = ded[:tt].count
-      vnt = bqd[:nt].count
-      vtl = ded[:tl].count
-      vnl = bqd[:nl].count
+      vtt, vnt = ced[:tt].count, bqd[:nt].count
+      vtl, vnl = ced[:tl].count, bqd[:nl].count
 
       puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
       puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vtl, d: vnl, o: vtl == vnl ? 'OK' : 'NOK')}")
@@ -49,18 +48,18 @@ module Cns
 
     # mosta transacoes trades
     def mtrades
-      return unless ops[:v] && novcdet.any?
+      return unless ops[:v] && novxt.any?
 
       puts("\ntrades data       hora     dt criacao tipo  par                     btc      eur")
-      novcdet.sort_by { |i| -i[:srx] }.each { |o| puts(fot(o)) }
+      novxt.sort_by { |i| -i[:srx] }.each { |o| puts(fot(o)) }
     end
 
     # mosta transacoes ledger
     def mledger
-      return unless ops[:v] && novcdel.any?
+      return unless ops[:v] && novxl.any?
 
       puts("\nledger data       hora     tipo       moe          quantidade              custo")
-      novcdel.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
+      novxl.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
     end
 
     # @param [String] moe codigo bitcoinde da moeda
@@ -153,43 +152,43 @@ module Cns
 
     # Lazy Bitcoinde API Initialization
     # @return [Bitcoinde] API - obter saldos & transacoes trades e ledger
-    def api
-      @api ||= Apice.new
+    memoize def api
+      Apice.new
     end
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
-    def ded
-      @ded ||= {sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de)}
+    memoize def ced
+      {sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de)}
     end
 
     # @return [Array<String>] indices trades bigquery
-    def bqkyt
-      @bqkyt ||= show_all? ? [] : bqd[:nt].map { |t| t[:txid] }
+    memoize def bqkyt
+      show_all? ? [] : bqd[:nt].map { |t| t[:txid] }
     end
 
     # @return [Array<Integer>] indices ledger bigquery
-    def bqkyl
-      @bqkyl ||= show_all? ? [] : bqd[:nl].map { |l| l[:txid] }
+    memoize def bqkyl
+      show_all? ? [] : bqd[:nl].map { |l| l[:txid] }
     end
 
     # @return [Array<String>] lista txid trades novos
-    def kyt
-      @kyt ||= ded[:tt].map { |t| t[:trade_id] } - bqkyt
+    memoize def cekyt
+      ced[:tt].map { |t| t[:trade_id] } - bqkyt
     end
 
     # @return [Array<Integer>] lista nxid ledger novos
-    def kyl
-      @kyl ||= ded[:tl].map { |t| t[:nxid] } - bqkyl
+    memoize def cekyl
+      ced[:tl].map { |t| t[:nxid] } - bqkyl
     end
 
     # @return [Array<Hash>] lista trades novos bitcoinde
-    def novcdet
-      @novcdet ||= ded[:tt].select { |o| kyt.include?(o[:trade_id]) }
+    memoize def novxt
+      ced[:tt].select { |o| cekyt.include?(o[:trade_id]) }
     end
 
     # @return [Array<Hash>] lista ledgers (deposits + withdrawals) novos bitcoinde
-    def novcdel
-      @novcdel ||= ded[:tl].select { |o| kyl.include?(o[:nxid]) }
+    memoize def novxl
+      ced[:tl].select { |o| cekyl.include?(o[:nxid]) }
     end
   end
 end
