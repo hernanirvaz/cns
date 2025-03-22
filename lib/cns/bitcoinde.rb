@@ -25,7 +25,7 @@ module Cns
     # @return [String] texto saldos & transacoes & ajuste dias
     def mresumo
       puts("\nBITCOINDE\ntipo              bitcoinde              bigquery")
-      ced[:sl].sort.each { |k, v| puts(fos(k, v)) }
+      exd[:sl].sort.each { |k, v| puts(fos(k, v)) }
       mtotais
 
       mtrades
@@ -39,8 +39,8 @@ module Cns
 
     # mosta contadores transacoes
     def mtotais
-      vtt, vnt = ced[:tt].count, bqd[:nt].count
-      vtl, vnl = ced[:tl].count, bqd[:nl].count
+      vtt, vnt = exd[:tt].count, bqd[:nt].count
+      vtl, vnl = exd[:tl].count, bqd[:nl].count
 
       puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
       puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vtl, d: vnl, o: vtl == vnl ? 'OK' : 'NOK')}")
@@ -157,7 +157,7 @@ module Cns
     end
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
-    memoize def ced
+    memoize def exd
       {sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de)}
     end
 
@@ -172,23 +172,23 @@ module Cns
     end
 
     # @return [Array<String>] lista txid trades novos
-    memoize def cekyt
-      ced[:tt].map { |t| t[:trade_id] } - bqkyt
+    memoize def exkyt
+      exd[:tt].map { |t| t[:trade_id] } - bqkyt
     end
 
     # @return [Array<Integer>] lista nxid ledger novos
-    memoize def cekyl
-      ced[:tl].map { |t| t[:nxid] } - bqkyl
+    memoize def exkyl
+      exd[:tl].map { |t| t[:nxid] } - bqkyl
     end
 
     # @return [Array<Hash>] lista trades novos bitcoinde
     memoize def novxt
-      ced[:tt].select { |o| cekyt.include?(o[:trade_id]) }
+      exd[:tt].select { |o| exkyt.include?(o[:trade_id]) }
     end
 
     # @return [Array<Hash>] lista ledgers (deposits + withdrawals) novos bitcoinde
     memoize def novxl
-      ced[:tl].select { |o| cekyl.include?(o[:nxid]) }
+      exd[:tl].select { |o| exkyl.include?(o[:nxid]) }
     end
   end
 end

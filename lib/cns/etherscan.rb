@@ -61,20 +61,20 @@ module Cns
 
     # mostra resumo carteiras & transacoes & ajuste dias
     def mresumo_simples
-      return unless dados.any?
+      return unless bqexd.any?
 
       puts("\nid     address                                        etherscan      bigquery")
-      dados.each { |o| puts(focs(o)) }
+      bqexd.each { |o| puts(focs(o)) }
       mtransacoes_novas
       mconfiguracao_ajuste_dias
     end
 
     # mostra resumo carteiras & transacoes & ajuste dias (com contadores)
     def mresumo
-      return unless dados.any?
+      return unless bqexd.any?
 
       puts("\nid     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw")
-      dados.each { |o| puts(foct(o)) }
+      bqexd.each { |o| puts(foct(o)) }
       mtransacoes_novas
       mconfiguracao_ajuste_dias
     end
@@ -286,7 +286,7 @@ module Cns
     # Fetch Etherscan data for an account
     # @param [Hash] aes account etherscan
     # @return [Hash] dados etherscan - address, saldo & transacoes
-    def bses(aes)
+    def esd(aes)
       acc = aes[:account].downcase
       {
         ax: acc,
@@ -303,7 +303,7 @@ module Cns
     # @param [Hash] wbq wallet bigquery
     # @param [Hash] hes dados etherscan - address, saldo & transacoes
     # @return [Hash] dados juntos bigquery & etherscan
-    def bqes(wbq, hes)
+    def bqesd(wbq, hes)
       xbq = wbq[:ax]
       {
         id: wbq[:id],
@@ -323,12 +323,6 @@ module Cns
       }
     end
 
-    # Fetch all Etherscan data
-    # @return [Hash] saldos & transacoes, indexed by address
-    memoize def bcd
-      api.account_es(lax).map { |o| bses(o) }.to_h { |h| [h[:ax], h] }
-    end
-
     # Lazy Etherscan API Initialization
     # @return [Apibc] API instance
     memoize def api
@@ -340,90 +334,96 @@ module Cns
       bqd[:wb].map { |o| o[:ax] }
     end
 
+    # Fetch all Etherscan data
+    # @return [Hash] saldos & transacoes, indexed by address
+    memoize def exd
+      api.account_es(lax).map { |o| esd(o) }.to_h { |h| [h[:ax], h] }
+    end
+
     # Fetch combined data
     # @return [Array<Hash>] todos os dados juntos bigquery & etherscan
-    memoize def dados
-      bqd[:wb].map { |b| bqes(b, bcd[b[:ax]]) }
+    memoize def bqexd
+      bqd[:wb].map { |b| bqesd(b, exd[b[:ax]]) }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    memoize def bqidt
+    memoize def bqkyt
       show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    memoize def bqidi
+    memoize def bqkyi
       show_all? ? [] : bqd[:ni].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    memoize def bqidp
+    memoize def bqkyp
       show_all? ? [] : bqd[:np].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    memoize def bqidw
+    memoize def bqkyw
       show_all? ? [] : bqd[:nw].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    memoize def bqidk
+    memoize def bqkyk
       show_all? ? [] : bqd[:nk].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    memoize def bcidt
-      bcd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+    memoize def exkyt
+      exd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqkyt
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    memoize def bcidi
-      bcd.values.map { |o| o[:ix].map { |i| i[:itx] } }.flatten - bqidi
+    memoize def exkyi
+      exd.values.map { |o| o[:ix].map { |i| i[:itx] } }.flatten - bqkyi
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    memoize def bcidp
-      bcd.values.map { |o| o[:px].map { |i| i[:itx] } }.flatten - bqidp
+    memoize def exkyp
+      exd.values.map { |o| o[:px].map { |i| i[:itx] } }.flatten - bqkyp
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    memoize def bcidw
-      bcd.values.map { |o| o[:wx].map { |i| i[:itx] } }.flatten - bqidw
+    memoize def exkyw
+      exd.values.map { |o| o[:wx].map { |i| i[:itx] } }.flatten - bqkyw
     end
 
     # @return [Array<Integer>] indices transacoes novas (etherscan - bigquery)
-    memoize def bcidk
-      bcd.values.map { |o| o[:kx].map { |i| i[:itx] } }.flatten - bqidk
+    memoize def exkyk
+      exd.values.map { |o| o[:kx].map { |i| i[:itx] } }.flatten - bqkyk
     end
 
     # Get new normal transactions
     # @return [Array<Hash>] List of new transactions
     memoize def novxt
-      bcd.values.map { |o| o[:tx].select { |t| bcidt.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      exd.values.map { |o| o[:tx].select { |t| exkyt.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new internal transactions
     # @return [Array<Hash>] List of new transactions
     memoize def novxi
-      bcd.values.map { |o| o[:ix].select { |t| bcidi.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      exd.values.map { |o| o[:ix].select { |t| exkyi.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new produced block transactions
     # @return [Array<Hash>] List of new transactions
     memoize def novxp
-      bcd.values.map { |o| o[:px].select { |t| bcidp.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      exd.values.map { |o| o[:px].select { |t| exkyp.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new withdrawal transactions
     # @return [Array<Hash>] List of new transactions
     memoize def novxw
-      bcd.values.map { |o| o[:wx].select { |t| bcidw.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      exd.values.map { |o| o[:wx].select { |t| exkyw.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
 
     # Get new token transactions
     # @return [Array<Hash>] List of new transactions
     memoize def novxk
-      bcd.values.map { |o| o[:kx].select { |t| bcidk.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      exd.values.map { |o| o[:kx].select { |t| exkyk.include?(t[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
   end
 end

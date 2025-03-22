@@ -26,10 +26,10 @@ module Cns
 
     # Display summary of wallets, transactions, and adjustment days configuration
     def mresumo
-      return unless dados.any?
+      return unless bqexd.any?
 
       puts("\naddress            greymass  ntx       bigquery  ntx")
-      dados.each { |e| puts(foct(e)) }
+      bqexd.each { |e| puts(foct(e)) }
       mtransacoes_novas
       mconfiguracao_ajuste_dias
     end
@@ -131,16 +131,16 @@ module Cns
     # Fetch Greymass data for a wallet
     # @param [Hash] wbq wallet bigquery
     # @return [Hash] dados greymass - address, saldo & transacoes
-    def bsgm(wbq)
+    def gmd(wbq)
       xbq = wbq[:ax]
       {ax: xbq, sl: peosa(xbq).reduce(:+), tx: peost(xbq, api.ledger_gm(xbq))}
     end
 
     # Combine BigQuery and Greymass data
-    # @param wbq (see bsgm)
+    # @param wbq (see gmd)
     # @param [Hash] hgm dados greymass - address, saldo & transacoes
     # @return [Hash] dados juntos bigquery & greymass
-    def bqgm(wbq, hgm)
+    def bqgmd(wbq, hgm)
       xbq = wbq[:ax]
       {
         id: wbq[:id],
@@ -160,30 +160,30 @@ module Cns
 
     # Fetch all Greymass data
     # @return [Hash] Hash of Greymass data indexed by address
-    memoize def bcd
-      bqd[:wb].map { |o| bsgm(o) }.to_h { |h| [h[:ax], h] }
+    memoize def exd
+      bqd[:wb].map { |o| gmd(o) }.to_h { |h| [h[:ax], h] }
     end
 
     # Fetch combined BigQuery and Greymass data
     # @return [Array<Hash>] Combined data list
-    memoize def dados
-      bqd[:wb].map { |b| bqgm(b, bcd[b[:ax]]) }
+    memoize def bqexd
+      bqd[:wb].map { |b| bqgmd(b, exd[b[:ax]]) }
     end
 
     # @return [Array<Integer>] indices transacoes bigquery
-    memoize def bqidt
+    memoize def bqkyt
       show_all? ? [] : bqd[:nt].map { |i| i[:itx] }
     end
 
     # @return [Array<Integer>] indices transacoes novas (greymass - bigquery)
-    memoize def bcidt
-      bcd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqidt
+    memoize def exkyt
+      exd.values.map { |o| o[:tx].map { |i| i[:itx] } }.flatten - bqkyt
     end
 
     # Get new transactions
     # @return [Array<Hash>] List of new transactions
     memoize def novxt
-      bcd.values.map { |t| t[:tx].select { |o| bcidt.include?(o[:itx]) } }.flatten.uniq { |i| i[:itx] }
+      exd.values.map { |t| t[:tx].select { |o| exkyt.include?(o[:itx]) } }.flatten.uniq { |i| i[:itx] }
     end
   end
 end

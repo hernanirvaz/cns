@@ -25,7 +25,7 @@ module Cns
     # mosta resumo saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
-      ced[:sl].sort.each { |key, val| puts(fos(key, val)) }
+      exd[:sl].sort.each { |key, val| puts(fos(key, val)) }
       mtotais
 
       mtrades
@@ -37,15 +37,15 @@ module Cns
 
     # @return [Hash] ledgers exchange kraken
     def uskl
-      ced[:kl]
+      exd[:kl]
     end
 
     private
 
     # mosta contadores transacoes
     def mtotais
-      vkt, vnt = ced[:kt].count, bqd[:nt].count
-      vkl, vnl = ced[:kl].count, bqd[:nl].count
+      vkt, vnt = exd[:kt].count, bqd[:nt].count
+      vkl, vnl = exd[:kl].count, bqd[:nl].count
 
       puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vkt, b: vnt, o: vkt == vnt ? 'OK' : 'NOK')}")
       puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vkl, d: vnl, o: vkl == vnl ? 'OK' : 'NOK')}")
@@ -147,7 +147,7 @@ module Cns
     end
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
-    memoize def ced
+    memoize def exd
       {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
     end
 
@@ -162,23 +162,23 @@ module Cns
     end
 
     # @return [Array<String>] lista txid trades novos
-    memoize def cekyt
-      ced[:kt].map { |t| t[:txid] } - bqkyt
+    memoize def exkyt
+      exd[:kt].map { |t| t[:txid] } - bqkyt
     end
 
     # @return [Array<String>] lista txid ledger novos
-    memoize def cekyl
-      ced[:kl].map { |t| t[:txid] } - bqkyl
+    memoize def exkyl
+      exd[:kl].map { |t| t[:txid] } - bqkyl
     end
 
     # @return [Array<Hash>] trades novos kraken
     memoize def novxt
-      ced[:kt].select { |o| cekyt.include?(o[:txid]) }
+      exd[:kt].select { |o| exkyt.include?(o[:txid]) }
     end
 
     # @return [Array<Hash>] ledgers novos kraken
     memoize def novxl
-      ced[:kl].select { |o| cekyl.include?(o[:txid]) }
+      exd[:kl].select { |o| exkyl.include?(o[:txid]) }
     end
   end
 end
