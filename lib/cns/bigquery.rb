@@ -69,7 +69,7 @@ module Cns
 
     # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
     def mtudo
-      [apius, apide, apies, apigm].each(&:mresumo)
+      [apius, apide, apies].each(&:mresumo)
     end
 
     # mostra situacao completa entre kraken/etherscan & bigquery
@@ -89,7 +89,7 @@ module Cns
 
     # insere dados novos kraken/bitcoinde/etherscan/greymass no bigquery
     def ptudo
-      puts("#{tct} #{pus}, #{pde}, #{peth(apies)}, #{peos}")
+      puts("#{tct} #{pus}, #{pde}, #{peth(apies)}")
     end
 
     # insere dados novos kraken/etherscan no bigquery
