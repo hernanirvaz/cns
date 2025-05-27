@@ -103,7 +103,7 @@ module Cns
     # @param [Hash] prm Additional request parameters
     # @return [Hash] Parsed API response
     def es_req(act, add, pag = 1, prm = {})
-      pjsn(@escn.get('/api', prm.merge(module: 'account', action: act, address: add, page: pag, apikey: @esky)))
+      pjsn(@escn.get('/v2/api', prm.merge(chainid: 1, module: 'account', action: act, address: add, page: pag, apikey: @esky)))
     rescue Faraday::Error
       {status: '0'}
     end
