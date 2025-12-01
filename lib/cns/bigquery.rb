@@ -9,6 +9,7 @@ module Cns
   # classe para processar bigquery
   class Bigquery
     extend Memoist
+
     BD = 'hernanirvaz.coins'
     FO = File.expand_path("~/#{File.basename($PROGRAM_NAME)}.log")
     TB = {
@@ -79,7 +80,7 @@ module Cns
 
     # mostra situacao completa entre etherscan & bigquery
     def mseth
-      apies.mresumo_simples
+      apies.mresumo
     end
 
     # @return [String] texto inicial transacoes

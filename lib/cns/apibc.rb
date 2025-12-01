@@ -15,6 +15,7 @@ module Cns
       @escn = bccn('https://api.etherscan.io')
       @gmcn = bccn('https://eos.greymass.com')
       @esky = ENV.fetch('ETHERSCAN_API_KEY', nil)
+      @blks = {} # Cache to store block numbers so we don't ask API repeatedly
     end
 
     # Get account balances for multiple ETH addresses
@@ -34,16 +35,19 @@ module Cns
 
     # Get normal transactions for ETH address
     # @param [String] add endereco ETH
+    # @param [Integer] days (Optional) Fetch only last N days
     # @return [Array<Hash>] lista transacoes normais etherscan
-    def norml_es(add)
-      pag_es_req('txlist', add)
+    def norml_es(add, days: nil)
+      prm = days ? {startblock: start_block(days)} : {}
+      pag_es_req('txlist', add, prm)
     end
 
     # Get internal transactions for ETH address
     # @param (see norml_es)
     # @return [Array<Hash>] lista transacoes internas etherscan
-    def inter_es(add)
-      pag_es_req('txlistinternal', add)
+    def inter_es(add, days: nil)
+      prm = days ? {startblock: start_block(days)} : {}
+      pag_es_req('txlistinternal', add, prm)
     end
 
     # Get mined blocks for ETH address
@@ -56,15 +60,17 @@ module Cns
     # Get withdrawals for ETH address
     # @param (see norml_es)
     # @return [Array<Hash>] lista blocos etherscan
-    def withw_es(add)
-      pag_es_req('txsBeaconWithdrawal', add)
+    def withw_es(add, days: nil)
+      prm = days ? {startblock: start_block(days)} : {}
+      pag_es_req('txsBeaconWithdrawal', add, prm)
     end
 
     # Get token transfers for ETH address
     # @param (see norml_es)
     # @return [Array<Hash>] lista token transfer events etherscan
-    def token_es(add)
-      pag_es_req('tokentx', add)
+    def token_es(add, days: nil)
+      prm = days ? {startblock: start_block(days)} : {}
+      pag_es_req('tokentx', add, prm)
     end
 
     # Get EOS account information
@@ -95,6 +101,31 @@ module Cns
     end
 
     private
+
+    # Calculate (and cache) the block number for N days ago
+    def start_block(days)
+      return 0 if days.nil?
+      return @blks[days] if @blks.key?(days)
+
+      res = block_req(Integer(Time.now - (days * 86_400)))
+      if res[:status] == '1'
+        blk = Integer(res[:result], 10)
+        @blks[days] = blk
+        blk
+      else
+        0
+      end
+    rescue StandardError
+      0
+    end
+
+    # New dedicated method for Block API calls
+    def block_req(timestamp)
+      prm = {chainid: 1, module: 'block', action: 'getblocknobytime', timestamp: timestamp, closest: 'after', apikey: @esky}
+      pjsn(@escn.get('/v2/api', prm))
+    rescue Faraday::Error
+      {status: '0'}
+    end
 
     # Make a request to the Etherscan API
     # @param [String] act API action name

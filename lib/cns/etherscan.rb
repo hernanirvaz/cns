@@ -8,6 +8,7 @@ module Cns
   # classe para processar transacoes do etherscan
   class Etherscan
     extend Memoist
+
     # @return [Array<Hash>] todos os dados bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :bqd, :ops
@@ -59,19 +60,9 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # mostra resumo carteiras & transacoes & ajuste dias
-    def mresumo_simples
-      return unless bqexd.any?
-
-      puts("\nid     address                                        etherscan      bigquery")
-      bqexd.each { |o| puts(focs(o)) }
-      mtransacoes_novas
-      mconfiguracao_ajuste_dias
-    end
-
     # mostra resumo carteiras & transacoes & ajuste dias (com contadores)
     def mresumo
-      return unless bqexd.any?
+      return if bqexd.none?
 
       puts("\nid     address      etherscan  tn ti tb tk   tw    bigquery  tn ti tb tk   tw")
       bqexd.each { |o| puts(foct(o)) }
@@ -95,24 +86,10 @@ module Cns
     def mconfiguracao_ajuste_dias
       TT.each do |p, c|
         ntx = send(c[:new])
-        next unless ntx.any?
+        next if ntx.none?
 
         puts("\najuste dias transacoes #{p}\n-h=#{ntx.sort_by { |s| -s[c[:sork]] }.map { |t| "#{t[c[:adjk]]}:0" }.join(' ')}")
       end
-    end
-
-    # Format simple wallet summary
-    # @param [Hash] hjn dados juntos bigquery & etherscan
-    # @return [String] texto formatado duma carteira
-    def focs(hjn)
-      format(
-        '%<id>-6.6s %<address>-42.42s %<etherscan_value>13.6f %<bigquery_value>13.6f %<status>-3s',
-        id: hjn[:id],
-        address: hjn[:ax],
-        etherscan_value: hjn[:es],
-        bigquery_value: hjn[:bs],
-        status: ok?(hjn) ? 'OK' : 'NOK'
-      )
     end
 
     # Format detailed wallet summary with counters
@@ -139,23 +116,11 @@ module Cns
       )
     end
 
-    # Check if wallet has new transactions
+    # Check if wallets saldo
     # @param (see focs)
-    # @return [Boolean] check saldo & contadores ipwtk
+    # @return [Boolean] check saldo
     def ok?(hjn)
-      oks?(hjn) && okipw?(hjn) && hjn[:bt].count == hjn[:et].count && hjn[:bk].count == hjn[:ek].count
-    end
-
-    # @param (see focs)
-    # @return [Boolean] check contadores ipw
-    def okipw?(hjn)
-      oks?(hjn) && hjn[:bi].count == hjn[:ei].count && hjn[:bp].count == hjn[:ep].count && hjn[:bw].count == hjn[:ew].count
-    end
-
-    # @param (see focs)
-    # @return [Boolean] carteira tem transacoes novas (sim=NOK, nao=OK)?
-    def oks?(hjn)
-      hjn[:es].round(6) == hjn[:bs].round(6)
+      hjn[:es].round(4) == hjn[:bs].round(4)
     end
 
     # @example ether address inicio..fim
@@ -249,6 +214,12 @@ module Cns
       ops[:t] || false
     end
 
+    # Numero dias para buscar transacoes
+    # @return [Integer] days in the past to get transacoes
+    def dias
+      ops&.[](:d)&.positive? ? ops[:d] : nil
+    end
+
     # Process timestamp
     # @param [Hash] htx transacao
     # @return [Hash] transaccao filtrada
@@ -288,14 +259,15 @@ module Cns
     # @return [Hash] dados etherscan - address, saldo & transacoes
     def esd(aes)
       acc = aes[:account].downcase
+      dys = dias
       {
         ax: acc,
         sl: aes[:balance].to_d / (10**18),
-        tx: ftik(acc, api.norml_es(acc)),
-        ix: ftik(acc, api.inter_es(acc)),
-        px: fppp(acc, api.block_es(acc)),
-        wx: fwww(acc, api.withw_es(acc)),
-        kx: ftik(acc, api.token_es(acc))
+        tx: ftik(acc, api.norml_es(acc, days: dys)),
+        ix: ftik(acc, api.inter_es(acc, days: dys)),
+        px: fppp(acc, api.block_es(acc)), # block_es (mining) does not support time filtering
+        wx: fwww(acc, api.withw_es(acc, days: dys)),
+        kx: ftik(acc, api.token_es(acc, days: dys))
       }
     end
 

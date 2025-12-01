@@ -16,6 +16,7 @@ module Cns
     desc 'seth', 'mostra eth transacoes'
     option :v, type: :boolean, default: true, desc: 'mostra transacoes'
     option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
+    option :d, type: :numeric, default: 0, desc: 'dias para buscar transacoes etherscan, 0=todas'
     # mostra eth transacoes
     def seth
       Bigquery.new(options).mseth
@@ -23,6 +24,7 @@ module Cns
 
     desc 'weth', 'carrega transacoes eth no bigquery'
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
+    option :d, type: :numeric, default: 0, desc: 'dias para buscar transacoes etherscan, 0=todas'
     # carrega transacoes eth no bigquery
     def weth
       Bigquery.new(options).pweth
@@ -30,6 +32,7 @@ module Cns
 
     desc 'ceth', 'carrega transacoes eth no bigquery (cron)'
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
+    option :d, type: :numeric, default: 0, desc: 'dias para buscar transacoes etherscan, 0=todas'
     # carrega transacoes eth no bigquery (output to file)
     def ceth
       Bigquery.new(options).pceth
@@ -38,6 +41,7 @@ module Cns
     desc 'skrk', 'mostra kraken/eth transacoes'
     option :v, type: :boolean, default: true, desc: 'mostra transacoes'
     option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
+    option :d, type: :numeric, default: 0, desc: 'dias para buscar transacoes etherscan, 0=todas'
     # mostra kraken/eth transacoes
     def skrk
       Bigquery.new(options).mskrk
@@ -45,6 +49,7 @@ module Cns
 
     desc 'wkrk', 'carrega transacoes kraken/eth no bigquery'
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
+    option :d, type: :numeric, default: 0, desc: 'dias para buscar transacoes etherscan, 0=todas'
     # carrega transacoes kraken/eth no bigquery
     def wkrk
       Bigquery.new(options).pwkrk
@@ -52,6 +57,7 @@ module Cns
 
     desc 'work', 'carrega transacoes novas no bigquery'
     option :h, type: :hash, default: {}, desc: 'configuracao ajuste reposicionamento temporal'
+    option :d, type: :numeric, default: 0, desc: 'dias para buscar transacoes etherscan, 0=todas'
     # carrega transacoes novas no bigquery
     def work
       Bigquery.new(options).ptudo
@@ -60,6 +66,7 @@ module Cns
     desc 'show', 'mostra resumo transacoes'
     option :v, type: :boolean, default: true, desc: 'mostra transacoes'
     option :t, type: :boolean, default: false, desc: 'mostra transacoes todas ou somente novas'
+    option :d, type: :numeric, default: 0, desc: 'dias para buscar transacoes etherscan, 0=todas'
     # mostra resumo transacoes
     def show
       Bigquery.new(options).mtudo
