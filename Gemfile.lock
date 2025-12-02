@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cns (2.0.9)
+    cns (2.0.10)
       curb
       faraday
       faraday-retry
@@ -216,4 +216,4 @@ DEPENDENCIES
   yard
 
 BUNDLED WITH
-   2.5.16
+   2.6.9
