@@ -8,6 +8,7 @@ module Cns
   # classe para processar transacoes trades/ledger do kraken
   class Kraken
     extend Memoist
+
     # @return [Array<Hash>] todos os dados bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :bqd, :ops
@@ -118,7 +119,7 @@ module Cns
     # @param [Hash] itm recursos kraken
     # @return [Hash<BigDecimal>] moedas & sados
     def pusa(itm)
-      itm.select { |k, _| %i[EOS XETH ZEUR].include?(k) }.transform_values { |v| v.to_d }
+      itm.select { |k, _| %i[XETH ZEUR].include?(k) }.transform_values { |v| v.to_d }
     end
 
     # @param [Array<Hash>] htx trades kraken
