@@ -9,11 +9,9 @@ module Cns
   # classe para acesso dados blockchains
   class Apibc
     ESPS = 10_000 # Etherscan maximum records per page
-    GMPS = 100    # Greymass maximum actions per request
 
     def initialize
       @escn = bccn('https://api.etherscan.io')
-      @gmcn = bccn('https://eos.greymass.com')
       @esky = ENV.fetch('ETHERSCAN_API_KEY', nil)
       @blks = {} # Cache to store block numbers so we don't ask API repeatedly
     end
@@ -71,33 +69,6 @@ module Cns
     def token_es(add, days: nil)
       prm = days ? {startblock: start_block(days)} : {}
       pag_es_req('tokentx', add, prm)
-    end
-
-    # Get EOS account information
-    # @param [String] add EOS account name
-    # @return [Hash] Account details with resources
-    def account_gm(add)
-      res = gm_req('/v1/chain/get_account', account_name: add)
-      res[:core_liquid_balance]&.to_d&.positive? ? res : gm_erro
-    end
-
-    # Get complete transaction history for EOS account
-    # @param (see account_gm)
-    # @return [Array<Hash>] lista completa transacoes greymass
-    def ledger_gm(add)
-      trx = []
-      pos = 0
-      loop do
-        res = gm_req('/v1/history/get_actions', account_name: add, pos: pos, offset: GMPS)
-        bth = Array(res[:actions])
-        trx.concat(bth)
-        break if bth.size < GMPS
-
-        pos += GMPS
-      end
-      trx
-    rescue StandardError
-      trx
     end
 
     private
@@ -161,22 +132,6 @@ module Cns
       trx
     rescue StandardError
       trx
-    end
-
-    # Make a request to the Greymass API
-    # @param [String] url API endpoint
-    # @param [Hash] pyl Request payload
-    # @return [Hash] Parsed API response
-    def gm_req(url, pyl)
-      pjsn(@gmcn.post(url) { |r| r.body = pyl })
-    rescue Faraday::Error
-      gm_erro
-    end
-
-    # Default error response for Greymass API
-    # @return [Hash] Error response with zeroed values
-    def gm_erro
-      {core_liquid_balance: 0, total_resources: {net_weight: 0, cpu_weight: 0}}
     end
 
     # Safely parse JSON response

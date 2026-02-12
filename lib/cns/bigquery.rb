@@ -23,8 +23,6 @@ module Cns
       hethw: %i[withdrawalIndex validatorIndex address amount blockNumber timeStamp],
       nethk: %w[txhash blocknumber timestamp nonce blockhash transactionindex axfrom axto iax value tokenname tokensymbol tokendecimal gas gasprice gasused input contractaddress dias],
       hethk: %i[hash blockNumber timeStamp nonce blockHash transactionIndex from to iax value tokenName tokenSymbol tokenDecimal gas gasPrice gasUsed input contractAddress],
-      neost: %w[gseq aseq bnum time contract action acfrom acto iax amount moeda memo dias],
-      heost: %i[global_action_seq account_action_seq block_num block_time account name from to iax quantity moe memo],
       cdet: %w[txid time tp user btc eur dtc dias],
       hdet: %i[trade_id successfully_finished_at type username btc eur trade_marked_as_paid_at],
       cdel: %w[txid time tp add moe qt fee],
@@ -43,7 +41,6 @@ module Cns
       esp: '', # limit 72',
       esw: '', # limit 2350',
       esk: '', # limit 20',
-      gmt: '', # limit 1091',
       ust: '', # limit 182',
       usl: '', # limit 448',
       det: '', # limit 27',
@@ -68,7 +65,7 @@ module Cns
       @ops = pop.transform_keys(&:to_sym)
     end
 
-    # mostra situacao completa entre kraken/bitcoinde/paymium/therock/etherscan/greymass & bigquery
+    # mostra situacao completa entre kraken/bitcoinde/etherscan & bigquery
     def mtudo
       [apius, apide, apies].each(&:mresumo)
     end
@@ -88,7 +85,7 @@ module Cns
       Time.now.strftime('TRANSACOES  %Y-%m-%d %H:%M:%S')
     end
 
-    # insere dados novos kraken/bitcoinde/etherscan/greymass no bigquery
+    # insere dados novos kraken/bitcoinde/etherscan no bigquery
     def ptudo
       puts("#{tct} #{pus}, #{pde}, #{peth(apies)}")
     end
@@ -126,11 +123,6 @@ module Cns
       dmo(apide, %w[BITCOINDE], %i[cdet cdel])
     end
 
-    # @return [String] linhas & tabelas afetadas
-    def peos
-      dmo(apigm, %w[EOS], %i[neost])
-    end
-
     # @return [Etherscan] API blockchain ETH
     def apieg(prx)
       Etherscan.new(
@@ -154,11 +146,6 @@ module Cns
     # @return [Etherscan] API blockchain ETH (cron)
     memoize def apiec
       apieg('netc')
-    end
-
-    # @return [Greymass] API blockchain EOS
-    memoize def apigm
-      Greymass.new({wb: sql("SELECT * FROM #{BD}.weos ORDER BY ax"), nt: sql("SELECT * FROM #{BD}.neosx#{TL[:gmt]}")}, ops)
     end
 
     # @return [Kraken] API exchange kraken
@@ -264,7 +251,6 @@ module Cns
       vls =
         kys.map do |k|
           case k
-          when :account_action_seq, :block_num, :blockNumber, :global_action_seq, :isError, :nonce, :timeStamp, :tokenDecimal, :transactionIndex, :nxid, :txreceipt_status, :validatorIndex, :withdrawalIndex then fin(hsh[k])
           when :amount, :btc, :cost, :fee, :gas, :gasPrice, :gasUsed, :margin, :price, :quantity, :value, :vol, :eur, :blockReward, :qtd then fnm(hsh[k])
           when :block_time, :successfully_finished_at, :time, :trade_marked_as_paid_at then fts(hsh[k])
           when :memo, :input, :misc then fqe(hsh[k])
@@ -303,12 +289,6 @@ module Cns
     # @return [String] valores formatados nethk
     def nethk_val(htx)
       fvals(htx, TB[:hethk], :hash)
-    end
-
-    # @param [Hash] htx ledger greymass
-    # @return [String] valores formatados neost
-    def neost_val(htx)
-      fvals(htx, TB[:heost], :global_action_seq)
     end
 
     # @param [Hash] htx trades bitcoinde
