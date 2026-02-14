@@ -73,7 +73,7 @@ module Cns
         mo: moe.upcase,
         ex: vex,
         bq: vbq,
-        ok: vex == vbq ? 'OK' : 'NOK'
+        ok: vex.round(9) == vbq.round(9) ? 'OK' : 'NOK'
       )
     end
 

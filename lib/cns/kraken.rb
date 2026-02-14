@@ -26,7 +26,7 @@ module Cns
     # mosta resumo saldos & transacoes & ajuste dias
     def mresumo
       puts("\nKRAKEN\ntipo                 kraken              bigquery")
-      exd[:sl].sort.each { |key, val| puts(fos(key, val)) }
+      exd[:sl].transform_keys { |k| k.downcase.to_sym }.sort_by { |_, v| v }.each { |k, v| puts(fos(k, v)) }
       mtotais
 
       mtrades
@@ -68,17 +68,23 @@ module Cns
       novxl.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
     end
 
-    # @param [String] moe codigo kraken da moeda
+    # @param [Symbol] moe codigo kraken da moeda
+    # @return [String] moeda formatada
+    def normalize_moe(moe)
+      {xeth: 'ETH', xxbt: 'BTC', zeur: 'EUR'}[moe] || moe.to_s.upcase
+    end
+
+    # @param [Symbol] moe (see normalize_moe)
     # @param [BigDecimal] sal saldo kraken da moeda
     # @return [String] texto formatado saldos
     def fos(moe, sal)
-      vbq = (bqd[:sl]&.fetch(moe.downcase.to_sym, nil) || 0).to_d
+      vbq = (bqd[:sl]&.fetch(moe, nil) || 0).to_d
       format(
         '%<mo>-5.5s %<kr>21.9f %<bq>21.9f %<ok>3.3s',
-        mo: moe.upcase,
+        mo: normalize_moe(moe),
         kr: sal,
         bq: vbq,
-        ok: vbq == sal ? 'OK' : 'NOK'
+        ok: vbq.round(9) == sal.round(9) ? 'OK' : 'NOK'
       )
     end
 
@@ -119,7 +125,7 @@ module Cns
     # @param [Hash] itm recursos kraken
     # @return [Hash<BigDecimal>] moedas & sados
     def pusa(itm)
-      itm.select { |k, _| %i[XETH ZEUR].include?(k) }.transform_values { |v| v.to_d }
+      itm.select { |k, _| %i[XETH ZEUR XXBT].include?(k) }.transform_values { |v| v.to_d }
     end
 
     # @param [Array<Hash>] htx trades kraken
