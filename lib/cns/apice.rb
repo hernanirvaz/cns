@@ -71,17 +71,19 @@ module Cns
     end
 
     # Get trades from Kraken
+    # @param [Integer] days optional number of days to fetch trades from (last N days)
     # @return [Hash] trades kraken
-    def trades_us
-      pag_us_req('TradesHistory', :trades)
+    def trades_us(days = nil)
+      pag_us_req('TradesHistory', :trades, days ? {start: days} : {})
     rescue Curl::Err::CurlError
       []
     end
 
     # Get ledger from Kraken
+    # @param [Integer] days optional number of days to fetch ledger from (last N days)
     # @return [Hash] ledger kraken
-    def ledger_us
-      pag_us_req('Ledgers', :ledger)
+    def ledger_us(days = nil)
+      pag_us_req('Ledgers', :ledger, days ? {start: days} : {})
     rescue Curl::Err::CurlError
       []
     end
@@ -102,15 +104,16 @@ module Cns
     # Generic paginated request handler for Kraken
     # @param [String] uri API endpoint URI
     # @param [Symbol] key Key to extract from the result
+    # @param [Hash] prm Additional options for the request
     # @yield [Array<Hash>] Block to process each batch of results
     # @return [Array<Hash>] Combined results from all pages
-    def pag_us_req(uri, key)
+    def pag_us_req(uri, key, prm = {})
       ary = []
       ofs = 0
       loop do
         # Rate limiting for page requests (2s in Kraken)
         sleep(@lpag - Time.now + 2) if @lpag && Time.now - @lpag < 2
-        ops = {nonce: nnc, ofs: ofs}
+        ops = prm.merge({nonce: nnc, ofs: ofs})
         rcrl(@curl, "#{API[:us]}/#{uri}", method: 'POST', post_data: ops, headers: hus(uri, ops))
         bth = pjsn(@curl).fetch(:result, {}).fetch(key, []).map { |k, v| us_unif(k, v) }
         break if bth.empty?

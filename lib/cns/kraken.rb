@@ -155,7 +155,9 @@ module Cns
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
     memoize def exd
-      {sl: pusa(api.account_us), kt: pust(api.trades_us), kl: pusl(api.ledger_us)}
+      # Numero dias para buscar transacoes
+      dys = ops&.[](:d)&.positive? ? Integer(Time.now - (ops[:d] * 86_400)) : nil
+      {sl: pusa(api.account_us), kt: pust(api.trades_us(dys)), kl: pusl(api.ledger_us(dys))}
     end
 
     # @return [Array<String>] indices trades bigquery
