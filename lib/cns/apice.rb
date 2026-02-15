@@ -71,19 +71,25 @@ module Cns
     end
 
     # Get trades from Kraken
-    # @param [Integer] days optional number of days to fetch trades from (last N days)
+    # @param [Integer] tsp optional timestamp to fetch trades from (last N seconds)
     # @return [Hash] trades kraken
-    def trades_us(days = nil)
-      pag_us_req('TradesHistory', :trades, days ? {start: days} : {})
+    def trades_us(tsp = nil)
+      # last TradesHistory was 2023-06-03 (after that was discontinued by kraken)
+      if tsp && tsp > Integer(Time.new(2023, 6, 3))
+        # return empty array to avoid unnecessary API calls
+        []
+      else
+        pag_us_req('TradesHistory', :trades, tsp ? {start: tsp} : {})
+      end
     rescue Curl::Err::CurlError
       []
     end
 
     # Get ledger from Kraken
-    # @param [Integer] days optional number of days to fetch ledger from (last N days)
+    # @param [Integer] tsp optional timestamp to fetch ledger from (last N seconds)
     # @return [Hash] ledger kraken
-    def ledger_us(days = nil)
-      pag_us_req('Ledgers', :ledger, days ? {start: days} : {})
+    def ledger_us(tsp = nil)
+      pag_us_req('Ledgers', :ledger, tsp ? {start: tsp} : {})
     rescue Curl::Err::CurlError
       []
     end

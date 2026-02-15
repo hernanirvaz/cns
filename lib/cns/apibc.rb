@@ -73,11 +73,14 @@ module Cns
 
     private
 
-    # Calculate (and cache) the block number for N days ago
+    # cache block number for N days ago to avoid multiple API calls
+    # @param [Integer] days number of days in the past to get block number for
+    # @return [Integer] ethereum block number corresponding to N days ago
     def start_block(days)
       return 0 if days.nil?
       return @blks[days] if @blks.key?(days)
 
+      # unix timestamp para obter transacoes 24x60x60 = 86400 segundos
       res = block_req(Integer(Time.now - (days * 86_400)))
       if res[:status] == '1'
         blk = Integer(res[:result], 10)
@@ -90,7 +93,8 @@ module Cns
       0
     end
 
-    # New dedicated method for Block API calls
+    # @param [Integer] timestamp unix timestamp
+    # @return [Hash] ethereum block number corresponding to the given timestamp
     def block_req(timestamp)
       prm = {chainid: 1, module: 'block', action: 'getblocknobytime', timestamp: timestamp, closest: 'after', apikey: @esky}
       pjsn(@escn.get('/v2/api', prm))

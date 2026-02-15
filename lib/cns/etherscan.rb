@@ -214,12 +214,6 @@ module Cns
       ops[:t] || false
     end
 
-    # Numero dias para buscar transacoes
-    # @return [Integer] days in the past to get transacoes
-    def dias
-      ops&.[](:d)&.positive? ? ops[:d] : nil
-    end
-
     # Process timestamp
     # @param [Hash] htx transacao
     # @return [Hash] transaccao filtrada
@@ -259,13 +253,14 @@ module Cns
     # @return [Hash] dados etherscan - address, saldo & transacoes
     def esd(aes)
       acc = aes[:account].downcase
-      dys = dias
+      dys = ops&.[](:d)&.positive? ? ops[:d] : nil
       {
         ax: acc,
         sl: aes[:balance].to_d / (10**18),
         tx: ftik(acc, api.norml_es(acc, days: dys)),
         ix: ftik(acc, api.inter_es(acc, days: dys)),
-        px: fppp(acc, api.block_es(acc)), # block_es (mining) does not support time filtering
+        # block_es (mining) does not support timestamp filtering
+        px: fppp(acc, api.block_es(acc)),
         wx: fwww(acc, api.withw_es(acc, days: dys)),
         kx: ftik(acc, api.token_es(acc, days: dys))
       }

@@ -48,7 +48,7 @@ module Cns
       vkt, vnt = exd[:kt].count, bqd[:nt].count
       vkl, vnl = exd[:kl].count, bqd[:nl].count
 
-      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vkt, b: vnt, o: vkt == vnt ? 'OK' : 'NOK')}")
+      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vkt, b: vnt, o: vkt == vnt ? 'OK' : 'NOK')}") if vkt.positive?
       puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vkl, d: vnl, o: vkl == vnl ? 'OK' : 'NOK')}")
     end
 
@@ -155,9 +155,9 @@ module Cns
 
     # @return [Hash] dados exchange kraken - saldos & transacoes trades e ledger
     memoize def exd
-      # Numero dias para buscar transacoes
-      dys = ops&.[](:d)&.positive? ? Integer(Time.now - (ops[:d] * 86_400)) : nil
-      {sl: pusa(api.account_us), kt: pust(api.trades_us(dys)), kl: pusl(api.ledger_us(dys))}
+      # unix timestamp para obter transacoes 24x60x60 = 86400 segundos
+      tsp = ops&.[](:d)&.positive? ? Integer(Time.now - (ops[:d] * 86_400)) : nil
+      {sl: pusa(api.account_us), kt: pust(api.trades_us(tsp)), kl: pusl(api.ledger_us(tsp))}
     end
 
     # @return [Array<String>] indices trades bigquery
