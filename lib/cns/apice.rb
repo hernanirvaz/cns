@@ -41,7 +41,7 @@ module Cns
     def trades_de(tsp = nil)
       prm = {state: 1}
       prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
-      pag_de_req("#{API[:de]}/trades", prm, :trades)
+      pag_de_req("#{API[:de]}/trades", {state: 1}, :trades)
     rescue Curl::Err::CurlError
       []
     end
@@ -52,7 +52,7 @@ module Cns
     def deposits_de(tsp = nil)
       prm = {state: 2}
       prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
-      pag_de_req("#{API[:de]}/btc/deposits", prm, :deposits) { |i| i.map { |h| deposit_unif(h) } }
+      pag_de_req("#{API[:de]}/btc/deposits", {state: 2}, :deposits) { |i| i.map { |h| deposit_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end
@@ -63,7 +63,7 @@ module Cns
     def withdrawals_de(tsp = nil)
       prm = {state: 1}
       prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
-      pag_de_req("#{API[:de]}/btc/withdrawals", prm, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
+      pag_de_req("#{API[:de]}/btc/withdrawals", {state: 1}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end
