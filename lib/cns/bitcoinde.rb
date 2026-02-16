@@ -43,7 +43,7 @@ module Cns
       vtt, vnt = exd[:tt].count, bqd[:nt].count
       vtl, vnl = exd[:tl].count, bqd[:nl].count
 
-      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}") if vtt.positive?
+      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
       puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vtl, d: vnl, o: vtl == vnl ? 'OK' : 'NOK')}")
     end
 

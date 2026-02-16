@@ -48,7 +48,6 @@ module Cns
     end
 
     # Get deposits from Bitcoin.de, uniformly formatted
-    # @param [Integer] tsp optional unix timestamp (seconds) to fetch deposits from (start date on bitcoin.de API)
     # @return [Array<Hash>] depositos uniformizados bitcoinde
     def deposits_de
       pag_de_req("#{API[:de]}/btc/deposits", {}, :deposits) { |i| i.map { |h| deposit_unif(h) } }
@@ -57,9 +56,8 @@ module Cns
     end
 
     # Get withdrawals from Bitcoin.de, uniformly formatted
-    # @param [Integer] tsp optional unix timestamp (seconds) to fetch withdrawals from (start date on bitcoin.de API)
     # @return [Array<Hash>] withdrawals uniformizadas bitcoinde
-    def withdrawals_de
+    def withdrawals_de(tsp = nil)
       pag_de_req("#{API[:de]}/btc/withdrawals", {}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
     rescue Curl::Err::CurlError
       []
@@ -127,6 +125,10 @@ module Cns
         sleep(@lpag - Time.now + 2) if @lpag && Time.now - @lpag < 2
         ops = prm.merge({nonce: nnc, ofs: ofs})
         rcrl(@curl, "#{API[:us]}/#{uri}", method: 'POST', post_data: ops, headers: hus(uri, ops))
+        unless @curl.response_code == 200
+          puts("Kraken API returned non-200 status: #{@curl.response_code} for #{uri}")
+          break
+        end
         bth = pjsn(@curl).fetch(:result, {}).fetch(key, []).map { |k, v| us_unif(k, v) }
         break if bth.empty?
 
@@ -149,7 +151,6 @@ module Cns
       loop do
         url = "#{uri}?#{URI.encode_www_form(prm.merge(page: pag))}"
         rcrl(@curl, url, headers: hde(url))
-        # Check HTTP status
         unless @curl.response_code == 200
           puts("Bitcoin.de API returned non-200 status: #{@curl.response_code} for #{url}")
           break
