@@ -40,8 +40,9 @@ module Cns
     # @return [Array<Hash>] trades bitcoinde
     def trades_de(tsp = nil)
       prm = {state: 1}
-      prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
-      pag_de_req("#{API[:de]}/trades", {state: 1}, :trades)
+      # Bitcoin.de API needs round UTC Time down to nearest 15-minute mark (00,15,30,45) and format as RFC 3339 with +00:00
+      prm[:date_start] = Time.at(tsp).utc.then { |t| Time.utc(t.year, t.month, t.day, t.hour, 0, 0).strftime('%Y-%m-%dT%H:%M:%S+00:00') } if tsp
+      pag_de_req("#{API[:de]}/trades", prm, :trades)
     rescue Curl::Err::CurlError
       []
     end
@@ -49,10 +50,8 @@ module Cns
     # Get deposits from Bitcoin.de, uniformly formatted
     # @param [Integer] tsp optional unix timestamp (seconds) to fetch deposits from (start date on bitcoin.de API)
     # @return [Array<Hash>] depositos uniformizados bitcoinde
-    def deposits_de(tsp = nil)
-      prm = {state: 2}
-      prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
-      pag_de_req("#{API[:de]}/btc/deposits", {state: 2}, :deposits) { |i| i.map { |h| deposit_unif(h) } }
+    def deposits_de
+      pag_de_req("#{API[:de]}/btc/deposits", {}, :deposits) { |i| i.map { |h| deposit_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end
@@ -60,10 +59,8 @@ module Cns
     # Get withdrawals from Bitcoin.de, uniformly formatted
     # @param [Integer] tsp optional unix timestamp (seconds) to fetch withdrawals from (start date on bitcoin.de API)
     # @return [Array<Hash>] withdrawals uniformizadas bitcoinde
-    def withdrawals_de(tsp = nil)
-      prm = {state: 1}
-      prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
-      pag_de_req("#{API[:de]}/btc/withdrawals", {state: 1}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
+    def withdrawals_de
+      pag_de_req("#{API[:de]}/btc/withdrawals", {}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end
@@ -152,10 +149,17 @@ module Cns
       loop do
         url = "#{uri}?#{URI.encode_www_form(prm.merge(page: pag))}"
         rcrl(@curl, url, headers: hde(url))
+        # Check HTTP status
+        unless @curl.response_code == 200
+          puts("Bitcoin.de API returned non-200 status: #{@curl.response_code} for #{url}")
+          break
+        end
         res = pjsn(@curl)
         bth = res.fetch(key, [])
         ary.concat(block_given? ? yield(bth) : bth)
-        break if res[:page]&.fetch(:current, 0)&.>= res[:page]&.fetch(:last, 0)
+        current = res.dig(:page, :current) || 1
+        last    = res.dig(:page, :last)    || 1
+        break if current >= last || bth.empty?
 
         pag += 1
       end

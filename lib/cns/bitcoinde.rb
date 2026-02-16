@@ -43,7 +43,7 @@ module Cns
       vtt, vnt = exd[:tt].count, bqd[:nt].count
       vtl, vnl = exd[:tl].count, bqd[:nl].count
 
-      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}")
+      puts("TRADES #{format('%<a>20i %<b>21i %<o>3.3s', a: vtt, b: vnt, o: vtt == vnt ? 'OK' : 'NOK')}") if vtt.positive?
       puts("LEDGER #{format('%<c>20i %<d>21i %<o>3.3s', c: vtl, d: vnl, o: vtl == vnl ? 'OK' : 'NOK')}")
     end
 
@@ -161,7 +161,7 @@ module Cns
     memoize def exd
       # unix timestamp para obter transacoes 24x60x60 = 86400 segundos
       tsp = ops&.[](:d)&.positive? ? Integer(Time.now - (ops[:d] * 86_400)) : nil
-      {sl: pdea(api.account_de), tt: pdet(api.trades_de(tsp)), tl: pdel(api.deposits_de(tsp) + api.withdrawals_de(tsp))}
+      {sl: pdea(api.account_de), tt: pdet(api.trades_de(tsp)), tl: pdel(api.deposits_de + api.withdrawals_de)}
     end
 
     # @return [Array<String>] indices trades bigquery
