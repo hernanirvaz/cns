@@ -36,25 +36,34 @@ module Cns
     end
 
     # Get trades from Bitcoin.de
+    # @param [Integer] tsp optional unix timestamp (start date) to fetch trades from
     # @return [Array<Hash>] trades bitcoinde
-    def trades_de
-      pag_de_req("#{API[:de]}/trades", {state: 1}, :trades)
+    def trades_de(tsp = nil)
+      prm = {state: 1}
+      prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
+      pag_de_req("#{API[:de]}/trades", prm, :trades)
     rescue Curl::Err::CurlError
       []
     end
 
     # Get deposits from Bitcoin.de, uniformly formatted
+    # @param [Integer] tsp optional unix timestamp (seconds) to fetch deposits from (start date on bitcoin.de API)
     # @return [Array<Hash>] depositos uniformizados bitcoinde
-    def deposits_de
-      pag_de_req("#{API[:de]}/btc/deposits", {state: 2}, :deposits) { |i| i.map { |h| deposit_unif(h) } }
+    def deposits_de(tsp = nil)
+      prm = {state: 2}
+      prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
+      pag_de_req("#{API[:de]}/btc/deposits", prm, :deposits) { |i| i.map { |h| deposit_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end
 
     # Get withdrawals from Bitcoin.de, uniformly formatted
+    # @param [Integer] tsp optional unix timestamp (seconds) to fetch withdrawals from (start date on bitcoin.de API)
     # @return [Array<Hash>] withdrawals uniformizadas bitcoinde
-    def withdrawals_de
-      pag_de_req("#{API[:de]}/btc/withdrawals", {state: 1}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
+    def withdrawals_de(tsp = nil)
+      prm = {state: 1}
+      prm[:date_start] = Time.at(tsp).utc.iso8601 if tsp
+      pag_de_req("#{API[:de]}/btc/withdrawals", prm, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end

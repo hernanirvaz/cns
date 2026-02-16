@@ -8,6 +8,7 @@ module Cns
   # classe para processar transacoes trades/ledger do bitcoinde
   class Bitcoinde
     extend Memoist
+
     # @return [Array<Hash>] todos os dados bigquery
     # @return [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     attr_reader :bqd, :ops
@@ -158,7 +159,9 @@ module Cns
 
     # @return [Hash] dados exchange bitcoinde - saldos & trades & deposits & withdrawals
     memoize def exd
-      {sl: pdea(api.account_de), tt: pdet(api.trades_de), tl: pdel(api.deposits_de + api.withdrawals_de)}
+      # unix timestamp para obter transacoes 24x60x60 = 86400 segundos
+      tsp = ops&.[](:d)&.positive? ? Integer(Time.now - (ops[:d] * 86_400)) : nil
+      {sl: pdea(api.account_de), tt: pdet(api.trades_de(tsp)), tl: pdel(api.deposits_de(tsp) + api.withdrawals_de(tsp))}
     end
 
     # @return [Array<String>] indices trades bigquery
