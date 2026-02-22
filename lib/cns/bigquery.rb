@@ -252,7 +252,7 @@ module Cns
         kys.map do |k|
           case k
           when :amount, :btc, :cost, :fee, :gas, :gasPrice, :gasUsed, :margin, :price, :quantity, :value, :vol, :eur, :blockReward, :qtd then fnm(hsh[k])
-          when :blockNumber, :timeStamp, :nonce, :transactionIndex, :isError, :txreceipt_status, :tokenDecimal, :withdrawalIndex, :validatorIndex then fin(hsh[k])
+          when :blockNumber, :timeStamp, :nonce, :transactionIndex, :isError, :txreceipt_status, :tokenDecimal, :withdrawalIndex, :validatorIndex, :nxid then fin(hsh[k])
           when :block_time, :successfully_finished_at, :time, :trade_marked_as_paid_at then fts(hsh[k])
           when :memo, :input, :misc then fqe(hsh[k])
           else fqt(hsh[k])

@@ -51,7 +51,7 @@ module Cns
     def mtrades
       return unless ops[:v] && novxt.any?
 
-      puts("\ntrades data       hora     dt criacao tipo  par                     btc      eur")
+      puts("\ntrades data       hora     dt criacao tipo                 crypto            eur")
       novxt.sort_by { |i| -i[:srx] }.each { |o| puts(fot(o)) }
     end
 
@@ -59,7 +59,7 @@ module Cns
     def mledger
       return unless ops[:v] && novxl.any?
 
-      puts("\nledger data       hora     tipo       moe          quantidade              custo")
+      puts("\nledger data       hora     tipo       moe              crypto              custo")
       novxl.sort_by { |i| -i[:srx] }.each { |o| puts(fol(o)) }
     end
 
@@ -82,12 +82,11 @@ module Cns
     # @return [String] texto formatado trade
     def fot(htx)
       format(
-        '%<ky>-6.6s %<dt>19.19s %<dp>10.10s %<ty>-5.5s %<mo>-8.8s %<vl>18.8f %<co>8.2f',
+        '%<ky>-6.6s %<dt>19.19s %<dp>10.10s %<ty>-8.8s %<vl>18.8f %<co>14.2f',
         ky: htx[:trade_id],
-        dt: htx[:successfully_finished_at].strftime('%F %T'),
-        dp: htx[:trade_marked_as_paid_at].strftime('%F'),
+        dt: htx[:successfully_finished_at]&.strftime('%F %T'),
+        dp: htx[:trade_marked_as_paid_at]&.strftime('%F'),
         ty: htx[:type],
-        mo: htx[:trading_pair],
         vl: htx[:btc],
         co: htx[:eur]
       )
@@ -138,9 +137,9 @@ module Cns
         pdes(:successfully_finished_at, t).merge(
           trade_marked_as_paid_at: ptm(t[:trade_marked_as_paid_at]),
           username: t[:trading_partner_information][:username],
-          btc: t[:type] == 'buy' ? t[:amount_currency_to_trade_after_fee].to_d : -1 * t[:amount_currency_to_trade].to_d,
-          eur: t[:volume_currency_to_pay_after_fee].to_d,
-          trading_pair: t[:trading_pair].upcase
+          type: "#{t[:trading_pair][0..2]}#{t[:type]}",
+          btc: t[:type] == 'buy' ? t[:amount_currency_to_trade_after_fee].to_d : t[:amount_currency_to_trade].to_d * -1,
+          eur: t[:volume_currency_to_pay_after_fee].to_d
         )
       end
     end

@@ -10,6 +10,7 @@ module Cns
   # classe para acesso dados centralized exchanges
   class Apice
     API = {de: 'https://api.bitcoin.de/v4', us: 'https://api.kraken.com/0/private'}.freeze
+    MDE = %w[btc eth].freeze
 
     def initialize
       @curl =
@@ -50,15 +51,21 @@ module Cns
     # Get deposits from Bitcoin.de, uniformly formatted
     # @return [Array<Hash>] depositos uniformizados bitcoinde
     def deposits_de
-      pag_de_req("#{API[:de]}/btc/deposits", {}, :deposits) { |i| i.map { |h| deposit_unif(h) } }
+      MDE.flat_map do |cry|
+        pag_de_req("#{API[:de]}/#{cry}/deposits", {}, :deposits) { |i| i.map { |h| deposit_unif(h, cry.upcase) } }
+      end
+      # pag_de_req("#{API[:de]}/btc/deposits", {}, :deposits) { |i| i.map { |h| deposit_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end
 
     # Get withdrawals from Bitcoin.de, uniformly formatted
     # @return [Array<Hash>] withdrawals uniformizadas bitcoinde
-    def withdrawals_de(tsp = nil)
-      pag_de_req("#{API[:de]}/btc/withdrawals", {}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
+    def withdrawals_de
+      MDE.flat_map do |cry|
+        pag_de_req("#{API[:de]}/#{cry}/withdrawals", {}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h, cry.upcase) } }
+      end
+      # pag_de_req("#{API[:de]}/btc/withdrawals", {}, :withdrawals) { |i| i.map { |h| withdrawal_unif(h) } }
     rescue Curl::Err::CurlError
       []
     end
@@ -201,15 +208,17 @@ module Cns
 
     # Uniformly format a deposit from Bitcoin.de
     # @param [Hash] has Deposit data from Bitcoin.de
+    # @param [String] moe Currency code (e.g., 'BTC', 'ETH')
     # @return [Hash] deposito uniformizado bitcoinde
-    def deposit_unif(has)
-      {add: has[:address], time: Time.parse(has[:created_at]), qtd: has[:amount].to_d, nxid: has[:deposit_id].to_i}.merge(tp: 'deposit', moe: 'BTC', fee: 0.to_d)
+    def deposit_unif(has, moe)
+      {add: has[:address], time: Time.parse(has[:created_at]), qtd: has[:amount].to_d, nxid: has[:deposit_id].to_i}.merge(tp: 'deposit', moe: moe, fee: 0.to_d)
     end
 
     # Uniformly format a withdrawal from Bitcoin.de
     # @param [Hash] has Withdrawal data from Bitcoin.de
+    # @param [String] moe Currency code (e.g., 'BTC', 'ETH')
     # @return [Hash] withdrawal uniformizada bitcoinde
-    def withdrawal_unif(has)
+    def withdrawal_unif(has, moe)
       {
         add: has[:address],
         time: Time.parse(has[:transferred_at]),
@@ -217,7 +226,7 @@ module Cns
         fee: has[:network_fee].to_d,
         nxid: has[:withdrawal_id].to_i,
         tp: 'withdrawal',
-        moe: 'BTC'
+        moe: moe
       }
     end
 
